@@ -1,0 +1,3 @@
+*node_modules*
+*firebase_account_service*
+*.env
