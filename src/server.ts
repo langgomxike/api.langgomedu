@@ -32,7 +32,7 @@ app.get("/api/notification", (req: Request, res: Response) => {
 })
 
 app.listen(port, () => {
-  SLog.log(LogType.Infor, "Listen", "server is running at http://localhost", port);
+  SLog.log(LogType.Infor, "Listen", "server is running at http://127.0.0.1", port);
 
   // goi mysql server de chay na
   SMySQL.connect();
