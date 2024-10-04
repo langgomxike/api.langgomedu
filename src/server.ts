@@ -17,9 +17,9 @@ let a = 0;
 app.get("/api/notification", (req: Request, res: Response) => {
 
   const onSuccess = () => {
-    SLog.log(LogType.Infor, "api/notification", "success")
+    SLog.log(LogType.Info, "api/notification", "success")
   };
-  const onFailure = (error:unknown) => {
+  const onFailure = (error: unknown) => {
     SLog.log(LogType.Error, "api/notification", "failed", error)
   };
   const onComplete = () => {
@@ -27,12 +27,12 @@ app.get("/api/notification", (req: Request, res: Response) => {
     res.status(200).json(a);
   };
 
-  SFirebase.pushNotification(2, onSuccess, onFailure, onComplete);  
+  SFirebase.pushNotification(2, onSuccess, onFailure, onComplete);
 
 })
 
 app.listen(port, () => {
-  SLog.log(LogType.Infor, "Listen", "server is running at http://localhost", port);
+  SLog.log(LogType.Info, "Listen", "server is running at http://127.0.0.1", port);
 
   // goi mysql server de chay na
   SMySQL.connect();
