@@ -2,8 +2,8 @@ import User from "./User";
 
 export default class CV {
     public user: User | undefined
-    biography: string;
-    title: string;
+    public biography: string;
+    public title: string;
 
     constructor(user: User | undefined = undefined, biography = "", title = "") {
         this.user = user;
