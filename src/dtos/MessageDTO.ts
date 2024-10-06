@@ -1,7 +1,10 @@
-import File from "./File";
-import User from "./User";
+import { DTO } from "./DTO";
+import File from "../models/File";
+import User from "../models/User";
+import Message from "../models/Message";
 
-export default class Message {
+export default class MessageDTO implements DTO {
+    //properties
     public id: number;
     public fromUser: User | undefined;
     public toUser: User | undefined;
@@ -14,7 +17,7 @@ export default class Message {
     public toUserStatus: boolean;
     public asRead: boolean;
 
-
+    //constructor
     constructor(
         id = -1, 
         fromUser: User | undefined = undefined, 
@@ -39,6 +42,25 @@ export default class Message {
         this.fromUserStatus = fromUserStatus;
         this.toUserStatus = toUserStatus;
         this.asRead = asRead;
+    }
+
+    //methods
+    public fromModel(message: Message) {
+        if(message){
+            return new MessageDTO (
+                message.id,
+                message.fromUser,
+                message.toUser,
+                message.content,
+                message.file,
+                message.isImage,
+                message.createdAt,
+                message.replyToMessage,
+                message.fromUserStatus,
+                message.toUserStatus,
+                message.asRead,
+            )
+        }
     }
 
 }

@@ -1,3 +1,3 @@
 export interface DTO {
-  fromModel(o: object): DTO | null;
+  fromModel(o: object): any | undefined;
 }
