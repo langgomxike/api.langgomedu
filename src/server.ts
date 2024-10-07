@@ -18,6 +18,7 @@ import PermissionController from "./controllers/PermissionController";
 import RatingController from "./controllers/RatingController";
 import RoleController from "./controllers/RoleController";
 import StudentController from "./controllers/StudentController";
+import LessonController from "./controllers/LessonController";
 
 dotenv.config(); // doc bien moi truong
 
@@ -69,6 +70,13 @@ app.post(CLASS_BASE_URL + "/levels", ClassController.createLevel);
 app.put(CLASS_BASE_URL + "/levels/:id", ClassController.updateLevel);
 app.patch(CLASS_BASE_URL + "/levels/:id", ClassController.updateLevel);
 app.delete(CLASS_BASE_URL + "/levels/:id", ClassController.deleteLevel);
+
+const LESSON_BASE_URL = Config.PREFIX + "/lessons";
+app.get(LESSON_BASE_URL + "/:class", LessonController.getLessonsInClass);
+app.post(LESSON_BASE_URL + "/:class", LessonController.createLesson);
+app.put(LESSON_BASE_URL + "/:id", LessonController.updateLesson);
+app.patch(LESSON_BASE_URL + "/:id", LessonController.updateLesson);
+app.delete(LESSON_BASE_URL + "/:id", LessonController.deleteLesson);
 
 const REPORT_BASE_URL = Config.PREFIX + "/reports";
 app.get(REPORT_BASE_URL + "/class", ReportController.getAllClassReports);
