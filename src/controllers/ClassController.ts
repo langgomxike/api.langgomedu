@@ -1,31 +1,63 @@
 import express, { Response } from 'express';
 export default class ClassController {
-    public static login(request: express.Request, response: express.Response): Response<any, Record<string, any>> {
-        return response.send("login");
+    public static getSuggestedClasses(request: express.Request, response: express.Response) {
+
     }
 
-    public static register(request: express.Request, response: express.Response): Response<any, Record<string, any>> {
-        return response.send("login");
+    public static getTearchingClasses(request: express.Request, response: express.Response) {
+
     }
 
-    public static auth(request: express.Request, response: express.Response): Response<any, Record<string, any>> {
-        return response.send("login");
+    public static getAttendingClasses(request: express.Request, response: express.Response) {
+
     }
 
-    public static updateUserInfo(request: express.Request, response: express.Response): Response<any, Record<string, any>> {
-        return response.send("login");
+    public static getAllClasses(request: express.Request, response: express.Response) {
+
     }
 
-    public static deleteAccount(request: express.Request, response: express.Response): Response<any, Record<string, any>> {
-        return response.send("login");
+    public static getClass(request: express.Request, response: express.Response) {
+
     }
 
-    public static getAllUsers(request: express.Request, response: express.Response): Response<any, Record<string, any>> {
-        return response.send("login");
+    public static creatClass(request: express.Request, response: express.Response) {
+
     }
 
-    public static getUserInfo(request: express.Request, response: express.Response): Response<any, Record<string, any>> {
-        return response.send("login");
+    public static updateClass(request: express.Request, response: express.Response) {
+
+    }
+
+    public static deleteClass(request: express.Request, response: express.Response) {
+
+    }
+
+    public static requestToAttendClass(request: express.Request, response: express.Response) {
+
+    }
+
+    public static acceptToAttendClass(request: express.Request, response: express.Response) {
+
+    }
+
+    public static approveToAttendClass(request: express.Request, response: express.Response) {
+
+    }
+
+    public static getAllLevels(request: express.Request, response: express.Response) {
+
+    }
+
+    public static createLevel(request: express.Request, response: express.Response) {
+
+    }
+
+    public static updateLevel(request: express.Request, response: express.Response) {
+
+    }
+
+    public static deleteLevel(request: express.Request, response: express.Response) {
+
     }
 
 }
