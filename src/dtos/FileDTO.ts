@@ -31,7 +31,7 @@ export default class FileDTO implements DTO {
             file.name,
             file.path,
             file.capacity,
-            file.imageWith,
+            file.imageWidth,
             file.imageHeight,
             file.createdAt,
             file.updatedAt

@@ -1,22 +1,14 @@
-import { DTO } from "./DTO";
-import Permission from "../models/Permission";
-
-export default class PermissionDTO implements DTO {
-    //properties
+import Role from './../models/Role';
+export default class RoleDTO {
     public id: number;
-    public permission: string;
-    //constructor
-    constructor(id = -1, permission = "") {
+    public role: string;
+
+    constructor(id: number = -1, role: string = "") {
         this.id = id;
-        this.permission = permission;
+        this.role = role;
     }
-    //methods
-    public fromModel(permission :Permission) {
-        if(permission){
-            return new PermissionDTO(
-                permission.id,
-                permission.permission,
-            )
-        }
+
+    fromModel(role: Role): RoleDTO {
+        return new RoleDTO(role.id, role.role);
     }
 }

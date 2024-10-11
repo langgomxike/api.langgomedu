@@ -1,56 +1,43 @@
 import { DTO } from "./DTO";
 import User from "../models/User";
-import Role from "../models/Role";
+import FileDTO from './FileDTO';
+import RoleDTO from "./RoleDTO";
 
 export default class UserDTO implements DTO {
-
     //properties
-    public id: string
-    public fullname: string
-    public email: string
-    public phoneNumber: string
-    public token: string
-    public avatar?: File
-    public role?: Role
+    public id: string;
+    public full_name: string;
+    public email: string;
+    public phone_number: string;
+    public token: string;
+    public avatar: FileDTO | undefined;
+    public role: RoleDTO | undefined;
 
     //constructor
     constructor(
-        id: string, 
-        fullname: string,
-        email: string,
-        phoneNumber: string,
-        token: string,
-        avatar?: File,
-        role?: Role ){
-            this.id = id
-            this.fullname = fullname
-            this.email = email
-            this.phoneNumber = phoneNumber
-            this.token = token
-            this.avatar = avatar
-            this.role = role
-        }
+        id: string = "",
+        fullName: string = "",
+        email: string = "",
+        phoneNumber: string = "",
+        token: string = "",
+        avatar: FileDTO | undefined = undefined,
+        role: RoleDTO | undefined = undefined) {
+        this.id = id;
+        this.full_name = fullName;
+        this.email = email;
+        this.phone_number = phoneNumber;
+        this.token = token;
+        this.avatar = avatar;
+        this.role = role;
+    }
 
-    public fromModel(user : User): UserDTO | string | undefined {
-        if(user){
-
-            // Kiểm tra kiểu của avatar
-            const avatar = user.avatar instanceof File ? user.avatar : undefined;
-            
-            // Kiểm tra kiểu của role
-            const role = user.role instanceof Role ? user.role : undefined;
-
-            return new UserDTO(
-                user.id,
-                user.fullName,
-                user.email,
-                user.phoneNumber,
-                user.token,
-                avatar,
-                role
-            )
-        }else{
-            return "DTO is unvalid";
-        }
+    public fromModel(user: User) {
+        this.id = user.id;
+        this.full_name = user.fullName;
+        this.email = user.email;
+        this.phone_number = user.phoneNumber;
+        this.token = user.token;
+        this.avatar = user.avatar && new FileDTO().fromModel(user.avatar) || undefined;
+        this.role = user.role && new RoleDTO().fromModel(user.role) || undefined;
     }
 }
