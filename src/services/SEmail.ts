@@ -55,7 +55,7 @@ export default class SEmail {
 
     // Ghi log thông tin email
     SLog.log(
-      LogType.Infor,
+      LogType.Info,
       "Email options check",
       "show email options",
       mailOptions

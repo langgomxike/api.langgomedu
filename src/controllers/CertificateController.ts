@@ -25,7 +25,7 @@ export default class CertificateController {
 
     }
 
-    public static updateLevle(request: express.Request, response: express.Response) {
+    public static updateLevel(request: express.Request, response: express.Response) {
 
     }
 
