@@ -37,8 +37,7 @@ export default class UserController {
             const userDTOs: UserDTO[] = [];
 
             users.forEach(user => {
-                const userDTO = new UserDTO();
-                userDTO.fromModel(user);
+                const userDTO = new UserDTO(user);
                 userDTOs.push(userDTO);
             });
 

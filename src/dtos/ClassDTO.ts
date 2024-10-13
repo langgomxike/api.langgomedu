@@ -1,69 +1,50 @@
 import Class from "../models/Class";
-import ClassLevel from "../models/ClassLevel";
-import Major from "../models/Major";
-import User from "../models/User";
-import { DTO } from "./DTO";
+import MajorDTO from './MajorDTO';
+import UserDTO from "./UserDTO";
+import ClassLevelDTO from './ClassLevelDTO';
 
-export default class ClassDTO implements DTO {
+export default class ClassDTO {
     //properties
     public id: number;
     public title: string;
     public description: string;
-    public major: Major | undefined;
-    public tutor: User | undefined;
-    public author: User | undefined;
+    public major: MajorDTO | undefined;
+    public tutor: UserDTO | undefined;
+    public author: UserDTO | undefined;
     public price: number;
-    public classCreationFee: number;
-    public classLevel: ClassLevel | undefined;
-    public maxLearner: number;
-    public startedAt: Date;
-    public endedAt: Date;
+    public class_creation_fee: number;
+    public class_level: ClassLevelDTO | undefined;
+    public max_learner: number;
+    public started_at: number;
+    public ended_at: number;
+    public created_at: number;
+    public updated_at: number;
+    public address_1: string;
+    public address_2: string;
+    public address_3: string;
+    public address_4: string;
+
     //constructor
     constructor(
-        id = -1,
-        title = '',
-        desc = '',
-        major: Major| undefined = undefined,
-        tutor: User|undefined = undefined,
-        author: User|undefined = undefined,
-        price = 0,
-        classCreationFee = 0,
-        classLevel: ClassLevel|undefined = undefined,
-        maxLearner = 0,
-        startedAt = new Date(),
-        endedAt= new Date(),
-    ){
-        this.id = id;
-        this.title = title;
-        this.description = desc;
-        this.major = major;
-        this.tutor = tutor;
-        this.author = author;
-        this.price = price;
-        this.classCreationFee = classCreationFee;
-        this.classLevel = classLevel;
-        this.maxLearner = maxLearner;
-        this.startedAt = startedAt;
-        this.endedAt = endedAt;
+        _class: Class
+    ) {
+        this.id = _class.id;
+        this.title = _class.title;
+        this.description = _class.description;
+        this.major = _class.major && new MajorDTO(_class.major) || undefined;
+        this.tutor = _class.tutor && new UserDTO(_class.tutor) || undefined;
+        this.author = _class.author && new UserDTO(_class.author) || undefined;
+        this.price = _class.price;
+        this.class_creation_fee = _class.classCreationFee;
+        this.class_level = _class.classLevel && new ClassLevelDTO(_class.classLevel) || undefined;
+        this.max_learner = _class.maxLearners;
+        this.started_at = _class.startedAt.getTime();
+        this.ended_at = _class.endedAt.getTime();
+        this.created_at = _class.createdAt.getTime();
+        this.updated_at = _class.updatedAt.getTime();
+        this.address_1 = _class.address1;
+        this.address_2 = _class.address2;
+        this.address_3 = _class.address3;
+        this.address_4 = _class.address4;
     }
-    //methods
-    public fromModel(_class: Class) {
-        if(_class){
-            return new ClassDTO(
-                _class.id,
-                _class.title,
-                _class.description,
-                _class.major instanceof Major ? _class.major : undefined,
-                _class.tutor instanceof User ? _class.tutor : undefined,
-                _class.author instanceof User ? _class.author : undefined,
-                _class.price,
-                _class.classCreationFee,
-                _class.classLevel,
-                _class.maxLearners,
-                _class.startedAt,
-                _class.endedAt
-            )
-        }
-    }
-
 }
