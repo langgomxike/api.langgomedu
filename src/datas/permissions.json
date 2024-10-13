@@ -1,0 +1,26 @@
+[
+    {
+        "id": 1,
+        "permission": "Xem tất cả người dùng"
+    },
+    {
+        "id": 2,
+        "permission": "Xóa người dùng"
+    },
+    {
+        "id": 3,
+        "permission": "Xem khóa học"
+    },
+    {
+        "id": 4,
+        "permission": "Tham gia khóa học"
+    },
+    {
+        "id": 5,
+        "permission": "Tạo khóa học"
+    },
+    {
+        "id": 6,
+        "permission": "Quản lý phân quyền"
+    }
+]

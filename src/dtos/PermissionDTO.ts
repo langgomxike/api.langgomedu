@@ -11,12 +11,10 @@ export default class PermissionDTO implements DTO {
         this.permission = permission;
     }
     //methods
-    public fromModel(permission :Permission) {
-        if(permission){
-            return new PermissionDTO(
-                permission.id,
-                permission.permission,
-            )
-        }
+    public fromModel(permission: Permission): PermissionDTO {
+        return new PermissionDTO(
+            permission.id,
+            permission.permission,
+        )
     }
 }

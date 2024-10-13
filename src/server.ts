@@ -17,6 +17,7 @@ import RatingController from "./controllers/RatingController";
 import RoleController from "./controllers/RoleController";
 import StudentController from "./controllers/StudentController";
 import LessonController from "./controllers/LessonController";
+import DatabaseSeeder from "./seeders/DatabaseSeeder";
 
 dotenv.config(); // doc bien moi truong
 
@@ -117,7 +118,7 @@ app.put(OTHER_SKILL_BASE_URL, OtherSkillController.updateSkill);
 app.patch(OTHER_SKILL_BASE_URL, OtherSkillController.updateSkill);
 app.delete(OTHER_SKILL_BASE_URL, OtherSkillController.deleteSkill);
 
-const PERMISSION_BASE_URL = Config.PREFIX + "/permissions";
+const PERMISSION_BASE_URL = Config.PREFIX + "/permissions"; // host:port/PREFIX/permissions (PREFIX: /api)
 app.get(PERMISSION_BASE_URL, PermissionController.getAllPermissions);
 
 const RATING_BASE_URL = Config.PREFIX + "/ratings";
@@ -153,6 +154,9 @@ app.listen(port, () => {
   SLog.log(LogType.Info, "Listen", "server is running at http://127.0.0.1", port);
 
   SMySQL.connect();
+  DatabaseSeeder.seed();
 });
+
+DatabaseSeeder.fake();
 
 export default app;
