@@ -1,0 +1,42 @@
+[
+    {
+        "id": "1",
+        "vn_name": "Kỹ năng giao tiếp",
+        "en_name": "Communication Skills",
+        "ja_name": "コミュニケーションスキル",
+        "progress_percent": "80",
+        "icon_id": "1"
+    },
+    {
+        "id": "2",
+        "vn_name": "Kỹ năng lãnh đạo",
+        "en_name": "Leadership Skills",
+        "ja_name": "リーダーシップスキル",
+        "progress_percent": "70",
+        "icon_id": "2"
+    },
+    {
+        "id": "3",
+        "vn_name": "Kỹ năng phân tích",
+        "en_name": "Analytical Skills",
+        "ja_name": "分析スキル",
+        "progress_percent": "90",
+        "icon_id": "3"
+    },
+    {
+        "id": "4",
+        "vn_name": "Kỹ năng làm việc nhóm",
+        "en_name": "Teamwork Skills",
+        "ja_name": "チームワークスキル",
+        "progress_percent": "85",
+        "icon_id": "4"
+    },
+    {
+        "id": "5",
+        "vn_name": "Kỹ năng quản lý thời gian",
+        "en_name": "Time Management Skills",
+        "ja_name": "タイムマネジメントスキル",
+        "progress_percent": "75",
+        "icon_id": "5"
+    }
+]

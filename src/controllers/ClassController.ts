@@ -1,4 +1,10 @@
 import express, { Response } from 'express';
+import ClassDTO from './../dtos/ClassDTO';
+import SResponse, { ResponseStatus } from '../services/SResponse';
+import SLog, { LogType } from '../services/SLog';
+import Class from '../models/Class';
+import SMySQL from '../services/SMySQL';
+import SClass from '../services/SClass';
 export default class ClassController {
     public static getSuggestedClasses(request: express.Request, response: express.Response) {
 
@@ -25,7 +31,25 @@ export default class ClassController {
     }
 
     public static updateClass(request: express.Request, response: express.Response) {
+        // SLog.log(LogType.Info, "updateClass", "body in request", request.body);
+        const _classDTO: ClassDTO = request?.body?.class;
 
+        if (!_classDTO) {
+            SResponse.getResponse(ResponseStatus.Internal_Server_Error, null, "Class is not valid", response);
+            return;
+        }
+
+        const _class = new Class().fromDTO(_classDTO);
+
+        SClass.updateClass(_class, (result) => {
+            if (!result) {
+                SResponse.getResponse(ResponseStatus.Internal_Server_Error, null, "Server cannot update", response);
+                return;
+            }
+
+            SResponse.getResponse(ResponseStatus.OK, null, "Update class successfully", response);
+            return;
+        });
     }
 
     public static deleteClass(request: express.Request, response: express.Response) {

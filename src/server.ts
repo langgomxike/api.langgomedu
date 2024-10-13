@@ -24,6 +24,8 @@ dotenv.config(); // doc bien moi truong
 const app: Express = express();
 const port = process.env.PORT || 3000;
 
+app.use(express.json());
+
 app.get("/", (req: Request, res: Response) => {
   res.redirect("/api");
 });
@@ -58,8 +60,8 @@ app.get(CLASS_BASE_URL + "/attending", ClassController.getAttendingClasses);
 app.get(CLASS_BASE_URL + "/teaching", ClassController.getTeachingClasses);
 app.get(CLASS_BASE_URL + "/:id", ClassController.getClass);
 app.post(CLASS_BASE_URL, ClassController.createClass);
-app.put(CLASS_BASE_URL + "/:id", ClassController.updateClass);
-app.patch(CLASS_BASE_URL + "/:id", ClassController.updateClass);
+app.put(CLASS_BASE_URL, ClassController.updateClass);
+app.patch(CLASS_BASE_URL, ClassController.updateClass);
 app.delete(CLASS_BASE_URL + "/:id", ClassController.deleteClass);
 app.post(CLASS_BASE_URL + "/request/:id", ClassController.requestToAttendClass);
 app.post(CLASS_BASE_URL + "/accept/:id", ClassController.acceptToAttendClass);
@@ -155,7 +157,7 @@ app.listen(port, () => {
 
   SMySQL.connect();
   DatabaseSeeder.seed();
-});
+}); 
 
 DatabaseSeeder.fake();
 

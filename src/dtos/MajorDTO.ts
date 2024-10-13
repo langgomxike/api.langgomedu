@@ -1,7 +1,7 @@
 import { DTO } from "./DTO";
 import Major from "../models/Major";
 
-export default class MajorDTO implements DTO {
+export default class MajorDTO {
     //properties
     public id: number;
     public vnName: string;
@@ -9,22 +9,10 @@ export default class MajorDTO implements DTO {
     public enName: string;
 
     //constructor
-    constructor(id = -1, vnName = "", jaName = "", enName = "") {
-        this.id = id;
-        this.vnName = vnName;
-        this.jaName = jaName;
-        this.enName = enName;
-    }
-
-    //method
-    public fromModel(major : Major) {
-        if(major){
-            return new MajorDTO(
-                major.id,
-                major.vnName,
-                major.jaName,
-                major.enName
-            )
-        }
+    constructor(major: Major) {
+        this.id = major.id;
+        this.vnName = major.vnName;
+        this.jaName = major.jaName;
+        this.enName = major.enName;
     }
 }
