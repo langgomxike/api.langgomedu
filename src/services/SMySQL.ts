@@ -43,4 +43,18 @@ export default class SMySQL {
       }
     });
   }
+
+  public static getConnection(onNext: (connection: Connection | null) => void): void {
+    if (!this.connect) {
+      this.connect(
+        () => {
+          onNext(this.connection);
+        },
+        () => {
+          onNext(null);
+        },);
+    } else {
+      onNext(this.connection);
+    }
+  }
 }

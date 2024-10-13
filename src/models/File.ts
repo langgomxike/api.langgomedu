@@ -4,7 +4,7 @@ export default class File {
     public name: string;
     public path: string;
     public capacity: number;
-    public imageWith: number;
+    public imageWidth: number;
     public imageHeight: number;
     public createdAt: Date;
     public updatedAt: Date;
@@ -14,7 +14,7 @@ export default class File {
         this.name = name;
         this.path = path;
         this.capacity = capacity;
-        this.imageWith = imageWidth;
+        this.imageWidth = imageWidth;
         this.imageHeight = imageHeight;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;

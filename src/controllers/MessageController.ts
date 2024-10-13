@@ -5,7 +5,7 @@ export default class MessageController {
 
     }
 
-    public static getInboxedUsers(request: express.Request, response: express.Response) {
+    public static getInboxUsers(request: express.Request, response: express.Response) {
 
     }
 

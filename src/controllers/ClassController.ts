@@ -4,7 +4,7 @@ export default class ClassController {
 
     }
 
-    public static getTearchingClasses(request: express.Request, response: express.Response) {
+    public static getTeachingClasses(request: express.Request, response: express.Response) {
 
     }
 
@@ -20,7 +20,7 @@ export default class ClassController {
 
     }
 
-    public static creatClass(request: express.Request, response: express.Response) {
+    public static createClass(request: express.Request, response: express.Response) {
 
     }
 

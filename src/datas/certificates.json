@@ -1,0 +1,42 @@
+[
+    {
+        "id": 1,
+        "name": "Chứng chỉ Lập trình viên Java",
+        "vn_desc": "Mô tả chứng chỉ Lập trình viên Java",
+        "en_desc": "Java Developer Certificate Description",
+        "ja_desc": "Javaプログラマー証明書の説明",
+        "icon_id": 1
+    },
+    {
+        "id": 2,
+        "name": "Chứng chỉ Quản trị Mạng",
+        "vn_desc": "Mô tả chứng chỉ Quản trị Mạng",
+        "en_desc": "Network Administration Certificate Description",
+        "ja_desc": "ネットワーク管理者証明書の説明",
+        "icon_id": 2
+    },
+    {
+        "id": 3,
+        "name": "Chứng chỉ Kỹ sư Dữ liệu",
+        "vn_desc": "Mô tả chứng chỉ Kỹ sư Dữ liệu",
+        "en_desc": "Data Engineer Certificate Description",
+        "ja_desc": "データエンジニア証明書の説明",
+        "icon_id": 3
+    },
+    {
+        "id": 4,
+        "name": "Chứng chỉ An ninh Mạng",
+        "vn_desc": "Mô tả chứng chỉ An ninh Mạng",
+        "en_desc": "Cyber Security Certificate Description",
+        "ja_desc": "サイバーセキュリティ証明書の説明",
+        "icon_id": 4
+    },
+    {
+        "id": 5,
+        "name": "Chứng chỉ Phân tích Dữ liệu",
+        "vn_desc": "Mô tả chứng chỉ Phân tích Dữ liệu",
+        "en_desc": "Data Analytics Certificate Description",
+        "ja_desc": "データ分析証明書の説明",
+        "icon_id": 5
+    }
+]

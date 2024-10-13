@@ -2,9 +2,7 @@ import express, { Express, Request, Response } from "express";
 import dotenv from "dotenv";
 import SLog, { LogType } from "./services/SLog";
 import SMySQL from "./services/SMySQL";
-import SFirebase from "./services/SFirebase";
 import UserController from "./controllers/UserController";
-import path, { dirname } from "path";
 import AttendanceController from "./controllers/AttendanceController";
 import Config from "./configs/Config";
 import CertificateController from "./controllers/CertificateController";
@@ -19,6 +17,7 @@ import RatingController from "./controllers/RatingController";
 import RoleController from "./controllers/RoleController";
 import StudentController from "./controllers/StudentController";
 import LessonController from "./controllers/LessonController";
+import DatabaseSeeder from "./seeders/DatabaseSeeder";
 
 dotenv.config(); // doc bien moi truong
 
@@ -47,8 +46,8 @@ app.patch(CERTIFICATE_BASE_URL, CertificateController.updateCertificate);
 app.delete(CERTIFICATE_BASE_URL, CertificateController.deleteCertificate);
 app.get(CERTIFICATE_BASE_URL + "/levels", CertificateController.getAllLevels);
 app.post(CERTIFICATE_BASE_URL + "/levels", CertificateController.createLevel);
-app.put(CERTIFICATE_BASE_URL + "/levels", CertificateController.updateLevle);
-app.patch(CERTIFICATE_BASE_URL + "/levels", CertificateController.updateLevle);
+app.put(CERTIFICATE_BASE_URL + "/levels", CertificateController.updateLevel);
+app.patch(CERTIFICATE_BASE_URL + "/levels", CertificateController.updateLevel);
 app.delete(CERTIFICATE_BASE_URL + "/levels", CertificateController.deleteLevel);
 app.get(CERTIFICATE_BASE_URL + "/:id/levels", CertificateController.getAllLevelsOfOneCertificate);
 
@@ -56,9 +55,9 @@ const CLASS_BASE_URL = Config.PREFIX + "/classes";
 app.get(CLASS_BASE_URL, ClassController.getAllClasses);
 app.get(CLASS_BASE_URL + "/suggests", ClassController.getSuggestedClasses);
 app.get(CLASS_BASE_URL + "/attending", ClassController.getAttendingClasses);
-app.get(CLASS_BASE_URL + "/tearching", ClassController.getTearchingClasses);
+app.get(CLASS_BASE_URL + "/teaching", ClassController.getTeachingClasses);
 app.get(CLASS_BASE_URL + "/:id", ClassController.getClass);
-app.post(CLASS_BASE_URL, ClassController.creatClass);
+app.post(CLASS_BASE_URL, ClassController.createClass);
 app.put(CLASS_BASE_URL + "/:id", ClassController.updateClass);
 app.patch(CLASS_BASE_URL + "/:id", ClassController.updateClass);
 app.delete(CLASS_BASE_URL + "/:id", ClassController.deleteClass);
@@ -107,7 +106,7 @@ app.delete(MAJOR_BASE_URL + "/:id", MajorController.deleteMajor);
 
 const MESSAGE_BASE_URL = Config.PREFIX + "/messages";
 app.get(MESSAGE_BASE_URL + "/contacts/:id", MessageController.getContacts);
-app.get(MESSAGE_BASE_URL + "/inboxes/:id", MessageController.getInboxedUsers);
+app.get(MESSAGE_BASE_URL + "/inboxes/:id", MessageController.getInboxUsers);
 app.get(MESSAGE_BASE_URL + "/:from/:to", MessageController.getMessages);
 app.post(MESSAGE_BASE_URL, MessageController.createMessage);
 app.delete(MESSAGE_BASE_URL, MessageController.deleteMessage);
@@ -119,7 +118,7 @@ app.put(OTHER_SKILL_BASE_URL, OtherSkillController.updateSkill);
 app.patch(OTHER_SKILL_BASE_URL, OtherSkillController.updateSkill);
 app.delete(OTHER_SKILL_BASE_URL, OtherSkillController.deleteSkill);
 
-const PERMISSION_BASE_URL = Config.PREFIX + "/permissions";
+const PERMISSION_BASE_URL = Config.PREFIX + "/permissions"; // host:port/PREFIX/permissions (PREFIX: /api)
 app.get(PERMISSION_BASE_URL, PermissionController.getAllPermissions);
 
 const RATING_BASE_URL = Config.PREFIX + "/ratings";
@@ -155,6 +154,9 @@ app.listen(port, () => {
   SLog.log(LogType.Info, "Listen", "server is running at http://127.0.0.1", port);
 
   SMySQL.connect();
+  DatabaseSeeder.seed();
 });
+
+DatabaseSeeder.fake();
 
 export default app;
