@@ -34,6 +34,8 @@ app.get("/api", (req: Request, res: Response) => {
   res.sendFile(__dirname + "/index.html");
 });
 
+app.use('/public', express.static('public'));
+
 const ATTENDANCE_BASE_URL = Config.PREFIX + "/attendances";
 app.get(ATTENDANCE_BASE_URL + "/histories", AttendanceController.getAttendanceHistories);
 app.post(ATTENDANCE_BASE_URL + "/request", AttendanceController.requestAttendance);
