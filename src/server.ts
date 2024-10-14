@@ -33,12 +33,12 @@ app.get("/", (req: Request, res: Response) => {
 app.get("/api", (req: Request, res: Response) => {
   res.sendFile(__dirname + "/index.html");
 });
-
+ 
 const ATTENDANCE_BASE_URL = Config.PREFIX + "/attendances";
 app.get(ATTENDANCE_BASE_URL + "/histories", AttendanceController.getAttendanceHistories);
 app.post(ATTENDANCE_BASE_URL + "/request", AttendanceController.requestAttendance);
 app.post(ATTENDANCE_BASE_URL + "/accept", AttendanceController.acceptAttendance);
-app.get(ATTENDANCE_BASE_URL + "/:id", AttendanceController.getAttendance);
+app.get(ATTENDANCE_BASE_URL + "/id", AttendanceController.getAttendance);
 
 const CERTIFICATE_BASE_URL = Config.PREFIX + "/certificates";
 app.get(CERTIFICATE_BASE_URL, CertificateController.getAllCertificates);
