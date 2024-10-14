@@ -43,21 +43,4 @@ export default class Class {
         this.address3 = address3;
         this.address4 = address4;
     }
-
-    fromDTO(classDTO: ClassDTO): Class {
-        return new Class(
-            classDTO.id,
-            classDTO.title,
-            classDTO.description,
-            classDTO.major,
-            classDTO.tutor && new User().fromDTO(classDTO.tutor) || undefined,
-            classDTO.author && new User().fromDTO(classDTO.author) || undefined,
-            classDTO.price,
-            classDTO.class_creation_fee,
-            classDTO.class_level && new ClassLevel().fromDTO(classDTO.class_level) || undefined,
-            classDTO.max_learner,
-            new Date(classDTO.started_at),
-            new Date(classDTO.ended_at)
-        )
-    }
 }
