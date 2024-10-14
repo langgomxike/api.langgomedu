@@ -33,7 +33,7 @@ app.get("/", (req: Request, res: Response) => {
 app.get("/api", (req: Request, res: Response) => {
   res.sendFile(__dirname + "/index.html");
 });
- 
+
 const ATTENDANCE_BASE_URL = Config.PREFIX + "/attendances";
 app.get(ATTENDANCE_BASE_URL + "/histories", AttendanceController.getAttendanceHistories);
 app.post(ATTENDANCE_BASE_URL + "/request", AttendanceController.requestAttendance);
@@ -157,7 +157,7 @@ app.listen(port, () => {
 
   SMySQL.connect();
   DatabaseSeeder.seed();
-}); 
+});
 
 DatabaseSeeder.fake();
 

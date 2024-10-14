@@ -16,7 +16,7 @@ export default class SClass {
         const updateValues: Array<string | number> = [];
 
         if (_class.title) {
-            updateCols.push("`title`=?"); 
+            updateCols.push("`title`=?");
             updateValues.push(_class.title);
         }
 
@@ -42,31 +42,31 @@ export default class SClass {
             updateValues.push(_class.price);
         }
 
-        if (_class.classCreationFee) {
+        if (_class.class_creation_fee) {
             updateCols.push("`class_creation_fee`=?");
-            updateValues.push(_class.classCreationFee);
+            updateValues.push(_class.class_creation_fee);
         }
 
-        if (_class.classLevel?.id) {
+        if (_class.class_level?.id) {
             updateCols.push("`class_level_id`=?");
-            updateValues.push(_class.classLevel.id);
+            updateValues.push(_class.class_level.id);
 
         }
 
-        if (_class.maxLearners) {
+        if (_class.max_learners) {
             updateCols.push("`max_learners`=?");
-            updateValues.push(_class.maxLearners);
+            updateValues.push(_class.max_learners);
 
         }
 
-        if (_class.startedAt) {
+        if (_class.started_at) {
             updateCols.push("`started_at`=?");
-            updateValues.push(_class.startedAt.getTime());
+            updateValues.push(_class.started_at.getTime());
         }
 
-        if (_class.endedAt) {
+        if (_class.ended_at) {
             updateCols.push("`ended_at`=?");
-            updateValues.push(_class.endedAt.getTime());
+            updateValues.push(_class.ended_at.getTime());
         }
 
         if (_class.address1) {
