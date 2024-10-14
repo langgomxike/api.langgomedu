@@ -1,4 +1,3 @@
-import ClassLevelDTO from "../dtos/ClassLevelDTO";
 
 export default class ClassLevel {
     public id: number;
@@ -11,14 +10,5 @@ export default class ClassLevel {
         this.vnName = vnName;
         this.jpName = jpName;
         this.enName = enName;
-    }
-
-    fromDTO(levelDTO: ClassLevelDTO): ClassLevel {
-        return new ClassLevel(
-            levelDTO.id,
-            levelDTO.vn_name,
-            levelDTO.jp_name,
-            levelDTO.en_name,
-        );
     }
 }

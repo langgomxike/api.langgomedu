@@ -21,6 +21,4 @@ export default class Attendance {
         this.tutor_accept_attended = tutorAcceptAttended;
         this.attended_at = attendedAt.getTime();
     }
-
-    ["constructor"]: { name: "RowDataPacket"; };
 }
