@@ -5,7 +5,7 @@ import SResponse, { ResponseStatus } from "../services/SResponse";
 export default class PermissionController {
     public static getAllPermissions(request: express.Request, response: express.Response) {
 
-        // //data lấy từ database sẽ viết trong service 
+        //data lấy từ database sẽ viết trong service 
         // SPermission.getAllPermissions((permissions) => {
         //     const permissionDTOs: PermissionDTO[] = [];
 

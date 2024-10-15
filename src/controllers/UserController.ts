@@ -46,7 +46,7 @@ export default class UserController {
         //     return response.json(SResponse.getResponse(ResponseStatus.OK, userDTOs, "get all users", response));
         // });
     }
-
+ 
     public static getUser(request: express.Request, response: express.Response) {
 
     }
