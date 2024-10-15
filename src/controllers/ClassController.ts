@@ -1,5 +1,4 @@
 import express, { Response } from 'express';
-import ClassDTO from './../dtos/ClassDTO';
 import SResponse, { ResponseStatus } from '../services/SResponse';
 import SLog, { LogType } from '../services/SLog';
 import Class from '../models/Class';
@@ -30,31 +29,69 @@ export default class ClassController {
 
     }
 
+    /**
+  * Updates a class based on the data provided in the request body.
+  * 
+  * @param request - The Express request object containing the class data in the request body.
+  * @param response - The Express response object used to send the response back to the client.
+  */
     public static updateClass(request: express.Request, response: express.Response) {
-        // SLog.log(LogType.Info, "updateClass", "body in request", request.body);
-        const _classDTO: ClassDTO = request?.body?.class;
+        // Extract the class object from the request body, or set to undefined if not provided
+        const updatedClass: Class | undefined = request?.body?.class ?? undefined;
 
-        if (!_classDTO) {
+        // If the class object is not valid, return an internal server error response
+        if (!updatedClass) {
             SResponse.getResponse(ResponseStatus.Internal_Server_Error, null, "Class is not valid", response);
             return;
         }
 
-        const _class = new Class().fromDTO(_classDTO);
-
-        SClass.updateClass(_class, (result) => {
+        // Update the class using SClass.updateClass and handle the callback
+        SClass.updateClass(updatedClass, (result) => {
+            // If the update fails, return an internal server error response
             if (!result) {
                 SResponse.getResponse(ResponseStatus.Internal_Server_Error, null, "Server cannot update", response);
                 return;
             }
 
+            // If the update succeeds, return a success response
             SResponse.getResponse(ResponseStatus.OK, null, "Update class successfully", response);
             return;
         });
     }
 
+    /**
+     * Deletes a class based on the ID provided in the request query parameters.
+     * 
+     * @param request - The Express request object containing the class ID in the query parameters.
+     * @param response - The Express response object used to send the response back to the client.
+     */
     public static deleteClass(request: express.Request, response: express.Response) {
+        // Parse the class ID from the query parameters, defaulting to -1 if not provided
+        const id: number = +(request?.query?.id ?? -1);
 
+        // Log the request query parameters for debugging purposes
+        SLog.log(LogType.Info, "deleteClass", "show query params", request?.query);
+
+        // If the ID is not valid (less than or equal to zero), return an internal server error response
+        if (id <= 0) {
+            SResponse.getResponse(ResponseStatus.Internal_Server_Error, null, "Server cannot deleted class with id " + id, response);
+            return;
+        }
+
+        // Attempt to perform a soft delete on the class with the specified ID
+        SClass.softDeleteClass(id, (result) => {
+            // If the deletion fails, return an internal server error response
+            if (!result) {
+                SResponse.getResponse(ResponseStatus.Internal_Server_Error, null, "Server cannot deleted class with id " + id, response);
+                return;
+            }
+
+            // If the deletion succeeds, return a success response
+            SResponse.getResponse(ResponseStatus.OK, null, "Update class with id " + id + " successfully", response);
+            return;
+        });
     }
+
 
     public static requestToAttendClass(request: express.Request, response: express.Response) {
 
