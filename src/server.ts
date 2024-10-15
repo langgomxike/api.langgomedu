@@ -58,7 +58,7 @@ app.get(CERTIFICATE_BASE_URL + "/:id/levels", CertificateController.getAllLevels
 const CLASS_BASE_URL = Config.PREFIX + "/classes";
 app.get(CLASS_BASE_URL, ClassController.getAllClasses);
 app.get(CLASS_BASE_URL + "/suggests", ClassController.getSuggestedClasses);
-app.get(CLASS_BASE_URL + "/attending", ClassController.getAttendingClasses);
+app.post(CLASS_BASE_URL + "/attending/", ClassController.getAttendingClasses);
 app.get(CLASS_BASE_URL + "/teaching", ClassController.getTeachingClasses);
 app.get(CLASS_BASE_URL + "/:id", ClassController.getClass);
 app.post(CLASS_BASE_URL, ClassController.createClass);
@@ -161,6 +161,6 @@ app.listen(port, () => {
   DatabaseSeeder.seed();
 }); 
 
-DatabaseSeeder.fake();
+// DatabaseSeeder.fake();
 
 export default app;
