@@ -1,8 +1,24 @@
+import { response } from 'express';
 import Class from './../models/Class';
 import SLog, { LogType } from './SLog';
 import SMySQL from './SMySQL';
 export default class SClass {
-    public static getAllClasses(onNext: (classes: Class[]) => void) { }
+    //get all Classes 
+    public static getAllClasses(onNext: (classes: Class[]) => void) {
+        let sql = "SELECT * FROM `classes` "
+        SMySQL.getConnection(connection => {
+            connection?.query(sql, [], error => {
+                if (error) {
+                    onNext([]);
+                    SLog.log(LogType.Error, "GetAllClass", "Cannot update class", error);
+                    return;
+                }
+
+                // onNext();
+                return;
+            });
+        });
+     }
 
     public static getClassById(id: number, onNext: (_class: Class | undefined) => void) { }
 

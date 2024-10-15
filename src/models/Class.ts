@@ -2,8 +2,9 @@ import ClassDTO from "../dtos/ClassDTO";
 import ClassLevel from "./ClassLevel";
 import Major from "./Major";
 import User from "./User";
+import { QueryResult, RowDataPacket } from 'mysql2';
 
-export default class Class {
+export default class Class implements RowDataPacket {
     public id: number;
     public title: string;
     public description: string;
@@ -43,6 +44,8 @@ export default class Class {
         this.address3 = address3;
         this.address4 = address4;
     }
+    
+    ["constructor"]: { name: "RowDataPacket"; };
 
     fromDTO(classDTO: ClassDTO): Class {
         return new Class(
