@@ -1,7 +1,5 @@
-import UserDTO from "../dtos/UserDTO";
 import File from "./File";
 import Role from "./Role";
-
 export default class User {
     public id: string;
     public fullName: string;
@@ -23,15 +21,5 @@ export default class User {
         this.token = token;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
-    }
-
-    fromDTO(userDTO: UserDTO): User {
-        return new User(
-            userDTO.id,
-            userDTO.full_name,
-            userDTO.email,
-            userDTO.phone_number,
-            userDTO.password,
-            userDTO.token);
     }
 }
