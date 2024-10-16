@@ -10,9 +10,22 @@ const types = [console.warn, console.error, console.info];
 export default class SLog {
 
     public static log(type: LogType = LogType.Info, header: string = "", message: string = "", data: unknown = {}) {
+
+        //process the header (add space between each words)
+        let newHeader = "";
+
+        for (let i = 0; i < header.length; i++) {
+            if (header[i].match(/^[A-Z]$/)) {
+                newHeader += " ";
+            }
+
+            newHeader += header[i];
+        }
+
+        //log the message
         console.group();
         console.log(types[type]);
-        console.log("Header   ", header?.toUpperCase());
+        console.log("Header   ", newHeader?.toUpperCase());
         console.log("Message  ", message);
         console.log("Data     ", data);
         console.groupEnd();

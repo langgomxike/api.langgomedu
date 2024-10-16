@@ -62,9 +62,9 @@ app.get(CLASS_BASE_URL + "/attending", ClassController.getAttendingClasses);
 app.get(CLASS_BASE_URL + "/teaching", ClassController.getTeachingClasses);
 app.get(CLASS_BASE_URL + "/:id", ClassController.getClass);
 app.post(CLASS_BASE_URL, ClassController.createClass);
-// app.put(CLASS_BASE_URL, ClassController.updateClass);
-// app.patch(CLASS_BASE_URL, ClassController.updateClass);
-app.delete(CLASS_BASE_URL + "/:id", ClassController.deleteClass);
+app.put(CLASS_BASE_URL, ClassController.updateClass);
+app.patch(CLASS_BASE_URL, ClassController.updateClass);
+app.delete(CLASS_BASE_URL, ClassController.deleteClass);
 app.post(CLASS_BASE_URL + "/request/:id", ClassController.requestToAttendClass);
 app.post(CLASS_BASE_URL + "/accept/:id", ClassController.acceptToAttendClass);
 app.post(CLASS_BASE_URL + "/approve/:id", ClassController.approveToAttendClass);
@@ -159,7 +159,7 @@ app.listen(port, () => {
 
   SMySQL.connect();
   DatabaseSeeder.seed();
-}); 
+});
 
 DatabaseSeeder.fake();
 
