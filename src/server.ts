@@ -62,8 +62,8 @@ app.get(CLASS_BASE_URL + "/attending", ClassController.getAttendingClasses);
 app.get(CLASS_BASE_URL + "/teaching", ClassController.getTeachingClasses);
 app.get(CLASS_BASE_URL + "/:id", ClassController.getClass);
 app.post(CLASS_BASE_URL, ClassController.createClass);
-app.put(CLASS_BASE_URL, ClassController.updateClass);
-app.patch(CLASS_BASE_URL, ClassController.updateClass);
+// app.put(CLASS_BASE_URL, ClassController.updateClass);
+// app.patch(CLASS_BASE_URL, ClassController.updateClass);
 app.delete(CLASS_BASE_URL + "/:id", ClassController.deleteClass);
 app.post(CLASS_BASE_URL + "/request/:id", ClassController.requestToAttendClass);
 app.post(CLASS_BASE_URL + "/accept/:id", ClassController.acceptToAttendClass);
@@ -123,7 +123,7 @@ app.patch(OTHER_SKILL_BASE_URL, OtherSkillController.updateSkill);
 app.delete(OTHER_SKILL_BASE_URL, OtherSkillController.deleteSkill);
 
 const PERMISSION_BASE_URL = Config.PREFIX + "/permissions"; // host:port/PREFIX/permissions (PREFIX: /api)
-app.get(PERMISSION_BASE_URL, PermissionController.getAllPermissions);
+// app.get(PERMISSION_BASE_URL, PermissionController.getAllPermissions);
 
 const RATING_BASE_URL = Config.PREFIX + "/ratings";
 app.get(RATING_BASE_URL + "/:class", RatingController.getRatings);
@@ -142,7 +142,7 @@ app.delete(STUDENT_BASE_URL + "/:id", StudentController.deleteStudent);
 
 
 const USER_BASE_URL = Config.PREFIX + "/users";
-app.get(USER_BASE_URL, UserController.getAllUsers);
+// app.get(USER_BASE_URL, UserController.getAllUsers);
 app.get(USER_BASE_URL + "/:id", UserController.getUser);
 app.post(USER_BASE_URL + "/register", UserController.registerUser);
 app.post(USER_BASE_URL + "/register/admin", UserController.registerAdmin);
