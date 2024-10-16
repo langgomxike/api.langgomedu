@@ -1,5 +1,4 @@
 import File from "./File";
-import MessageType from "./MeesageType";
 import User from "./User";
 
 export default class Message {
@@ -8,7 +7,7 @@ export default class Message {
     public toUser: User | undefined;
     public content: string;
     public file: File | undefined;
-    public isImage: MessageType | undefined;
+    public isImage: boolean;
     public createdAt: Date;
     public replyToMessage: Message | undefined;
     public fromUserStatus: boolean;
@@ -16,7 +15,7 @@ export default class Message {
     public asRead: boolean;
 
 
-    constructor(id = -1, fromUser: User | undefined = undefined, toUser: User | undefined = undefined, content = "", file: File | undefined, isImage: MessageType | undefined, createdAt = new Date(), replyToMessage: Message | undefined, fromUserStatus = true, toUserStatus = true, asRead = false) {
+    constructor(id = -1, fromUser: User | undefined = undefined, toUser: User | undefined = undefined, content = "", file: File | undefined, isImage = false, createdAt = new Date(), replyToMessage: Message | undefined, fromUserStatus = true, toUserStatus = true, asRead = false) {
         this.id = id;
         this.content = content;
         this.isImage = isImage;
