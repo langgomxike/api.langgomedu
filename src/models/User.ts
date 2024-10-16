@@ -1,6 +1,5 @@
 import File from "./File";
 import Role from "./Role";
-
 export default class User {
     public id: string;
     public fullName: string;
@@ -13,14 +12,14 @@ export default class User {
     public createdAt: Date;
     public updatedAt: Date;
 
-    constructor(id = "", fullName = "", email = "", phoneNumber = "", password = "", token = "") {
+    constructor(id = "", fullName = "", email = "", phoneNumber = "", password = "", token = "", createdAt: Date = new Date(), updatedAt: Date = new Date()) {
         this.id = id;
         this.fullName = fullName;
-        this.email = "";
-        this.phoneNumber = "";
+        this.email = email;
+        this.phoneNumber = phoneNumber;
         this.password = password;
         this.token = token;
-        this.createdAt = new Date();
-        this.updatedAt = new Date();
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 }

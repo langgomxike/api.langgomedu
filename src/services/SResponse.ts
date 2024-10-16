@@ -1,6 +1,6 @@
 import { Response } from "express";
 
-export enum ReponseStatus {
+export enum ResponseStatus {
   "OK",
   "Forbidden",
   "Not_Found",
@@ -16,13 +16,13 @@ type ResponseType = {
 };
 export default class SResponse {
   public static getResponse(
-    status: ReponseStatus = ReponseStatus.OK,
+    status: ResponseStatus = ResponseStatus.OK,
     data: unknown,
     message: string = "",
     res: Response
   ) {
     const re: ResponseType = {
-      status: ReponseStatus[status].replace("_", " "),
+      status: ResponseStatus[status].replace("_", " "),
       status_code: statuses[status],
       message: message,
       data: data ? (data as object) : {},

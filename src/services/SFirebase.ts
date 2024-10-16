@@ -1,6 +1,6 @@
 import dotenv from "dotenv";
 import admin, { database, initializeApp } from "firebase-admin";
-import firebaseAccount from "../../firebase_account_service.json";
+import firebaseAccount from "../../admin_firebase_account_service.json";
 import SLog, { LogType } from "./SLog";
 
 export default class SFirebase {
@@ -10,7 +10,7 @@ export default class SFirebase {
     if (!this.dbRef) {
       dotenv.config();
 
-      const dbURL = process.env.FIREBASE_DATABSE || "";
+      const dbURL = process.env.FIREBASE_DATABASE || "";
 
       this.dbRef = admin
         .initializeApp({
@@ -22,7 +22,7 @@ export default class SFirebase {
         ?.database();
 
       SLog.log(
-        LogType.Infor,
+        LogType.Info,
         "Firebase Database",
         "Connected to firebase realtime database",
         (this.dbRef.app.name as unknown) ?? {}

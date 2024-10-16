@@ -1,0 +1,44 @@
+[
+    {
+        "id": 1,
+        "vn_gender": "Nam",
+        "en_gender": "Male",
+        "ja_gender": "男性"
+    },
+    {
+        "id": 2,
+        "vn_gender": "Nữ",
+        "en_gender": "Female",
+        "ja_gender": "女性"
+    },
+    {
+        "id": 3,
+        "vn_gender": "Gay",
+        "en_gender": "Gay",
+        "ja_gender": "ゲイ"
+    },
+    {
+        "id": 4,
+        "vn_gender": "Les",
+        "en_gender": "Lesbian",
+        "ja_gender": "レズビアン"
+    },
+    {
+        "id": 5,
+        "vn_gender": "Chuyển giới",
+        "en_gender": "Transgender",
+        "ja_gender": "トランスジェンダー"
+    },
+    {
+        "id": 6,
+        "vn_gender": "Bisexual",
+        "en_gender": "Bisexual",
+        "ja_gender": "バイセクシュアル"
+    },
+    {
+        "id": 7, 
+        "vn_gender": "Khác",
+        "en_gender": "Other",
+        "ja_gender": "その他"
+    }
+]

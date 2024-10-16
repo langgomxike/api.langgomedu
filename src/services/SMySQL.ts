@@ -2,7 +2,6 @@ import * as mysql from "mysql2";
 import dotenv from "dotenv";
 import { Connection } from "mysql2";
 import SLog, { LogType } from "./SLog";
-import e from "express";
 
 export default class SMySQL {
   private static connection: Connection;
@@ -25,23 +24,37 @@ export default class SMySQL {
   }
 
   public static connect(
-    onSuccess: () => void = () => {},
-    onFailure: () => void = () => {},
-    onComlete: () => void = () => {}
+    onSuccess: () => void = () => { },
+    onFailure: () => void = () => { },
+    onComplete: () => void = () => { }
   ) {
     this.init();
     this.connection.connect((err) => {
       if (!err) {
         onSuccess();
-        onComlete();
+        onComplete();
 
-        SLog.log(LogType.Infor, "connect", "connected to mysql");
+        SLog.log(LogType.Info, "connect", "connected to mysql");
       } else {
         onFailure();
-        onComlete();
+        onComplete();
 
-        SLog.log(LogType.Infor, "connect", "can not connect to mysql", err);
+        SLog.log(LogType.Info, "connect", "can not connect to mysql", err);
       }
     });
+  }
+
+  public static getConnection(onNext: (connection: Connection | null) => void): void {
+    if (!this.connect) {
+      this.connect(
+        () => {
+          onNext(this.connection);
+        },
+        () => {
+          onNext(null);
+        },);
+    } else {
+      onNext(this.connection);
+    }
   }
 }

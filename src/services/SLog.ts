@@ -2,24 +2,32 @@
 export enum LogType {
     "Warning",
     "Error",
-    "Infor"
+    "Info"
 }
 
 const types = [console.warn, console.error, console.info];
 
 export default class SLog {
 
-   public static log (type:LogType = LogType.Infor, header:string = "", message:string ="", data:unknown = {}) {
+    public static log(type: LogType = LogType.Info, header: string = "", message: string = "", data: unknown = {}) {
 
-    console.group();
+        //process the header (add space between each words)
+        let newHeader = "";
 
-    console.log(types[type]);
-    console.log("Header   " + header?.toUpperCase());
-    console.log("Message  " + message);
-    console.log("Data     " + data);
-    
-    console.groupEnd();
-    
-    
-   }
+        for (let i = 0; i < header.length; i++) {
+            if (header[i].match(/^[A-Z]$/)) {
+                newHeader += " ";
+            }
+
+            newHeader += header[i];
+        }
+
+        //log the message
+        console.group();
+        console.log(types[type]);
+        console.log("Header   ", newHeader?.toUpperCase());
+        console.log("Message  ", message);
+        console.log("Data     ", data);
+        console.groupEnd();
+    }
 }
