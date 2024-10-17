@@ -8,10 +8,121 @@ export default class SClass {
 
     public static getClassesByKey(key: string, onNext: (classes: Class[]) => void) { }
 
-    public static getClassesLearning(
+    public static getAttendingClasses(
+        user_id: string,
+        onNext: (classes: Class[]) => void
+      ) {
+      // SQL query to fetch class information, including tutor, major, and class level details
+        const sql = `SELECT 
+                    JSON_OBJECT(
+                          'id', classes.id ,
+                          'title', classes.title ,
+                          'description', classes.description,
+                          'price', classes.price,
+                          'class_creation_fee', classes.class_creation_fee,
+                          'max_learners', classes.max_learners,
+                          'started_at', classes.started_at,
+                          'ended_at', classes.ended_at,
+                          'created_at', classes.created_at,
+                          'updated_at', classes.updated_at,
+                          'address_1', classes.address_1,
+                          'address_2', classes.address_2,
+                          'address_3', classes.address_3,
+                          'address_4', classes.address_4
+                      ) AS class,
+                      JSON_OBJECT(
+                          'id', users.id,
+                          'name', users.full_name,
+                          'email', users.email,
+                          'phone_number', users.phone_number,
+                          'avatar', JSON_OBJECT(
+                                      'id', files_tutor.id,
+                                      'name', files_tutor.name,
+                                      'path', files_tutor.path
+                                  )
+                      ) AS tutor,
+                      JSON_OBJECT(
+                          'id', majors.id,
+                          'vn_name', majors.vn_name,
+                          'en_name', majors.en_name,
+                          'ja_name', majors.ja_name,
+                          'icon', JSON_OBJECT(
+                                      'id', files_major.id,
+                                      'name', files_major.name,
+                                      'path', files_major.path
+                                  )
+                      ) AS major,
+                      JSON_OBJECT(
+                          'id', class_levels.id,
+                          'vn_name', class_levels.vn_name,
+                          'en_name', class_levels.en_name,
+                          'ja_name', class_levels.ja_name
+                      ) AS class_level
+                  FROM classes
+                  INNER JOIN users ON users.id = classes.tutor_id
+                  LEFT JOIN majors ON majors.id = classes.major_id
+                  LEFT JOIN class_levels ON class_levels.id = classes.class_level_id
+                  LEFT JOIN files AS files_tutor ON files_tutor.id = users.avatar_id
+                  LEFT JOIN files AS files_major ON files_major.id = majors.icon_id
+                  LEFT JOIN in_class_members ON in_class_members.class_id = classes.id
+                  WHERE in_class_members.user_id = ?;`;
+    
+      // Get a database connection
+        SMySQL.getConnection((connection) => {
+           // Execute the SQL query with the provided user_id as a parameter
+          connection?.execute<any[]>(sql, [user_id], (err, rows) => {
+            if (err) {
+               // If an error occurs, return an empty array to the callback
+              onNext([]);
+              return;
+            }
+    
+            const classes: Class[] = [];
+  
+            // Iterate through each row from the query result
+            rows.forEach((row) => {
+              const tutor = row.tutor;
+                const major = row.major;
+                const class_level = row.class_level;
+    
+              const _class = new Class(
+                row.class.id,
+                row.class.title,
+                row.class.description,
+                major,        // Major details
+                tutor,        // Tutor details
+                undefined,    // Optional undefined parameter (author)
+                row.class.price,
+                row.class.class_creation_fee,
+                class_level, // Class level details
+                row.class.max_learners,
+                new Date(row.class.started_at),
+                new Date(row.class.ended_at),
+                new Date(row.class.created_at),
+                new Date(row.class.updated_at),
+                row.class.address_1,
+                row.class.address_2,
+                row.class.address_3,
+                row.class.address_4
+              );
+  
+              // Add the created Class instance to the classes array
+              classes.push(_class);
+            });
+    
+            // SLog.log(LogType.Info, "getAttendingClasses","get Attending Classes",rows );
+          
+            // Return the list of classes via the callback function
+            return onNext(classes);
+          });
+        });
+      }
+
+    public static getTeachingClasses(
       user_id: string,
       onNext: (classes: Class[]) => void
     ) {
+    // SQL query to fetch class information, including tutor, major, and class level details
       const sql = `SELECT 
                   JSON_OBJECT(
                         'id', classes.id ,
@@ -33,13 +144,19 @@ export default class SClass {
                         'id', users.id,
                         'name', users.full_name,
                         'email', users.email,
-                        'phone_number', users.phone_number
+                        'phone_number', users.phone_number,
+                        'avatar', JSON_OBJECT(
+                                    'path', files_tutor.path
+                                )
                     ) AS tutor,
                     JSON_OBJECT(
                         'id', majors.id,
                         'vn_name', majors.vn_name,
                         'en_name', majors.en_name,
-                        'ja_name', majors.ja_name
+                        'ja_name', majors.ja_name,
+                        'icon', JSON_OBJECT(
+                                    'path', files_major.path
+                                )
                     ) AS major,
                     JSON_OBJECT(
                         'id', class_levels.id,
@@ -51,16 +168,23 @@ export default class SClass {
                 INNER JOIN users ON users.id = classes.tutor_id
                 LEFT JOIN majors ON majors.id = classes.major_id
                 LEFT JOIN class_levels ON class_levels.id = classes.class_level_id
+                LEFT JOIN files AS files_tutor ON files_tutor.id = users.avatar_id
+                LEFT JOIN files AS files_major ON files_major.id = majors.icon_id
                 WHERE classes.tutor_id = ?;`;
   
+    // Get a database connection
       SMySQL.getConnection((connection) => {
+         // Execute the SQL query with the provided user_id as a parameter
         connection?.execute<any[]>(sql, [user_id], (err, rows) => {
           if (err) {
+             // If an error occurs, return an empty array to the callback
             onNext([]);
             return;
           }
   
           const classes: Class[] = [];
+
+          // Iterate through each row from the query result
           rows.forEach((row) => {
             const tutor = row.tutor;
               const major = row.major;
@@ -70,36 +194,139 @@ export default class SClass {
               row.class.id,
               row.class.title,
               row.class.description,
-              major,
-              tutor,
-              undefined,
+              major,        // Major details
+              tutor,        // Tutor details
+              undefined,    // Optional undefined parameter (author)
               row.class.price,
               row.class.class_creation_fee,
-              class_level,
+              class_level, // Class level details
               row.class.max_learners,
-              row.class.started_at,
-              row.class.ended_at,
-              row.class.created_at,
-              row.class.updated_at,
+              new Date(row.class.started_at),
+              new Date(row.class.ended_at),
+              new Date(row.class.created_at),
+              new Date(row.class.updated_at),
               row.class.address_1,
               row.class.address_2,
               row.class.address_3,
               row.class.address_4
             );
+
+            // Add the created Class instance to the classes array
             classes.push(_class);
           });
   
-          // SLog.log(
-          //   LogType.Info,
-          //   "getAttendingClasses",
-          //   "get Attending Classes",
-          //   rows
-          // );
-  
+          // SLog.log(LogType.Info, "getAttendingClasses","get Attending Classes",rows );
+        
+          // Return the list of classes via the callback function
           return onNext(classes);
         });
       });
     }
+
+    public static getCreatedClasses(
+        user_id: string,
+        onNext: (classes: Class[]) => void
+      ) {
+      // SQL query to fetch class information, including tutor, major, and class level details
+        const sql = `SELECT 
+                    JSON_OBJECT(
+                          'id', classes.id ,
+                          'title', classes.title ,
+                          'description', classes.description,
+                          'price', classes.price,
+                          'class_creation_fee', classes.class_creation_fee,
+                          'max_learners', classes.max_learners,
+                          'started_at', classes.started_at,
+                          'ended_at', classes.ended_at,
+                          'created_at', classes.created_at,
+                          'updated_at', classes.updated_at,
+                          'address_1', classes.address_1,
+                          'address_2', classes.address_2,
+                          'address_3', classes.address_3,
+                          'address_4', classes.address_4
+                      ) AS class,
+                      JSON_OBJECT(
+                          'id', users.id,
+                          'name', users.full_name,
+                          'email', users.email,
+                          'phone_number', users.phone_number,
+                          'avatar', JSON_OBJECT(
+                                      'path', files_tutor.path
+                                  )
+                      ) AS tutor,
+                      JSON_OBJECT(
+                          'id', majors.id,
+                          'vn_name', majors.vn_name,
+                          'en_name', majors.en_name,
+                          'ja_name', majors.ja_name,
+                          'icon', JSON_OBJECT(
+                                      'path', files_major.path
+                                  )
+                      ) AS major,
+                      JSON_OBJECT(
+                          'id', class_levels.id,
+                          'vn_name', class_levels.vn_name,
+                          'en_name', class_levels.en_name,
+                          'ja_name', class_levels.ja_name
+                      ) AS class_level
+                  FROM classes
+                  INNER JOIN users ON users.id = classes.tutor_id
+                  LEFT JOIN majors ON majors.id = classes.major_id
+                  LEFT JOIN class_levels ON class_levels.id = classes.class_level_id
+                  LEFT JOIN files AS files_tutor ON files_tutor.id = users.avatar_id
+                  LEFT JOIN files AS files_major ON files_major.id = majors.icon_id
+                  WHERE classes.author_id = ?;`;
+    
+      // Get a database connection
+        SMySQL.getConnection((connection) => {
+           // Execute the SQL query with the provided user_id as a parameter
+          connection?.execute<any[]>(sql, [user_id], (err, rows) => {
+            if (err) {
+               // If an error occurs, return an empty array to the callback
+              onNext([]);
+              return;
+            }
+    
+            const classes: Class[] = [];
+  
+            // Iterate through each row from the query result
+            rows.forEach((row) => {
+              const tutor = row.tutor;
+                const major = row.major;
+                const class_level = row.class_level;
+    
+              const _class = new Class(
+                row.class.id,
+                row.class.title,
+                row.class.description,
+                major,        // Major details
+                tutor,        // Tutor details
+                undefined,    // Optional undefined parameter (author)
+                row.class.price,
+                row.class.class_creation_fee,
+                class_level, // Class level details
+                row.class.max_learners,
+                new Date(row.class.started_at),
+                new Date(row.class.ended_at),
+                new Date(row.class.created_at),
+                new Date(row.class.updated_at),
+                row.class.address_1,
+                row.class.address_2,
+                row.class.address_3,
+                row.class.address_4
+              );
+  
+              // Add the created Class instance to the classes array
+              classes.push(_class);
+            });
+    
+            // SLog.log(LogType.Info, "getAttendingClasses","get Attending Classes",rows );
+          
+            // Return the list of classes via the callback function
+            return onNext(classes);
+          });
+        });
+      }
 
     public static storeClass(_class: Class, onNext: (id: number | undefined) => void) { }
 

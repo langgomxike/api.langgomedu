@@ -1,6 +1,6 @@
 import File from "./../models/File";
 export default class Major {
-    private id: number;
+    public id: number;
     public vn_name: string;
     public ja_name: string;
     public en_name: string;

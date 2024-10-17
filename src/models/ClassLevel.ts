@@ -1,14 +1,14 @@
 
 export default class ClassLevel {
     public id: number;
-    public vnName: string;
-    public jpName: string;
-    public enName: string;
+    public vn_name: string;
+    public jp_name: string;
+    public en_name: string;
 
-    constructor(id = -1, vnName = "", jpName = "", enName = "") {
+    constructor(id = -1, vn_name = "", jp_name = "", en_name = "") {
         this.id = id;
-        this.vnName = vnName;
-        this.jpName = jpName;
-        this.enName = enName;
+        this.vn_name = vn_name;
+        this.jp_name = jp_name;
+        this.en_name = en_name;
     }
 }
