@@ -5,7 +5,6 @@ import SMySQL from './SMySQL';
 import Attendance from '../models/Attendance';
 import User from '../models/User';
 import Major from '../models/Major';
-import { on } from 'events';
 export default class SClass {
         /**
      * Truy vấn tất cả các lớp học từ cơ sở dữ liệu và trả kết quả dưới dạng mảng các đối tượng Class.
