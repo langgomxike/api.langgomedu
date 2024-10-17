@@ -44,8 +44,9 @@ export default class ClassController {
             SResponse.getResponse(ResponseStatus.Internal_Server_Error, null, 'unknown this class id', response);
             return;
         }
-        SClass.getClassById(class_id, (_class)=>{
-            SResponse.getResponse(ResponseStatus.OK, _class, 'get class by id', response);
+        SClass.getClassById(class_id, (_class, related_classes)=>{
+            
+            SResponse.getResponse(ResponseStatus.OK, {class: _class,related_classes: related_classes}, 'get class by id', response);
             return;
         })
 
