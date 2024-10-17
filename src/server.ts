@@ -19,12 +19,25 @@ import StudentController from "./controllers/StudentController";
 import LessonController from "./controllers/LessonController";
 import DatabaseSeeder from "./seeders/DatabaseSeeder";
 
+// call all the required packages
+const bodyParser= require('body-parser')
+const multer = require('multer');
+const upload = multer();
+
+
 dotenv.config(); // doc bien moi truong
 
 const app: Express = express();
 const port = process.env.PORT || 3000;
 
+
+// Middleware để parse JSON và urlencoded
+app.use(bodyParser.json()); 
+app.use(bodyParser.urlencoded({ extended: true }));
+
 app.use(express.json());
+
+
 
 app.get("/", (req: Request, res: Response) => {
   res.redirect("/api");
@@ -34,7 +47,7 @@ app.get("/api", (req: Request, res: Response) => {
   res.sendFile(__dirname + "/index.html");
 });
 
-app.use('/public', express.static('public'));
+app.use('/', express.static('public'));
 
 const ATTENDANCE_BASE_URL = Config.PREFIX + "/attendances";
 app.get(ATTENDANCE_BASE_URL + "/histories", AttendanceController.getAttendanceHistories);
@@ -58,8 +71,9 @@ app.get(CERTIFICATE_BASE_URL + "/:id/levels", CertificateController.getAllLevels
 const CLASS_BASE_URL = Config.PREFIX + "/classes";
 app.get(CLASS_BASE_URL, ClassController.getAllClasses);
 app.get(CLASS_BASE_URL + "/suggests", ClassController.getSuggestedClasses);
-app.get(CLASS_BASE_URL + "/attending", ClassController.getAttendingClasses);
-app.get(CLASS_BASE_URL + "/teaching", ClassController.getTeachingClasses);
+app.get(CLASS_BASE_URL + "/attending/:user_id", ClassController.getAttendingClasses);
+app.get(CLASS_BASE_URL + "/teaching/:user_id", ClassController.getTeachingClasses);
+app.get(CLASS_BASE_URL + "/created/:user_id", ClassController.getCreatedClasses);
 app.get(CLASS_BASE_URL + "/isowner", ClassController.getAuthorClasses);
 app.get(CLASS_BASE_URL + "/:class_id", ClassController.getClass);
 app.post(CLASS_BASE_URL, ClassController.createClass);
@@ -162,6 +176,6 @@ app.listen(port, () => {
   DatabaseSeeder.seed();
 });
 
-DatabaseSeeder.fake();
+// DatabaseSeeder.fake();
 
 export default app;

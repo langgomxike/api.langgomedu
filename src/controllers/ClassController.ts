@@ -10,12 +10,37 @@ export default class ClassController {
     }
 
     public static getTeachingClasses(request: express.Request, response: express.Response) {
-
+         // Lấy user_id từ request.params
+         const user_id = request.params.user_id;
+        SLog.log(LogType.Info, "getTeachingClasses", "user id", user_id)
+        SClass.getTeachingClasses(user_id,(classes) => {
+            SResponse.getResponse(ResponseStatus.OK, classes, "get teaching classes", response);
+        })
     }
 
     public static getAttendingClasses(request: express.Request, response: express.Response) {
+        // Lấy user_id
+        const user_id = request.params.user_id;
+        // const user_id =  request.body.user_id;
 
+        const now = new Date();
+        const currentTime = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+
+        SLog.log(LogType.Info, currentTime , "user id", user_id)
+        SClass.getAttendingClasses(user_id,(classes) => {
+            SResponse.getResponse(ResponseStatus.OK, classes, "get attending classes", response);
+        })
     }
+    public static getCreatedClasses(request: express.Request, response: express.Response) {
+        const user_id = request.params.user_id;
+        // const user_id =  request.body.user_id;
+        SLog.log(LogType.Info, "get created classes", "user id", user_id)
+        SClass.getCreatedClasses(user_id,(classes) => {
+            SResponse.getResponse(ResponseStatus.OK, classes, "get created classes", response);
+        })
+    }
+
+
 
     public static getAllClasses(request: express.Request, response: express.Response) {
         SClass.getAllClasses((classes)=> {
