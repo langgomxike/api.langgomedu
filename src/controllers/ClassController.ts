@@ -18,10 +18,36 @@ export default class ClassController {
     }
 
     public static getAllClasses(request: express.Request, response: express.Response) {
-
+        SClass.getAllClasses((classes)=> {
+            SResponse.getResponse(ResponseStatus.OK, classes, "get All classes", response);
+            return;
+        })
+    }
+    public static getAuthorClasses(request: express.Request, response : express.Response){
+        const author_id : string = request?.body?.author_id ?? '';
+        //get fail when get author_id incorrect type or null
+        if(author_id === ''){
+            SResponse.getResponse(ResponseStatus.Internal_Server_Error, null, 'unknown this user_id! ', response);
+            return;
+        }
+        SClass.getAuthorClasses(author_id, (classes)=> {
+            SResponse.getResponse(ResponseStatus.OK, classes, "Get all classes create by this user", response);
+            return;
+        })
     }
 
     public static getClass(request: express.Request, response: express.Response) {
+        console.log('request: ', request.params);
+        
+        const class_id:number = Number(request.params.class_id) ?? -1;
+        if(class_id <= 0){
+            SResponse.getResponse(ResponseStatus.Internal_Server_Error, null, 'unknown this class id', response);
+            return;
+        }
+        SClass.getClassById(class_id, (_class)=>{
+            SResponse.getResponse(ResponseStatus.OK, _class, 'get class by id', response);
+            return;
+        })
 
     }
 
