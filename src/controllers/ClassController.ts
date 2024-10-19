@@ -10,18 +10,70 @@ export default class ClassController {
     }
 
     public static getTeachingClasses(request: express.Request, response: express.Response) {
-
+         // Lấy user_id từ request.params
+         const user_id = request.params.user_id;
+        SLog.log(LogType.Info, "getTeachingClasses", "user id", user_id)
+        SClass.getTeachingClasses(user_id,(classes) => {
+            SResponse.getResponse(ResponseStatus.OK, classes, "get teaching classes", response);
+        })
     }
 
     public static getAttendingClasses(request: express.Request, response: express.Response) {
+        // Lấy user_id
+        const user_id = request.params.user_id;
+        // const user_id =  request.body.user_id;
 
+        const now = new Date();
+        const currentTime = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+
+        SLog.log(LogType.Info, currentTime , "user id", user_id)
+        SClass.getAttendingClasses(user_id,(classes) => {
+            SResponse.getResponse(ResponseStatus.OK, classes, "get attending classes", response);
+        })
+    }
+    public static getCreatedClasses(request: express.Request, response: express.Response) {
+        const user_id = request.params.user_id;
+        // const user_id =  request.body.user_id;
+        SLog.log(LogType.Info, "get created classes", "user id", user_id)
+        SClass.getCreatedClasses(user_id,(classes) => {
+            SResponse.getResponse(ResponseStatus.OK, classes, "get created classes", response);
+        })
     }
 
-    public static getAllClasses(request: express.Request, response: express.Response) {
 
+
+    public static getAllClasses(request: express.Request, response: express.Response) {
+        SClass.getAllClasses((classes)=> {
+            SResponse.getResponse(ResponseStatus.OK, classes, "get All classes", response);
+            return;
+        })
+    }
+    public static getAuthorClasses(request: express.Request, response : express.Response){
+        const author_id : string = request?.body?.author_id ?? '';
+        //get fail when get author_id incorrect type or null
+        if(author_id === ''){
+            SResponse.getResponse(ResponseStatus.Internal_Server_Error, null, 'unknown this user_id! ', response);
+            return;
+        }
+        SClass.getAuthorClasses(author_id, (classes)=> {
+            SResponse.getResponse(ResponseStatus.OK, classes, "Get all classes create by this user", response);
+            return;
+        })
     }
 
     public static getClass(request: express.Request, response: express.Response) {
+        console.log('request: ', request.params);
+        
+        const class_id:number = Number(request.params.class_id) ?? -1;
+        if(class_id <= 0){
+            SResponse.getResponse(ResponseStatus.Internal_Server_Error, null, 'unknown this class id', response);
+            return;
+        }
+        SClass.getClassById(class_id, (_class, related_classes)=>{
+            
+            SResponse.getResponse(ResponseStatus.OK, {class: _class,related_classes: related_classes}, 'get class by id', response);
+            return;
+        })
 
     }
 

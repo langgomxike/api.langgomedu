@@ -34,6 +34,8 @@ const port = process.env.PORT || 3000; // Set the port to the value from environ
 // Middleware to parse JSON bodies from incoming requests
 app.use(express.json());
 
+
+
 // Route to redirect root requests to the API documentation
 app.get("/", (req: Request, res: Response) => {
   res.redirect("/api");
@@ -45,7 +47,7 @@ app.get("/api", (req: Request, res: Response) => {
 });
 
 // Serve static files from the 'public' directory
-app.use('/public', express.static('public'));
+app.use('/', express.static('public'));
 
 // Define the base URL for attendance-related routes using the prefix from the config
 const ATTENDANCE_BASE_URL = Config.PREFIX + "/attendances";
