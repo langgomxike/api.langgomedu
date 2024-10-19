@@ -2,6 +2,11 @@ import dotenv from "dotenv";
 import admin, { database, initializeApp } from "firebase-admin";
 import firebaseAccount from "../../admin_firebase_account_service.json";
 import SLog, { LogType } from "./SLog";
+import firebaseNodeProps from "../../firebase_node_props.json";
+
+export enum FirebaseNode {
+  CLASS = 1,
+}
 
 export default class SFirebase {
   private static dbRef: admin.database.Database;
@@ -30,30 +35,57 @@ export default class SFirebase {
     }
   }
 
-  public static pushNotification(
-    userId: number = -1,
-    onSuccess: () => void = () => {},
-    onFailure: (error: unknown) => void = () => {},
-    onComlete: () => void = () => {}
-  ) {
-    if (userId < 1) {
-      onFailure("Invalid user");
-      onComlete();
-      return;
-    }
-
+  public static push(firebaseNode: FirebaseNode, key: number | string, onNext: () => void) {
     this.init();
 
-    const time = new Date().getTime();
-    const path = "USERS/USER_ID:" + userId + "/NOFITICATIONS";
-    const ref = this.dbRef.ref(path);
-    ref.set(time, (error) => {
-      if (!error) {
-        onSuccess();
-        onComlete();
+    const firebaseReference = this.dbRef.ref(`${firebaseNodeProps[firebaseNode].node}/${firebaseNodeProps[firebaseNode].key}:${key}`);
+    const currentTime = new Date().getTime();
+
+    firebaseReference.set(currentTime, (error) => {
+      if (error) {
+        SLog.log(
+          LogType.Error,
+          `push data into firebase`,
+          `push data to the node ${firebaseNodeProps[firebaseNode].node} with key ${firebaseNodeProps[firebaseNode].key} = ${key} found error`,
+          error
+        );
+
       } else {
-        onFailure(error);
-        onComlete();
+        SLog.log(
+          LogType.Info,
+          `push data into firebase`,
+          `push data to the node ${firebaseNodeProps[firebaseNode].node} with key ${firebaseNodeProps[firebaseNode].key} = ${key} successfully`,
+          error
+        );
+
+        onNext();
+      }
+    });
+  }
+
+  public static delete(firebaseNode: FirebaseNode, key: number | string, onNext: () => void) {
+    this.init();
+
+    const firebaseReference = this.dbRef.ref(`${firebaseNodeProps[firebaseNode].node}/${firebaseNodeProps[firebaseNode].key}:${key}`);
+
+    firebaseReference.remove((error) => {
+      if (error) {
+        SLog.log(
+          LogType.Error,
+          `push data into firebase`,
+          `push data to the node ${firebaseNodeProps[firebaseNode].node} with key ${firebaseNodeProps[firebaseNode].key} = ${key} found error`,
+          error
+        );
+
+      } else {
+        SLog.log(
+          LogType.Info,
+          `push data into firebase`,
+          `push data to the node ${firebaseNodeProps[firebaseNode].node} with key ${firebaseNodeProps[firebaseNode].key} = ${key} successfully`,
+          error
+        );
+
+        onNext();
       }
     });
   }

@@ -23,7 +23,7 @@ export default class SClass {
         const updateValues: Array<string | number> = []; // Array to hold the values corresponding to the columns
 
         // Conditionally add the 'title' column if the title length is within the valid range
-        if (updatedClass.title.length >= 3 && updatedClass.title.length <= 255) {
+        if (updatedClass.title && updatedClass.title.length >= 3 && updatedClass.title.length <= 255) {
             updateCols.push("`title`=?");
             updateValues.push(updatedClass.title);
         }
