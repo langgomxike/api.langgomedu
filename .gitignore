@@ -1,3 +1,9 @@
+# node module
 *node_modules*
+
+# firebase
 *firebase_account_service*
+*firebase_node_props*
+
+# environment variables
 *.env
