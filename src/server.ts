@@ -176,7 +176,7 @@ app.delete(OTHER_SKILL_BASE_URL, OtherSkillController.deleteSkill); // Delete a 
 // Define the base URL for permission-related routes
 const PERMISSION_BASE_URL = Config.PREFIX + "/permissions"; // host:port/PREFIX/permissions (PREFIX: /api)
 // Permission routes
-app.get(PERMISSION_BASE_URL, PermissionController.getAllPermissions); // Get all permissions
+// app.get(PERMISSION_BASE_URL, PermissionController.getAllPermissions); // Get all permissions
 
 // Define the base URL for rating-related routes
 const RATING_BASE_URL = Config.PREFIX + "/ratings";
@@ -220,7 +220,7 @@ app.listen(port, () => {
 });
 
 // Database settings
-// SMySQL.connect(); // Connect to the MySQL database
+SMySQL.connect(); // Connect to the MySQL database
 setUpPermissions(); // Set up permissions in the database
 setUpGenders(); // Set up genders in the database
 
