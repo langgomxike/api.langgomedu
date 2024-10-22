@@ -1,9 +1,9 @@
-import { QueryResult, RowDataPacket } from 'mysql2';
+import { RowDataPacket } from 'mysql2';
 import User from './../models/User';
-import SLog, { LogType } from './SLog';
 import SMySQL from './SMySQL';
 import SFile from './SFile';
 import SRole from './SRole';
+import SEncrypt from './SEncrypt';
 
 interface IUser extends RowDataPacket {
     id: string,
@@ -36,14 +36,14 @@ export default class SUser {
                         results.forEach(iUser => {
                             const user = new User();
                             user.id = iUser.id;
-                            user.fullName = iUser.full_name;
+                            user.full_name = iUser.full_name;
                             user.email = iUser.email;
                             user.password = iUser.password;
                             user.token = iUser.token;
                             user.avatar = files.find(file => file.id === iUser.avatar_id);
                             user.role = roles.find(role => role.id === iUser.role_id);
-                            user.createdAt = new Date(iUser.created_at);
-                            user.updatedAt = new Date(iUser.updated_at);
+                            user.created_at = new Date(iUser.created_at);
+                            user.updated_at = new Date(iUser.updated_at);
                             users.push(user);
                         });
 
@@ -56,14 +56,84 @@ export default class SUser {
     }
 
     public static getUserById(id: number, onNext: (user: User | undefined) => void) {
+        const sql = "SELECT * FROM users WHERE id = ?";
 
+        SMySQL.getConnection(connection => {
+            connection?.execute<any>(sql, [id], (error, result) => {
+                if (error) {
+                    onNext(undefined);
+                    return;
+                } else {
+                    const user: User | undefined = result;
+                    onNext(user);
+                }
+            });
+        });
     }
 
     public static getUserByEmail(email: string, onNext: (user: User | undefined) => void) {
+        const sql = "SELECT * FROM users WHERE email = ?";
 
+        SMySQL.getConnection(connection => {
+            connection?.execute<any>(sql, [email], (error, result) => {
+                if (error) {
+                    onNext(undefined);
+                    return;
+                } else {
+                    const user: User | undefined = result;
+                    onNext(user);
+                }
+            });
+        });
     }
 
-    public static getUserByToken(token: string, onNext: (user: User | undefined) => void) { }
+    public static getUserByToken(token: string, onNext: (user: User | undefined) => void) {
+        const sql = "SELECT * FROM users WHERE token = ?";
+
+        SMySQL.getConnection(connection => {
+            connection?.execute<any>(sql, [token], (error, result) => {
+                if (error) {
+                    onNext(undefined);
+                    return;
+                } else {
+                    const user: User | undefined = result;
+                    onNext(user);
+                }
+            });
+        });
+    }
+
+    public static getUserByPhoneNumber(phoneNumber: string, onNext: (user: User | undefined) => void) {
+        const sql = "SELECT * FROM users WHERE phone_number = ?";
+
+        SMySQL.getConnection(connection => {
+            connection?.execute<any>(sql, [phoneNumber], (error, result) => {
+                if (error) {
+                    onNext(undefined);
+                    return;
+                } else {
+                    const user: User | undefined = result;
+                    onNext(user);
+                }
+            });
+        });
+    }
+
+    public static checkUserPassword(userId: string, password: string, onNext: (result: boolean) => void) {
+        const sql = "SELECT password FROM users WHERE id = ?";
+
+        SMySQL.getConnection(connection => {
+            connection?.execute<any>(sql, [userId], (error, result) => {
+                if (error) {
+                    onNext(false);
+                    return;
+                } else {
+                    const userPassword: string = result;
+                    onNext(SEncrypt.decrypt(userPassword, "") === password);
+                }
+            });
+        });
+    }
 
     public static storeUser(user: User, onNext: (id: number | undefined) => void) { }
 
