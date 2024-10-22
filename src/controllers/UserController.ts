@@ -113,19 +113,9 @@ export default class UserController {
     }
 
     public static getAllUsers(request: express.Request, response: express.Response) {
-        // SUser.getAllUsers((users) => {
-        //     const userDTOs: UserDTO[] = [];
-
-        //     users.forEach(user => {
-        //         const userDTO = new UserDTO(user);
-        //         userDTOs.push(userDTO);
-        //     });
-
-        //     SLog.log(LogType.Info, "getAllUsers", "users", users);
-        //     SLog.log(LogType.Info, "getAllUsers", "userDTOs", userDTOs);
-
-        //     return response.json(SResponse.getResponse(ResponseStatus.OK, userDTOs, "get all users", response));
-        // });
+        SUser.getAllUsers((users) => {
+            SResponse.getResponse(ResponseStatus.OK, users, "get all users", response);
+        });
     }
 
     public static getUser(request: express.Request, response: express.Response) {

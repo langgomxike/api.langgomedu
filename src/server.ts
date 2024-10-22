@@ -220,7 +220,7 @@ app.listen(port, () => {
 });
 
 // Database settings
-// SMySQL.connect(); // Connect to the MySQL database
+SMySQL.connect(); // Connect to the MySQL database
 setUpPermissions(); // Set up permissions in the database
 setUpGenders(); // Set up genders in the database
 
