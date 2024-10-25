@@ -6,10 +6,10 @@ export default class File {
     public capacity: number;
     public image_width: number;
     public image_height: number;
-    public created_at: Date;
-    public updated_at: Date;
+    public created_at: number;
+    public updated_at: number;
 
-    constructor(id = -1, name = "", path = "", capacity = 0, image_width = 0, image_height = 0, created_at = new Date(), updated_at = new Date()) {
+    constructor(id = -1, name = "", path = "", capacity = 0, image_width = 0, image_height = 0, created_at = new Date().getTime(), updated_at = new Date().getTime()) {
         this.id = id;
         this.name = name;
         this.path = path;
@@ -19,6 +19,4 @@ export default class File {
         this.created_at = created_at;
         this.updated_at = updated_at;
     }
-
-    
 }
