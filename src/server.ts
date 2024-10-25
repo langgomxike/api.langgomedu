@@ -23,6 +23,9 @@ import SAuthentication, { OWNING_KEY_COLUMNS, OWNING_REF_COLUMNS, OWNING_REF_TAB
 import PermissionList, { setUpPermissions } from "./configs/PermissionConfig"; // Import permissions configuration and setup function
 import { setUpGenders } from "./configs/GenderConfig";
 import SFirebase, { FirebaseNode } from "./services/SFirebase";
+import AdminController from "./controllers/admin/AdminController";
+
+
 import { ClassLevelController } from "./controllers/ClassLevelController";
 import {setUpRoles} from "./configs/RoleConfig";
 import {setUpUsers} from "./configs/UserConfig";
@@ -72,6 +75,16 @@ app.get(CLASS_BASE_URL + "/:id", ClassController.getClass);
 app.post(CLASS_BASE_URL, ClassController.createClass);
 app.put(CLASS_BASE_URL, ClassController.updateClass);
 app.patch(CLASS_BASE_URL, ClassController.updateClass);
+// Class routes
+app.get(CLASS_BASE_URL, ClassController.getAllClasses); // Get all classes
+app.get(CLASS_BASE_URL + "/suggests", ClassController.getSuggestedClasses); // Get suggested classes
+app.get(CLASS_BASE_URL + "/attending/:user_id", ClassController.getAttendingClasses);
+app.get(CLASS_BASE_URL + "/teaching/:user_id", ClassController.getTeachingClasses);
+app.get(CLASS_BASE_URL + "/created/:user_id", ClassController.getCreatedClasses);
+app.get(CLASS_BASE_URL + "/:id", ClassController.getClass); // Get specific class by ID
+app.post(CLASS_BASE_URL, ClassController.createClass); // Create a new class
+app.put(CLASS_BASE_URL, ClassController.updateClass); // Update an existing class
+app.patch(CLASS_BASE_URL, ClassController.updateClass); // Partially update a class
 
 app.delete(CLASS_BASE_URL,
     (req, res, onNext) => SAuthentication.checkAuthorization(
@@ -177,6 +190,14 @@ app.put(USER_BASE_URL + "/:id", UserController.updateUserInfo);
 app.patch(USER_BASE_URL + "/:id", UserController.updateUserInfo);
 app.delete(USER_BASE_URL + "/:id", UserController.deleteAccount);
 
+// Define the base URL for user-related routes
+const ADMIN_USER_BASE_URL = Config.PREFIX + "/admin";
+app.get(ADMIN_USER_BASE_URL + "/users", AdminController.getAllUsers);
+app.get(ADMIN_USER_BASE_URL + "/classes", AdminController.getAllClasses);
+app.get(ADMIN_USER_BASE_URL + "/classes/:class_id", AdminController.getDetailClass);
+
+
+// Start the Express server and listen on the specified port
 app.listen(port, () => {
     SLog.log(LogType.Info, "Listen to the port", "server is running at http://127.0.0.1", port);
 });
