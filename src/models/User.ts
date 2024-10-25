@@ -13,20 +13,20 @@ export default class User {
     public token: string;
     public avatar: File | undefined;
     public role: Role | undefined;
-    public created_at: Date;
-    public updated_at: Date;
+    public created_at: number;
+    public updated_at: number;
 
     constructor(
-        id = "", 
-        full_name = "", 
-        email = "", 
-        phone_number = "", 
-        password = "", 
+        id = "",
+        full_name = "",
+        email = "",
+        phone_number = "",
+        password = "",
         information: Information | undefined = undefined,
         is_reported = false,
-        token = "", 
-        created_at: Date = new Date(), 
-        updated_at: Date = new Date()
+        token = "",
+        created_at = new Date().getTime(),
+        updated_at = new Date().getTime()
     ) {
         this.id = id;
         this.full_name = full_name;
