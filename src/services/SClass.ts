@@ -256,7 +256,7 @@ export default class SClass {
                 const _class: Class = result[0].class as Class;
                 const related_classes: Class[] = [];
                 const major_id = _class.major?.id;
-                SClass.getRelatedClasses(major_id, (related_class) => {
+                SClass.getRelatedClasses(major_id, id,(related_class) => {
 
                     related_class.forEach(data => {
                         related_classes.push(data)
@@ -270,7 +270,7 @@ export default class SClass {
 
     public static getClassesByKey(key: string, onNext: (classes: Class[]) => void) { }
 
-    public static getRelatedClasses(major_id: number | undefined, onNext: (classes: Class[]) => void) {
+    public static getRelatedClasses(major_id: number | undefined, class_id: number, onNext: (classes: Class[]) => void) {
         //get related classes
         const sql_related_classes = `SELECT 
                     JSON_OBJECT(
@@ -357,13 +357,13 @@ export default class SClass {
                 LEFT JOIN files major_icon ON major_icon.id = majors.icon_id
                 LEFT JOIN class_levels cl ON cl.id = c.class_level_id
                 LEFT JOIN lessons ON lessons.class_id = c.id
-                WHERE c.major_id = ?
+                WHERE c.major_id = ? AND c.id = ?
                 GROUP BY c.id;`
 
         const related_classes: Class[] = [];
 
         SMySQL.getConnection(connection => {
-            connection?.query<any>(sql_related_classes, [major_id], (err, result) => {
+            connection?.query<any>(sql_related_classes, [major_id, class_id], (err, result) => {
                 // console.log(major_id);
                 if (err) {
                     SLog.log(LogType.Error, 'get related classes', "can't not get classes related with major", err);
@@ -606,6 +606,7 @@ export default class SClass {
         user_id: string,
         onNext: (classes: Class[]) => void
     ) {
+        SLog.log(LogType.Info, "get created classes", "S service", "Đã vào đây")
         // SQL query to fetch class information, including tutor, major, and class level details
         const sql = `SELECT 
                     JSON_OBJECT(
@@ -789,27 +790,27 @@ export default class SClass {
         }
 
         // Conditionally add address columns if they are provided
-        if (updatedClass.address1) {
+        if (updatedClass.address_1) {
             updateCols.push("`address_1`=?");
-            updateValues.push(updatedClass.address1);
+            updateValues.push(updatedClass.address_1);
         }
 
         // Conditionally add the 'address_2' column if the second address line is provided
-        if (updatedClass.address2) {
+        if (updatedClass.address_2) {
             updateCols.push("`address_2`=?"); // Add the 'address_2' column to the list of columns to update
-            updateValues.push(updatedClass.address2); // Add the corresponding value for 'address_2'
+            updateValues.push(updatedClass.address_2); // Add the corresponding value for 'address_2'
         }
 
         // Conditionally add the 'address_3' column if the third address line is provided
-        if (updatedClass.address3) {
+        if (updatedClass.address_3) {
             updateCols.push("`address_3`=?"); // Add the 'address_3' column to the list of columns to update
-            updateValues.push(updatedClass.address3); // Add the corresponding value for 'address_3'
+            updateValues.push(updatedClass.address_3); // Add the corresponding value for 'address_3'
         }
 
         // Conditionally add the 'address_4' column if the fourth address line is provided
-        if (updatedClass.address4) {
+        if (updatedClass.address_4) {
             updateCols.push("`address_4`=?"); // Add the 'address_4' column to the list of columns to update
-            updateValues.push(updatedClass.address4); // Add the corresponding value for 'address_4'
+            updateValues.push(updatedClass.address_4); // Add the corresponding value for 'address_4'
         }
 
         // Build the final SQL statement by appending updated columns and setting the updated timestamp
