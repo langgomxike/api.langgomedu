@@ -21,12 +21,12 @@ export default class Class {
     public ended_at: number;
     public created_at: number;
     public updated_at: number;
-    public address1: string;
-    public address2: string;
-    public address3: string;
-    public address4: string;
+    public address_1: string;
+    public address_2: string;
+    public address_3: string;
+    public address_4: string;
 
-    constructor(id = -1, title = "", description = "", major: Major | undefined = undefined, tutor: User | undefined = undefined, author: User | undefined = undefined, price = 0, classCreationFee = 0, classLevel: ClassLevel | undefined = undefined, type: string[] = [], duration = 0, maxLearners = 0, startedAt = new Date(), endedAt = new Date(), createdAt = new Date(), updatedAt = new Date(), address1 = "", address2 = "", address3 = "", address4 = "") {
+    constructor(id = -1, title = "", description = "", major: Major | undefined = undefined, tutor: User | undefined = undefined, author: User | undefined = undefined, price = 0, classCreationFee = 0, classLevel: ClassLevel | undefined = undefined, type: string[] = [], duration = 0, maxLearners = 0, startedAt = new Date(), endedAt = new Date(), createdAt = new Date(), updatedAt = new Date(), address_1 = "", address_2 = "", address_3 = "", address_4 = "") {
         this.id = id;
         this.title = title;
         this.description = description;
@@ -43,9 +43,9 @@ export default class Class {
         this.ended_at = endedAt.getTime();
         this.created_at = createdAt.getTime();
         this.updated_at = updatedAt.getTime();
-        this.address1 = address1;
-        this.address2 = address2;
-        this.address3 = address3;
-        this.address4 = address4;
+        this.address_1 = address_1;
+        this.address_2 = address_2;
+        this.address_3 = address_3;
+        this.address_4 = address_4;
     }
 }

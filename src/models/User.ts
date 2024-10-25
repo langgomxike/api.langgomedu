@@ -1,5 +1,6 @@
 import File from "./File";
 import Role from "./Role";
+import Information from "./Information";
 
 export default class User {
     public id: string;
@@ -7,6 +8,8 @@ export default class User {
     public email: string;
     public phone_number: string;
     public password: string;
+    public information: Information | undefined;
+    public is_reported: boolean;
     public token: string;
     public avatar: File | undefined;
     public role: Role | undefined;
@@ -19,6 +22,8 @@ export default class User {
         email = "", 
         phone_number = "", 
         password = "", 
+        information: Information | undefined = undefined,
+        is_reported = false,
         token = "", 
         created_at: Date = new Date(), 
         updated_at: Date = new Date()
@@ -28,6 +33,8 @@ export default class User {
         this.email = email;
         this.phone_number = phone_number;
         this.password = password;
+        this.information = information;
+        this.is_reported = is_reported;
         this.token = token;
         this.created_at = created_at;
         this.updated_at = updated_at;
