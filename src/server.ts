@@ -23,6 +23,7 @@ import SAuthentication, { OWNING_KEY_COLUMNS, OWNING_REF_COLUMNS, OWNING_REF_TAB
 import PermissionList, { setUpPermissions } from "./configs/PermissionConfig"; // Import permissions configuration and setup function
 import { setUpGenders } from "./configs/GenderConfig";
 import SFirebase, { FirebaseNode } from "./services/SFirebase";
+import { ClassLevelController } from "./controllers/ClassLevelController";
 
 // Load environment variables from a .env file into process.env
 dotenv.config(); // doc bien moi truong
@@ -51,6 +52,10 @@ app.use('/', express.static('public'));
 
 // Define the base URL for attendance-related routes using the prefix from the config
 const ATTENDANCE_BASE_URL = Config.PREFIX + "/attendances";
+
+// ClassLevel routes
+const CLASSLEVEL_BASE_URL = Config.PREFIX + "/class-levels";
+app.get(CLASSLEVEL_BASE_URL, ClassLevelController.getAllClassLevels);
 
 // Attendance routes
 app.get(ATTENDANCE_BASE_URL + "/histories", AttendanceController.getAttendanceHistories); // Get attendance histories
@@ -176,7 +181,7 @@ app.delete(OTHER_SKILL_BASE_URL, OtherSkillController.deleteSkill); // Delete a 
 // Define the base URL for permission-related routes
 const PERMISSION_BASE_URL = Config.PREFIX + "/permissions"; // host:port/PREFIX/permissions (PREFIX: /api)
 // Permission routes
-app.get(PERMISSION_BASE_URL, PermissionController.getAllPermissions); // Get all permissions
+// app.get(PERMISSION_BASE_URL, PermissionController.getAllPermissions); // Get all permissions
 
 // Define the base URL for rating-related routes
 const RATING_BASE_URL = Config.PREFIX + "/ratings";
@@ -220,7 +225,7 @@ app.listen(port, () => {
 });
 
 // Database settings
-// SMySQL.connect(); // Connect to the MySQL database
+SMySQL.connect(); // Connect to the MySQL database
 setUpPermissions(); // Set up permissions in the database
 setUpGenders(); // Set up genders in the database
 
