@@ -13,10 +13,4 @@ export default class Major {
         this.en_name = en_name;
         this.icon = icon;
     };
-
-    
-
-    
-
-    
 }
