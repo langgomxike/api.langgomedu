@@ -1,30 +1,29 @@
 // Import necessary modules and libraries
-// @ts-ignore
-import express, { Express, Request, Response } from "express";
-// @ts-ignore
-import dotenv from "dotenv";
-import SLog, { LogType } from "./services/SLog";
-import SMySQL from "./services/SMySQL";
-import UserController from "./controllers/UserController";
-import AttendanceController from "./controllers/AttendanceController";
-import Config from "./configs/Config";
-import CertificateController from "./controllers/CertificateController";
-import ClassController from "./controllers/ClassController";
-import ReportController from "./controllers/ReportController";
-import CVController from "./controllers/CVController";
-import MajorController from "./controllers/MajorController";
-import MessageController from "./controllers/MessageController";
-import OtherSkillController from "./controllers/OtherSkillController";
-import PermissionController from "./controllers/PermissionController";
-import RatingController from "./controllers/RatingController";
-import RoleController from "./controllers/RoleController";
-import StudentController from "./controllers/StudentController";
-import LessonController from "./controllers/LessonController";
-import DatabaseSeeder from "./seeders/DatabaseSeeder";
-import SAuthentication, { OWNING_KEY_COLUMNS, OWNING_REF_COLUMNS, OWNING_REF_TABLES } from "./services/SAuthentication";
-import PermissionList, { setUpPermissions } from "./configs/PermissionConfig";
+import express, { Express, Request, Response } from "express"; // Import express and types for Request and Response
+import dotenv from "dotenv"; // Import dotenv for environment variable management
+import SLog, { LogType } from "./services/SLog"; // Import custom logging service
+import SMySQL from "./services/SMySQL"; // Import custom MySQL service for database interactions
+import UserController from "./controllers/UserController"; // Import UserController for user-related routes
+import AttendanceController from "./controllers/AttendanceController"; // Import AttendanceController for attendance-related routes
+import Config from "./configs/Config"; // Import configuration settings
+import CertificateController from "./controllers/CertificateController"; // Import CertificateController for certificate-related routes
+import ClassController from "./controllers/ClassController"; // Import ClassController for class-related routes
+import ReportController from "./controllers/ReportController"; // Import ReportController for report-related routes
+import CVController from "./controllers/CVController"; // Import CVController for CV-related routes
+import MajorController from "./controllers/MajorController"; // Import MajorController for major-related routes
+import MessageController from "./controllers/MessageController"; // Import MessageController for messaging-related routes
+import OtherSkillController from "./controllers/OtherSkillController"; // Import OtherSkillController for skill-related routes
+import PermissionController from "./controllers/PermissionController"; // Import PermissionController for permissions-related routes
+import RatingController from "./controllers/RatingController"; // Import RatingController for ratings-related routes
+import RoleController from "./controllers/RoleController"; // Import RoleController for role-related routes
+import StudentController from "./controllers/StudentController"; // Import StudentController for student-related routes
+import LessonController from "./controllers/LessonController"; // Import LessonController for lesson-related routes
+import DatabaseSeeder from "./seeders/DatabaseSeeder"; // Import DatabaseSeeder for seeding the database
+import SAuthentication, { OWNING_KEY_COLUMNS, OWNING_REF_COLUMNS, OWNING_REF_TABLES } from "./services/SAuthentication"; // Import SAuthentication for authentication checks
+import PermissionList, { setUpPermissions } from "./configs/PermissionConfig"; // Import permissions configuration and setup function
 import { setUpGenders } from "./configs/GenderConfig";
 import SFirebase, { FirebaseNode } from "./services/SFirebase";
+import { ClassLevelController } from "./controllers/ClassLevelController";
 import {setUpRoles} from "./configs/RoleConfig";
 import {setUpUsers} from "./configs/UserConfig";
 
