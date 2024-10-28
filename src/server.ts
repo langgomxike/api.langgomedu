@@ -201,6 +201,7 @@ app.get(ROLE_BASE_URL, RoleController.getAllRoles); // Get all roles
 // Define the base URL for student-related routes
 const STUDENT_BASE_URL = Config.PREFIX + "/students";
 // Student routes
+app.get(STUDENT_BASE_URL, StudentController.getAllStudents);
 app.get(STUDENT_BASE_URL + "/:user", StudentController.getStudentsBelongToUser); // Get students belonging to a user
 app.get(STUDENT_BASE_URL + "/:class", StudentController.getStudentsInClass); // Get students in a specific class
 app.post(STUDENT_BASE_URL, StudentController.createStudent); // Create a new student
