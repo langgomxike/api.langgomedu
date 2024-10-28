@@ -6,7 +6,6 @@ import Attendance from "../models/Attendance";
 import User from "../models/User";
 import Major from "../models/Major";
 import { on } from "events";
-import ClassLevel from "../models/ClassLevel";
 
 export default class SClass {
   /**
