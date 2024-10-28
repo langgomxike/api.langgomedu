@@ -6,7 +6,6 @@ import Attendance from "../models/Attendance";
 import User from "../models/User";
 import Major from "../models/Major";
 import { on } from "events";
-import ClassLevel from "../models/ClassLevel";
 
 export default class SClass {
   /**
@@ -383,7 +382,7 @@ export default class SClass {
                 LEFT JOIN files major_icon ON major_icon.id = majors.icon_id
                 LEFT JOIN class_levels cl ON cl.id = c.class_level_id
                 LEFT JOIN lessons ON lessons.class_id = c.id
-                WHERE c.major_id = ?
+                WHERE c.major_id = ? AND c.id = ?
                 GROUP BY c.id;`;
 
     const related_classes: Class[] = [];
@@ -827,29 +826,29 @@ export default class SClass {
       updateValues.push(updatedClass.ended_at);
     }
 
-        // Conditionally add address columns if they are provided
-        if (updatedClass.address_1) {
-            updateCols.push("`address_1`=?");
-            updateValues.push(updatedClass.address_1);
-        }
+    // Conditionally add address columns if they are provided
+    if (updatedClass.address_1) {
+      updateCols.push("`address_1`=?");
+      updateValues.push(updatedClass.address_1);
+    }
 
-        // Conditionally add the 'address_2' column if the second address line is provided
-        if (updatedClass.address_2) {
-            updateCols.push("`address_2`=?"); // Add the 'address_2' column to the list of columns to update
-            updateValues.push(updatedClass.address_2); // Add the corresponding value for 'address_2'
-        }
+    // Conditionally add the 'address_2' column if the second address line is provided
+    if (updatedClass.address_2) {
+      updateCols.push("`address_2`=?"); // Add the 'address_2' column to the list of columns to update
+      updateValues.push(updatedClass.address_2); // Add the corresponding value for 'address_2'
+    }
 
-        // Conditionally add the 'address_3' column if the third address line is provided
-        if (updatedClass.address_3) {
-            updateCols.push("`address_3`=?"); // Add the 'address_3' column to the list of columns to update
-            updateValues.push(updatedClass.address_3); // Add the corresponding value for 'address_3'
-        }
+    // Conditionally add the 'address_3' column if the third address line is provided
+    if (updatedClass.address_3) {
+      updateCols.push("`address_3`=?"); // Add the 'address_3' column to the list of columns to update
+      updateValues.push(updatedClass.address_3); // Add the corresponding value for 'address_3'
+    }
 
-        // Conditionally add the 'address_4' column if the fourth address line is provided
-        if (updatedClass.address_4) {
-            updateCols.push("`address_4`=?"); // Add the 'address_4' column to the list of columns to update
-            updateValues.push(updatedClass.address_4); // Add the corresponding value for 'address_4'
-        }
+    // Conditionally add the 'address_4' column if the fourth address line is provided
+    if (updatedClass.address_4) {
+      updateCols.push("`address_4`=?"); // Add the 'address_4' column to the list of columns to update
+      updateValues.push(updatedClass.address_4); // Add the corresponding value for 'address_4'
+    }
 
     // Build the final SQL statement by appending updated columns and setting the updated timestamp
     sql += updateCols.map((col) => col + ", ").join(" ");
@@ -922,38 +921,73 @@ export default class SClass {
    * @param onNext
    */
 
+  public static getClassLevels(
+    onNext: (result: boolean, classLevels?: number[]) => void
+  ) {
+    const sql = "SELECT id FROM lessons";
+
+    SMySQL.getConnection((connection) => {
+      connection?.query(sql, (err, results) => {
+        if (err) {
+          SLog.log(
+            LogType.Error,
+            "getClassLevels",
+            "Failed to fetch class levels",
+            err
+          );
+          onNext(false);
+          return;
+        }
+        // Trả về danh sách id của class_levels
+        if (Array.isArray(results)) {
+          const classLevels = results.map((row: any) => row.id);
+          onNext(true, classLevels);
+        } else {
+          // Trường hợp không phải là mảng, trả về lỗi
+          SLog.log(LogType.Error, "getClassLevels", "Unexpected result format", results);
+          onNext(false);
+        }
+      });
+    });
+  }
+
   public static createClass(
     newClass: Class,
-    // newClasss: ClassLevel,
+    class_level_id: number,
     onNext: (result: boolean, insertId?: number) => void
   ) {
     const sql =
       "INSERT INTO classes (title, description, price, class_level_id, started_at, ended_at, created_at) VALUES (?,?,?,?,?,?,?)";
 
-      //class_level_id:  lấy danh sách cấp học -> lưu lại id
-      // bỏ mô tả và yêu cầu trong giao diện
+    //class_level_id:  lấy danh sách cấp học -> lưu lại id
+    // bỏ mô tả và yêu cầu trong giao diện
     const values = [
       newClass.title,
       newClass.description,
       newClass.price,
-      // newClasss.class_level_id,
+      class_level_id,
       newClass.started_at,
       newClass.ended_at,
       new Date().getTime(),
     ];
 
-    SMySQL.getConnection(connection => {
-        connection?.query(sql, values, (err, result) => {
-            if (err) {
-                // Xử lý khi có lỗi
-                SLog.log(LogType.Error, 'addNewClass', 'Failed to insert new class', err);
-                onNext(false);
-                return;
-            }
-
-            // Trả về kết quả thành công và ID của lớp học vừa thêm
-            onNext(true, ); // tìm cách trả về ID lớp vừa tạo
-        });
-    })
+    SMySQL.getConnection((connection) => {
+      connection?.query(sql, values, (err, result) => {
+        if (err) {
+          // Xử lý khi có lỗi
+          SLog.log(
+            LogType.Error,
+            "addNewClass",
+            "Failed to insert new class",
+            err
+          );
+          onNext(false);
+          return;
+        }
+        // Trả về kết quả thành công và ID của lớp học vừa thêm
+        const insertId = (result as any).insertId || undefined;
+        onNext(true, insertId); // tìm cách trả về ID lớp vừa tạo
+      });
+    });
   }
 }
