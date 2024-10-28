@@ -55,9 +55,17 @@ app.post(ATTENDANCE_BASE_URL + "/request", AttendanceController.requestAttendanc
 app.post(ATTENDANCE_BASE_URL + "/accept", AttendanceController.acceptAttendance);
 app.get(ATTENDANCE_BASE_URL + "/id", AttendanceController.getAttendance);
 
+<<<<<<< HEAD
 // ClassLevel routes
 const CLASSLEVEL_BASE_URL = Config.PREFIX + "/class-levels";
 app.get(CLASSLEVEL_BASE_URL, ClassLevelController.getAllClassLevels);
+=======
+// Attendance routes
+app.get(ATTENDANCE_BASE_URL + "/histories", AttendanceController.getAttendanceHistories); // Get attendance histories
+app.post(ATTENDANCE_BASE_URL + "/request", AttendanceController.requestAttendance); // Request attendance
+app.post(ATTENDANCE_BASE_URL + "/accept", AttendanceController.acceptAttendance); // Accept attendance
+app.get(ATTENDANCE_BASE_URL + "/id", AttendanceController.getAttendance); // Get specific attendance
+>>>>>>> f9ebbc8 (get all userReport)
 
 // Define the base URL for certificate-related routes
 const CERTIFICATE_BASE_URL = Config.PREFIX + "/certificates";
