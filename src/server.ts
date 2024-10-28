@@ -24,6 +24,7 @@ import PermissionList, { setUpPermissions } from "./configs/PermissionConfig"; /
 import { setUpGenders } from "./configs/GenderConfig";
 import SFirebase, { FirebaseNode } from "./services/SFirebase";
 import AdminController from "./controllers/admin/AdminController";
+import { ClassLevelController } from "./controllers/ClassLevelController";
 
 
 
@@ -54,6 +55,10 @@ app.use('/', express.static('public'));
 
 // Define the base URL for attendance-related routes using the prefix from the config
 const ATTENDANCE_BASE_URL = Config.PREFIX + "/attendances";
+
+// ClassLevel routes
+const CLASSLEVEL_BASE_URL = Config.PREFIX + "/class-levels";
+app.get(CLASSLEVEL_BASE_URL, ClassLevelController.getAllClassLevels);
 
 // Attendance routes
 app.get(ATTENDANCE_BASE_URL + "/histories", AttendanceController.getAttendanceHistories); // Get attendance histories
@@ -196,6 +201,7 @@ app.get(ROLE_BASE_URL, RoleController.getAllRoles); // Get all roles
 // Define the base URL for student-related routes
 const STUDENT_BASE_URL = Config.PREFIX + "/students";
 // Student routes
+app.get(STUDENT_BASE_URL, StudentController.getAllStudents);
 app.get(STUDENT_BASE_URL + "/:user", StudentController.getStudentsBelongToUser); // Get students belonging to a user
 app.get(STUDENT_BASE_URL + "/:class", StudentController.getStudentsInClass); // Get students in a specific class
 app.post(STUDENT_BASE_URL, StudentController.createStudent); // Create a new student
