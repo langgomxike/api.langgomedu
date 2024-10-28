@@ -928,8 +928,10 @@ export default class SClass {
     onNext: (result: boolean, insertId?: number) => void
   ) {
     const sql =
-      "INSERT INTO classes (title, description, price, class_level_id, started_at, ended_at, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?)";
+      "INSERT INTO classes (title, description, price, class_level_id, started_at, ended_at, created_at) VALUES (?,?,?,?,?,?,?)";
 
+      //class_level_id:  lấy danh sách cấp học -> lưu lại id
+      // bỏ mô tả và yêu cầu trong giao diện
     const values = [
       newClass.title,
       newClass.description,
@@ -937,8 +939,7 @@ export default class SClass {
       // newClasss.class_level_id,
       newClass.started_at,
       newClass.ended_at,
-      newClass.created_at,
-      newClass.updated_at,
+      new Date().getTime(),
     ];
 
     SMySQL.getConnection(connection => {
@@ -951,7 +952,7 @@ export default class SClass {
             }
 
             // Trả về kết quả thành công và ID của lớp học vừa thêm
-            onNext(true, );
+            onNext(true, ); // tìm cách trả về ID lớp vừa tạo
         });
     })
   }
