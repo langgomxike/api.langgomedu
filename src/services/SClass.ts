@@ -828,27 +828,27 @@ export default class SClass {
     }
 
         // Conditionally add address columns if they are provided
-        if (updatedClass.address1) {
+        if (updatedClass.address_1) {
             updateCols.push("`address_1`=?");
-            updateValues.push(updatedClass.address1);
+            updateValues.push(updatedClass.address_1);
         }
 
         // Conditionally add the 'address_2' column if the second address line is provided
-        if (updatedClass.address2) {
+        if (updatedClass.address_2) {
             updateCols.push("`address_2`=?"); // Add the 'address_2' column to the list of columns to update
-            updateValues.push(updatedClass.address2); // Add the corresponding value for 'address_2'
+            updateValues.push(updatedClass.address_2); // Add the corresponding value for 'address_2'
         }
 
         // Conditionally add the 'address_3' column if the third address line is provided
-        if (updatedClass.address3) {
+        if (updatedClass.address_3) {
             updateCols.push("`address_3`=?"); // Add the 'address_3' column to the list of columns to update
-            updateValues.push(updatedClass.address3); // Add the corresponding value for 'address_3'
+            updateValues.push(updatedClass.address_3); // Add the corresponding value for 'address_3'
         }
 
         // Conditionally add the 'address_4' column if the fourth address line is provided
-        if (updatedClass.address4) {
+        if (updatedClass.address_4) {
             updateCols.push("`address_4`=?"); // Add the 'address_4' column to the list of columns to update
-            updateValues.push(updatedClass.address4); // Add the corresponding value for 'address_4'
+            updateValues.push(updatedClass.address_4); // Add the corresponding value for 'address_4'
         }
 
     // Build the final SQL statement by appending updated columns and setting the updated timestamp
@@ -928,8 +928,10 @@ export default class SClass {
     onNext: (result: boolean, insertId?: number) => void
   ) {
     const sql =
-      "INSERT INTO classes (title, description, price, class_level_id, started_at, ended_at, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?)";
+      "INSERT INTO classes (title, description, price, class_level_id, started_at, ended_at, created_at) VALUES (?,?,?,?,?,?,?)";
 
+      //class_level_id:  lấy danh sách cấp học -> lưu lại id
+      // bỏ mô tả và yêu cầu trong giao diện
     const values = [
       newClass.title,
       newClass.description,
@@ -937,8 +939,7 @@ export default class SClass {
       // newClasss.class_level_id,
       newClass.started_at,
       newClass.ended_at,
-      newClass.created_at,
-      newClass.updated_at,
+      new Date().getTime(),
     ];
 
     SMySQL.getConnection(connection => {
@@ -951,7 +952,7 @@ export default class SClass {
             }
 
             // Trả về kết quả thành công và ID của lớp học vừa thêm
-            onNext(true, );
+            onNext(true, ); // tìm cách trả về ID lớp vừa tạo
         });
     })
   }
