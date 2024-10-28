@@ -18,8 +18,10 @@ export default class AdminController {
 
     public static getDetailClass(request: express.Request, response: express.Response) {
         const class_id = parseInt(request.params.class_id);
-        SClassAdmin.getClassById(class_id,(data) => {
-            SResponse.getResponse(ResponseStatus.OK, data, "get class by id", response);
+        SClassAdmin.getClassById(class_id,(lessons, users) => {
+            console.log(">>> getDetailClass",   lessons, users );
+            
+            SResponse.getResponse(ResponseStatus.OK, {lessons, users}, "get class by id", response);
         });
     }
 

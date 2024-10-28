@@ -1,12 +1,12 @@
 import Class from "./Class";
-import User from "./User";
+import Student from "./Student";
 
 export default class InClassStudent {
     public class: Class | undefined;
-    public user: User | undefined;
+    public student: Student | undefined;
 
-    constructor(_class: Class | undefined = undefined, user: User | undefined = undefined) {
+    constructor(_class: Class | undefined = undefined, student: Student | undefined = undefined) {
         this.class = _class;
-        this.user = user;
+        this.student = student;
     }
 }
