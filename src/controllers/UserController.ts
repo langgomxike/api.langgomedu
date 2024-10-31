@@ -1,8 +1,14 @@
-import express, { Response } from 'express';
+// @ts-ignore
+import express, {Response} from 'express';
 import SUser from '../services/SUser';
-import SResponse, { ResponseStatus } from '../services/SResponse';
-import SLog, { LogType } from '../services/SLog';
+import SResponse, {ResponseStatus} from '../services/SResponse';
 import User from '../models/User';
+import Message from "../models/Message";
+import * as dotenv from "dotenv";
+import SMessage from "../services/SMessage";
+import SFirebase, {FirebaseNode} from "../services/SFirebase";
+import {v4} from "uuid";
+
 export default class UserController {
     public static login(request: express.Request, response: express.Response) {
         const token: string = request?.headers?.authorization?.replace("Bearer ", "") ?? "";
@@ -18,6 +24,12 @@ export default class UserController {
         }
 
         const onNextWithPasswordProcessing = (user: User | undefined, password: string) => {
+            //done
+            // SLog.log(LogType.Warning, "onNextWithPasswordProcessing", "check parameters", {
+            //     user: user,
+            //     password: password
+            // });
+
             if (!user) {
                 SResponse.getResponse(
                     ResponseStatus.Internal_Server_Error,
@@ -28,25 +40,38 @@ export default class UserController {
                 return;
             }
 
-            SUser.checkUserPassword(user.id, password, (result) => {
-                if (result) {
-                    SResponse.getResponse(
-                        ResponseStatus.OK,
-                        user,
-                        "Login with parameters successfully",
-                        response
-                    );
-                    return;
-                } else {
-                    SResponse.getResponse(
-                        ResponseStatus.Internal_Server_Error,
-                        user,
-                        "Login with parameters failed. Password is incorrect",
-                        response
-                    );
-                    return;
-                }
-            });
+            if (user.password === password) {
+                //save message
+                dotenv.config();
+                const message = new Message();
+                message.from_user = new User(process.env.ADMIN_ID, process.env.ADMIN_NAME, "***", "***", "***", "***", new Date().getTime());
+                message.to_user = user;
+                message.content = "Login in successfully";
+                message.created_at = new Date().getTime();
+
+                //update user's token
+                const updatedUser = new User(user.id);
+                updatedUser.token = v4();
+                //then store a new message as notification
+                SUser.updateUserInfo(updatedUser,
+                    () => SMessage.storeMessage(message, () => {
+                            //response
+                            SResponse.getResponse(
+                                ResponseStatus.OK,
+                                user,
+                                "Login with parameters successfully",
+                                response
+                            );
+                        }
+                    ));
+            } else {
+                SResponse.getResponse(
+                    ResponseStatus.Internal_Server_Error,
+                    null,
+                    "Login with parameters failed. Password is incorrect",
+                    response
+                );
+            }
         }
 
         if (token) { //implicitly login
@@ -56,8 +81,15 @@ export default class UserController {
             const phoneNumber = request.body.phone_number ?? "";
             const password = request.body.password ?? "";
 
+            //done
+            // SLog.log(LogType.Warning, "login with parameters", "", {
+            //     email: email,
+            //     phoneNumber: phoneNumber,
+            //     password: password
+            // });
+
             if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
-                .test(email) &&
+                    .test(email) &&
                 !/^\s*(?:\+?(\d{1,3}))?[-. (]*(\d{3})[-. )]*(\d{3})[-. ]*(\d{4})(?: *x(\d+))?\s*$/
                     .test(phoneNumber)
             ) {
