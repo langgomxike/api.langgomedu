@@ -25,8 +25,6 @@ import SAuthentication, { OWNING_KEY_COLUMNS, OWNING_REF_COLUMNS, OWNING_REF_TAB
 import PermissionList, { setUpPermissions } from "./configs/PermissionConfig";
 import { setUpGenders } from "./configs/GenderConfig";
 import SFirebase, { FirebaseNode } from "./services/SFirebase";
-import {setUpRoles} from "./configs/RoleConfig";
-import {setUpUsers} from "./configs/UserConfig";
 import AdminController from "./controllers/admin/AdminController";
 
 
