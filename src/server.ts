@@ -27,12 +27,8 @@ import { setUpGenders } from "./configs/GenderConfig";
 import SFirebase, { FirebaseNode } from "./services/SFirebase";
 import {setUpRoles} from "./configs/RoleConfig";
 import {setUpUsers} from "./configs/UserConfig";
+import {ClassLevelController} from "./controllers/ClassLevelController";
 import AdminController from "./controllers/admin/AdminController";
-
-
-import { ClassLevelController } from "./controllers/ClassLevelController";
-import {setUpRoles} from "./configs/RoleConfig";
-import {setUpUsers} from "./configs/UserConfig";
 
 dotenv.config();
 
