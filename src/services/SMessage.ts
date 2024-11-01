@@ -17,14 +17,14 @@ export default class SMessage {
             ], (error, result) => {
                 if (error) {
                     onNext(false);
-                    SLog.log(LogType.Error, "storeMessage", "id: " + message.id, error);
+                    SLog.log(LogType.Error, "storeMessage", "storeMessage unsuccessfully", error);
                     return;
                 }
 
                 // push message into firebase
                 SFirebase.pushMessage(message.from_user?.id, message.to_user?.id,
                     () => {
-                        SLog.log(LogType.Info, "storeMessage successfully", "id: " + message.id, result);
+                        SLog.log(LogType.Info, "storeMessage successfully");
                         onNext(true);
                     });
             });
