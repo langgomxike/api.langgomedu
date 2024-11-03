@@ -1,5 +1,7 @@
 
 import Class from '../../models/Class';
+import Lesson from '../../models/Lesson';
+import User from '../../models/User';
 import SMySQL from '../SMySQL';
 export default class SClassAdmin {
     public static getAllClasses(onNext: (classes: Class[]) => void) {
@@ -34,6 +36,13 @@ export default class SClassAdmin {
                 'phone_number', author.phone_number,
                 'avatar', JSON_OBJECT('path', files_author.path)
             ),
+        'tutor', JSON_OBJECT(
+                'id', author.id,
+                'full_name', author.full_name,
+                'email', author.email,
+                'phone_number', author.phone_number,
+                'avatar', JSON_OBJECT('path', files_author.path)
+            ),
          'class_level', JSON_OBJECT(
                 'id', class_levels.id,
                 'vn_name', class_levels.vn_name,
@@ -44,9 +53,11 @@ export default class SClassAdmin {
         FROM
             classes
         LEFT JOIN users AS author ON author.id = classes.author_id
+        LEFT JOIN users AS tutor ON tutor.id = classes.tutor_id
         LEFT JOIN majors ON majors.id = classes.major_id
         LEFT JOIN class_levels ON class_levels.id = classes.class_level_id
         LEFT JOIN files AS files_author ON files_author.id = author.avatar_id
+        LEFT JOIN files AS files_tutor ON files_tutor.id = tutor.avatar_id
         LEFT JOIN files AS files_major ON files_major.id = majors.icon_id;
         `;
 
@@ -71,11 +82,10 @@ export default class SClassAdmin {
         });
     }
 
-    public static getClassById(class_id: number, onNext: (_class: Class) => void) {
+    public static getClassById(class_id: number, onNext: (lessons: Lesson[], users: User[]) => void) {
         const sql = `
        SELECT
-    JSON_OBJECT(
-        'lessons', (
+        (
             SELECT JSON_ARRAYAGG(
                 JSON_OBJECT(
                     'id', l.id,
@@ -88,37 +98,46 @@ export default class SClassAdmin {
             )
             FROM lessons l
             WHERE l.class_id = classes.id
-        ),
-        'students', (
+        ) AS lessons,
+
+        (
             SELECT JSON_ARRAYAGG(
                 JSON_OBJECT(
-                    'fullname', COALESCE(students.full_name, users.full_name),
-                    'id', COALESCE(students.id, users.id)
+                    'id', users.id,
+                    'full_name', users.full_name,
+                    'students', (
+                        SELECT JSON_ARRAYAGG(
+                            JSON_OBJECT(
+                                'id', s.id,
+                                'full_name', s.full_name
+                            )
+                        )
+                        FROM students s
+                        LEFT JOIN in_class_students ics ON ics.student_id = s.id
+                        WHERE s.user_id = users.id AND ics.class_id = classes.id
+                    )
                 )
-            )
+            ) 
             FROM in_class_members icm
             LEFT JOIN users ON users.id = icm.user_id
-            LEFT JOIN students ON students.user_id = users.id
             WHERE icm.class_id = classes.id
-        )
-    ) AS class
-FROM classes
-WHERE classes.id = ?;
+        ) AS users
 
-
+    FROM classes
+    WHERE classes.id = ?;
         `;
 
         SMySQL.getConnection((connection) => {
-           connection?.execute<any>(sql, [class_id] ,(err, result) => {
+           connection?.execute<any>(sql, [class_id] ,(err, results) => {
                 if (err) {
-                    onNext(new Class);
+                    onNext([], []);
                     return;
                 }
-
-                const _class:Class = result ;
                 
+                const lessons = results[0].lessons
+                const users = results[0].users
                 
-                onNext(_class);
+                onNext(lessons, users);
             });
         });
     }

@@ -25,8 +25,9 @@ export default class Class {
     public address_2: string;
     public address_3: string;
     public address_4: string;
+    public user_status: string;
 
-    constructor(id = -1, title = "", description = "", major: Major | undefined = undefined, tutor: User | undefined = undefined, author: User | undefined = undefined, price = 0, classCreationFee = 0, classLevel: ClassLevel | undefined = undefined, type: string[] = [], duration = 0, maxLearners = 0, startedAt = new Date(), endedAt = new Date(), createdAt = new Date(), updatedAt = new Date(), address_1 = "", address_2 = "", address_3 = "", address_4 = "") {
+    constructor(id = -1, title = "", description = "", major: Major | undefined = undefined, tutor: User | undefined = undefined, author: User | undefined = undefined, price = 0, classCreationFee = 0, classLevel: ClassLevel | undefined = undefined, type: string[] = [], duration = 0, maxLearners = 0, startedAt = new Date(), endedAt = new Date(), createdAt = new Date(), updatedAt = new Date(), address_1 = "", address_2 = "", address_3 = "", address_4 = "", user_status = "") {
         this.id = id;
         this.title = title;
         this.description = description;
@@ -47,5 +48,6 @@ export default class Class {
         this.address_2 = address_2;
         this.address_3 = address_3;
         this.address_4 = address_4;
+        this.user_status = user_status;
     }
 }

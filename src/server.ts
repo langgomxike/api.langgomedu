@@ -83,15 +83,15 @@ app.post(CLASS_BASE_URL, ClassController.createClass);
 app.put(CLASS_BASE_URL, ClassController.updateClass);
 app.patch(CLASS_BASE_URL, ClassController.updateClass);
 // Class routes
-app.get(CLASS_BASE_URL, ClassController.getAllClasses); // Get all classes
-app.get(CLASS_BASE_URL + "/suggests", ClassController.getSuggestedClasses); // Get suggested classes
+app.get(CLASS_BASE_URL, ClassController.getAllClasses);
+app.get(CLASS_BASE_URL + "/suggests/:user_id", ClassController.getSuggestedClasses);
 app.get(CLASS_BASE_URL + "/attending/:user_id", ClassController.getAttendingClasses);
 app.get(CLASS_BASE_URL + "/teaching/:user_id", ClassController.getTeachingClasses);
 app.get(CLASS_BASE_URL + "/created/:user_id", ClassController.getCreatedClasses);
-app.get(CLASS_BASE_URL + "/:id", ClassController.getClass); // Get specific class by ID
-app.post(CLASS_BASE_URL, ClassController.createClass); // Create a new class
-app.put(CLASS_BASE_URL, ClassController.updateClass); // Update an existing class
-app.patch(CLASS_BASE_URL, ClassController.updateClass); // Partially update a class
+app.get(CLASS_BASE_URL + "/:id", ClassController.getClass);
+app.post(CLASS_BASE_URL, ClassController.createClass);
+app.put(CLASS_BASE_URL, ClassController.updateClass);
+app.patch(CLASS_BASE_URL, ClassController.updateClass);
 
 app.delete(CLASS_BASE_URL,
     (req, res, onNext) => SAuthentication.checkAuthorization(
@@ -109,9 +109,8 @@ app.delete(CLASS_BASE_URL,
     ),
     ClassController.deleteClass
 );
-
-app.post(CLASS_BASE_URL + "/request/:id", ClassController.requestToAttendClass);
-app.post(CLASS_BASE_URL + "/accept/:id", ClassController.acceptToAttendClass);
+app.post(CLASS_BASE_URL + "/:class_id/join", ClassController.requestToAttendClass);
+app.post(CLASS_BASE_URL + "/:class_id/accept_to_teach",ClassController.acceptClassToTeach);
 app.post(CLASS_BASE_URL + "/approve/:id", ClassController.approveToAttendClass);
 app.get(CLASS_BASE_URL + "/levels", ClassController.getAllLevels);
 app.post(CLASS_BASE_URL + "/levels", ClassController.createLevel);
@@ -202,6 +201,7 @@ app.delete(USER_BASE_URL + "/:id", UserController.deleteAccount);
 // Define the base URL for user-related routes
 const ADMIN_USER_BASE_URL = Config.PREFIX + "/admin";
 app.get(ADMIN_USER_BASE_URL + "/users", AdminController.getAllUsers);
+app.get(ADMIN_USER_BASE_URL + "/users/:user_id/reports", AdminController.getAllReportUserOfUser);
 app.get(ADMIN_USER_BASE_URL + "/classes", AdminController.getAllClasses);
 app.get(ADMIN_USER_BASE_URL + "/classes/:class_id", AdminController.getDetailClass);
 
