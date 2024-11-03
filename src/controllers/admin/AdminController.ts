@@ -10,6 +10,13 @@ export default class AdminController {
         });
     }
 
+    public static getAllReportUserOfUser(request: express.Request, response: express.Response) {
+        const userId = parseInt(request.params.user_id);
+        SUserAdmin.getAllReportUserOfUser(userId,(users) => {
+            SResponse.getResponse(ResponseStatus.OK, users, "get all report user of user", response);
+        });
+    }
+
     public static getAllClasses(request: express.Request, response: express.Response) {
         SClassAdmin.getAllClasses((classes) => {
             SResponse.getResponse(ResponseStatus.OK, classes, "get all classes", response);
