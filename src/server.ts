@@ -79,7 +79,7 @@ app.get(CLASS_BASE_URL + "/suggests/:user_id", ClassController.getSuggestedClass
 app.get(CLASS_BASE_URL + "/attending/:user_id", ClassController.getAttendingClasses);
 app.get(CLASS_BASE_URL + "/teaching/:user_id", ClassController.getTeachingClasses);
 app.get(CLASS_BASE_URL + "/created/:user_id", ClassController.getCreatedClasses);
-app.get(CLASS_BASE_URL + "/:id", ClassController.getClass);
+app.get(CLASS_BASE_URL + "/:class_id", ClassController.getClass);
 app.post(CLASS_BASE_URL, ClassController.createClass);
 app.put(CLASS_BASE_URL, ClassController.updateClass);
 app.patch(CLASS_BASE_URL, ClassController.updateClass);
@@ -169,8 +169,8 @@ app.get(ROLE_BASE_URL, RoleController.getAllRoles);
 const STUDENT_BASE_URL = Config.PREFIX + "/students";
 // Student routes
 app.get(STUDENT_BASE_URL, StudentController.getAllStudents);
-app.get(STUDENT_BASE_URL + "/:user", StudentController.getStudentsBelongToUser); // Get students belonging to a user
-app.get(STUDENT_BASE_URL + "/:class", StudentController.getStudentsInClass); // Get students in a specific class
+app.get(STUDENT_BASE_URL + "/user/:user_id", StudentController.getStudentsBelongToUser); // Get students belonging to a user
+app.get(STUDENT_BASE_URL + "/class/:class_id", StudentController.getStudentsInClass); // Get students in a specific class
 app.post(STUDENT_BASE_URL, StudentController.createStudent); // Create a new student
 app.put(STUDENT_BASE_URL + "/:id", StudentController.updateStudent); // Update an existing student
 app.patch(STUDENT_BASE_URL + "/:id", StudentController.updateStudent); // Partially update a student
