@@ -3,6 +3,13 @@ import SStudent from "../services/SStudent";
 import SResponse, { ResponseStatus } from "../services/SResponse";
 
 export default class StudentController {
+
+    public static getAllStudents(request: express.Request, response: express.Response) {
+        SStudent.getAllStudents((cvs)=>{
+            SResponse.getResponse(ResponseStatus.OK, cvs, "get All Students", response);
+            return;
+        })
+    }
     public static getStudentsBelongToUser(request: express.Request, response: express.Response) {
         const userId = request.params.user_id;
         SStudent.getStudentByUserId(userId, (students) => {

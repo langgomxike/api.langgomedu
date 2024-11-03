@@ -2,10 +2,8 @@ import { response } from "express";
 import Class from "./../models/Class";
 import SLog, { LogType } from "./SLog";
 import SMySQL from "./SMySQL";
-import Attendance from "../models/Attendance";
 import User from "../models/User";
 import Major from "../models/Major";
-import { on } from "events";
 import { UserType } from "../configs/UserType";
 
 export default class SClass {
@@ -311,9 +309,10 @@ export default class SClass {
     onNext: (classes: Class[]) => void
   ) {
     // Xác định điều kiện WHERE theo userType
-   const condition = userType === UserType.TUTOR
-  ? `classes.tutor_id IS NULL AND classes.author_id != ? AND in_class_members.user_id IS NULL`
-  : `classes.author_id != ? AND in_class_members.user_id IS NULL`;
+    const condition =
+      userType === UserType.TUTOR
+        ? `classes.tutor_id IS NULL AND classes.author_id != ? AND in_class_members.user_id IS NULL`
+        : `classes.author_id != ? AND in_class_members.user_id IS NULL`;
 
     // SQL query to fetch class information, including tutor, major, and class level details
     const sql = `SELECT 
@@ -371,7 +370,8 @@ export default class SClass {
                   WHERE ${condition};`;
 
     // Thay thế các giá trị điều kiện theo userType
-    const params = userType === UserType.TUTOR ? [userId, userId] : [userId, userId];
+    const params =
+      userType === UserType.TUTOR ? [userId, userId] : [userId, userId];
 
     // Get a database connection
     SMySQL.getConnection((connection) => {
@@ -1030,6 +1030,86 @@ export default class SClass {
     });
   }
 
+  /**
+   * @param newClass
+   * @param onNext
+   */
+
+  public static getClassLevels(
+    onNext: (result: boolean, classLevels?: number[]) => void
+  ) {
+    const sql = "SELECT id FROM lessons";
+
+    SMySQL.getConnection((connection) => {
+      connection?.query(sql, (err, results) => {
+        if (err) {
+          SLog.log(
+            LogType.Error,
+            "getClassLevels",
+            "Failed to fetch class levels",
+            err
+          );
+          onNext(false);
+          return;
+        }
+        // Trả về danh sách id của class_levels
+        if (Array.isArray(results)) {
+          const classLevels = results.map((row: any) => row.id);
+          onNext(true, classLevels);
+        } else {
+          // Trường hợp không phải là mảng, trả về lỗi
+          SLog.log(
+            LogType.Error,
+            "getClassLevels",
+            "Unexpected result format",
+            results
+          );
+          onNext(false);
+        }
+      });
+    });
+  }
+
+  public static createClass(
+    newClass: Class,
+    class_level_id: number,
+    onNext: (result: boolean, insertId?: number) => void
+  ) {
+    const sql =
+      "INSERT INTO classes (title, description, price, class_level_id, started_at, ended_at, created_at) VALUES (?,?,?,?,?,?,?)";
+
+    //class_level_id:  lấy danh sách cấp học -> lưu lại id
+    // bỏ mô tả và yêu cầu trong giao diện
+    const values = [
+      newClass.title,
+      newClass.description,
+      newClass.price,
+      class_level_id,
+      newClass.started_at,
+      newClass.ended_at,
+      new Date().getTime(),
+    ];
+
+    SMySQL.getConnection((connection) => {
+      connection?.query(sql, values, (err, result) => {
+        if (err) {
+          // Xử lý khi có lỗi
+          SLog.log(
+            LogType.Error,
+            "addNewClass",
+            "Failed to insert new class",
+            err
+          );
+          onNext(false);
+          return;
+        }
+        // Trả về kết quả thành công và ID của lớp học vừa thêm
+        const insertId = (result as any).insertId || undefined;
+        onNext(true, insertId); // tìm cách trả về ID lớp vừa tạo
+      });
+    });
+  }
+
   // Join class by leaner
   public static joinClass(
     classId: number,
@@ -1043,15 +1123,15 @@ export default class SClass {
     console.log(">>> student ids", studentIds);
 
     const sql = `
-        INSERT INTO in_class_members (class_id, user_id)
-        VALUES (?, ?)
-        `;
+          INSERT INTO in_class_members (class_id, user_id)
+          VALUES (?, ?)
+          `;
 
     // Câu SQL cho bảng in_class_students
     const studentSql = `
-    INSERT INTO in_class_students (class_id, student_id)
-    VALUES (?, ?)
-    `;
+      INSERT INTO in_class_students (class_id, student_id)
+      VALUES (?, ?)
+      `;
 
     SMySQL.getConnection((connection) => {
       // Bắt đầu giao dịch
@@ -1121,53 +1201,47 @@ export default class SClass {
     onError: (error: any) => void
   ) {
     // Truy vấn để kiểm tra xem lớp học đã có gia sư hoặc người tham gia hay chưa
-  const checkSql = `SELECT classes.tutor_id FROM classes WHERE classes.id = ?; `;
+    const checkSql = `SELECT classes.tutor_id FROM classes WHERE classes.id = ?; `;
 
     const updateSql = ` UPDATE classes SET tutor_id =?, updated_at = ?  WHERE id =?`;
 
     SMySQL.getConnection((connection) => {
-      connection?.execute<any>(
-        checkSql,
-        [classId],
-        (error, results) => {
-          if (error) {
-            onError(error);
-            return;
-          }
-  
-          const classInfo = results[0];
-          if (classInfo && (classInfo.tutor_id || classInfo.member_count > 0)) {
-            const errorMessage = "Class already has a tutor.";
-            onError(new Error(errorMessage));
-            console.log(">>> error:", errorMessage);
-            return;
-          }
-  
-          // Nếu lớp chưa có gia sư và không có thành viên tham gia, thực hiện cập nhật
-          connection.execute<any>(
-            updateSql,
-            [tutorId, new Date().getTime(), classId],
-            (updateError, updateResults) => {
-              if (updateError) {
-                onError(updateError);
-                return;
-              }
-  
-              if (updateResults && updateResults.affectedRows > 0) {
-                onSuccess();
-                console.log(">>> Class accepted by tutor successfully");
-              } else {
-                const errorMessage =
-                  "No class was updated. Possibly invalid class ID.";
-                onError(new Error(errorMessage));
-                console.log(">>> error:", errorMessage);
-              }
-            }
-          );
+      connection?.execute<any>(checkSql, [classId], (error, results) => {
+        if (error) {
+          onError(error);
+          return;
         }
-      );
+
+        const classInfo = results[0];
+        if (classInfo && (classInfo.tutor_id || classInfo.member_count > 0)) {
+          const errorMessage = "Class already has a tutor.";
+          onError(new Error(errorMessage));
+          console.log(">>> error:", errorMessage);
+          return;
+        }
+
+        // Nếu lớp chưa có gia sư và không có thành viên tham gia, thực hiện cập nhật
+        connection.execute<any>(
+          updateSql,
+          [tutorId, new Date().getTime(), classId],
+          (updateError, updateResults) => {
+            if (updateError) {
+              onError(updateError);
+              return;
+            }
+
+            if (updateResults && updateResults.affectedRows > 0) {
+              onSuccess();
+              console.log(">>> Class accepted by tutor successfully");
+            } else {
+              const errorMessage =
+                "No class was updated. Possibly invalid class ID.";
+              onError(new Error(errorMessage));
+              console.log(">>> error:", errorMessage);
+            }
+          }
+        );
+      });
     });
   }
-
-
 }
