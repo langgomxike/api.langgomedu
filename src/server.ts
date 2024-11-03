@@ -75,15 +75,6 @@ app.get(CERTIFICATE_BASE_URL + "/:id/levels", CertificateController.getAllLevels
 
 const CLASS_BASE_URL = Config.PREFIX + "/classes";
 app.get(CLASS_BASE_URL, ClassController.getAllClasses);
-app.get(CLASS_BASE_URL + "/suggests", ClassController.getSuggestedClasses);
-app.get(CLASS_BASE_URL + "/attending", ClassController.getAttendingClasses);
-app.get(CLASS_BASE_URL + "/teaching", ClassController.getTeachingClasses);
-app.get(CLASS_BASE_URL + "/:id", ClassController.getClass);
-app.post(CLASS_BASE_URL, ClassController.createClass);
-app.put(CLASS_BASE_URL, ClassController.updateClass);
-app.patch(CLASS_BASE_URL, ClassController.updateClass);
-// Class routes
-app.get(CLASS_BASE_URL, ClassController.getAllClasses);
 app.get(CLASS_BASE_URL + "/suggests/:user_id", ClassController.getSuggestedClasses);
 app.get(CLASS_BASE_URL + "/attending/:user_id", ClassController.getAttendingClasses);
 app.get(CLASS_BASE_URL + "/teaching/:user_id", ClassController.getTeachingClasses);
@@ -213,6 +204,6 @@ SMySQL.connect();
 setUpPermissions();
 setUpRoles();
 setUpGenders();
-setUpUsers();
+// setUpUsers();
 
 export default app;
