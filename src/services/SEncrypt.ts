@@ -30,11 +30,11 @@ export default class SEncrypt {
      */
     public static decrypt(encryptedData: string, key: string): string {
         const algorithm = 'aes-256-cbc'; // Encryption algorithm
-        const [ivHex, encrypted] = encryptedData.split(':'); // Split the IV and encrypted data
+        const [ivHex, encrypted] = encryptedData?.split && encryptedData?.split(':') || ["", ""]; // Split the IV and encrypted data
         const iv = Buffer.from(ivHex, 'hex'); // Convert IV from hex to buffer
 
         // Create a decipher using the specified algorithm, key, and IV
-        const decipher = crypto.createDecipheriv(algorithm, crypto.scryptSync(key, 'salt', 32), iv);
+        const decipher = crypto?.createDecipheriv(algorithm, crypto.scryptSync(key, 'salt', 32), iv);
         let decrypted = decipher.update(encrypted, 'hex', 'utf8');
         decrypted += decipher.final('utf8');
 

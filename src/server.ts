@@ -1,4 +1,7 @@
+// Import necessary modules and libraries
+// @ts-ignore
 import express, { Express, Request, Response } from "express";
+// @ts-ignore
 import dotenv from "dotenv";
 import SLog, { LogType } from "./services/SLog";
 import SMySQL from "./services/SMySQL";
@@ -18,34 +21,30 @@ import RoleController from "./controllers/RoleController";
 import StudentController from "./controllers/StudentController";
 import LessonController from "./controllers/LessonController";
 import DatabaseSeeder from "./seeders/DatabaseSeeder";
+import SAuthentication, { OWNING_KEY_COLUMNS, OWNING_REF_COLUMNS, OWNING_REF_TABLES } from "./services/SAuthentication";
+import PermissionList, { setUpPermissions } from "./configs/PermissionConfig";
+import { setUpGenders } from "./configs/GenderConfig";
+import SFirebase, { FirebaseNode } from "./services/SFirebase";
+import AdminController from "./controllers/admin/AdminController";
 import SResponse, { ResponseStatus } from "./services/SResponse";
 
-// call all the required packages
-const bodyParser= require('body-parser')
-const multer = require('multer');
-const upload = multer();
+import { ClassLevelController } from "./controllers/ClassLevelController";
+import {setUpRoles} from "./configs/RoleConfig";
+import {setUpUsers} from "./configs/UserConfig";
 
-
-dotenv.config(); // doc bien moi truong
+dotenv.config();
 
 const app: Express = express();
 const port = process.env.PORT || 3000;
 
-
-// Middleware để parse JSON và urlencoded
-app.use(bodyParser.json()); 
-app.use(bodyParser.urlencoded({ extended: true }));
-
 app.use(express.json());
 
-
-
 app.get("/", (req: Request, res: Response) => {
-  res.redirect("/api");
+    res.redirect("/api");
 });
 
 app.get("/api", (req: Request, res: Response) => {
-  res.sendFile(__dirname + "/index.html");
+    res.sendFile(__dirname + "/index.html");
 });
 
 app.use('/', express.static('public'));
@@ -56,6 +55,11 @@ app.post(ATTENDANCE_BASE_URL + "/request", AttendanceController.requestAttendanc
 app.post(ATTENDANCE_BASE_URL + "/accept", AttendanceController.acceptAttendance);
 app.get(ATTENDANCE_BASE_URL + "/id", AttendanceController.getAttendance);
 
+// ClassLevel routes
+const CLASSLEVEL_BASE_URL = Config.PREFIX + "/class-levels";
+app.get(CLASSLEVEL_BASE_URL, ClassLevelController.getAllClassLevels);
+
+// Define the base URL for certificate-related routes
 const CERTIFICATE_BASE_URL = Config.PREFIX + "/certificates";
 app.get(CERTIFICATE_BASE_URL, CertificateController.getAllCertificates);
 app.post(CERTIFICATE_BASE_URL, CertificateController.createCertificate);
@@ -71,18 +75,33 @@ app.get(CERTIFICATE_BASE_URL + "/:id/levels", CertificateController.getAllLevels
 
 const CLASS_BASE_URL = Config.PREFIX + "/classes";
 app.get(CLASS_BASE_URL, ClassController.getAllClasses);
-app.get(CLASS_BASE_URL + "/suggests", ClassController.getSuggestedClasses);
+app.get(CLASS_BASE_URL + "/suggests/:user_id", ClassController.getSuggestedClasses);
 app.get(CLASS_BASE_URL + "/attending/:user_id", ClassController.getAttendingClasses);
 app.get(CLASS_BASE_URL + "/teaching/:user_id", ClassController.getTeachingClasses);
 app.get(CLASS_BASE_URL + "/created/:user_id", ClassController.getCreatedClasses);
-app.get(CLASS_BASE_URL + "/isowner", ClassController.getAuthorClasses);
 app.get(CLASS_BASE_URL + "/:class_id", ClassController.getClass);
 app.post(CLASS_BASE_URL, ClassController.createClass);
-// app.put(CLASS_BASE_URL, ClassController.updateClass);
-// app.patch(CLASS_BASE_URL, ClassController.updateClass);
-app.delete(CLASS_BASE_URL, ClassController.deleteClass);
-app.post(CLASS_BASE_URL + "/request/:id", ClassController.requestToAttendClass);
-app.post(CLASS_BASE_URL + "/accept/:id", ClassController.acceptToAttendClass);
+app.put(CLASS_BASE_URL, ClassController.updateClass);
+app.patch(CLASS_BASE_URL, ClassController.updateClass);
+
+app.delete(CLASS_BASE_URL,
+    (req, res, onNext) => SAuthentication.checkAuthorization(
+        req, res, onNext,
+        OWNING_REF_TABLES.PERSONAL_CLASS,
+        OWNING_REF_COLUMNS.AUTHOR_ID,
+        OWNING_KEY_COLUMNS.iD
+    ),
+    (req, res, onNext) => SAuthentication.checkAuthentication(
+        req, res, onNext,
+        [
+            PermissionList.DELETE_PERSONAL_CLASS,
+            PermissionList.DELETE_OTHER_USER_CLASS,
+        ]
+    ),
+    ClassController.deleteClass
+);
+app.post(CLASS_BASE_URL + "/:class_id/join", ClassController.requestToAttendClass);
+app.post(CLASS_BASE_URL + "/:class_id/accept_to_teach",ClassController.acceptClassToTeach);
 app.post(CLASS_BASE_URL + "/approve/:id", ClassController.approveToAttendClass);
 
 app.get(CLASS_BASE_URL + "/levels", ClassController.getAllLevels); //
@@ -142,8 +161,7 @@ app.put(OTHER_SKILL_BASE_URL, OtherSkillController.updateSkill);
 app.patch(OTHER_SKILL_BASE_URL, OtherSkillController.updateSkill);
 app.delete(OTHER_SKILL_BASE_URL, OtherSkillController.deleteSkill);
 
-const PERMISSION_BASE_URL = Config.PREFIX + "/permissions"; // host:port/PREFIX/permissions (PREFIX: /api)
-// app.get(PERMISSION_BASE_URL, PermissionController.getAllPermissions);
+const PERMISSION_BASE_URL = Config.PREFIX + "/permissions";
 
 const RATING_BASE_URL = Config.PREFIX + "/ratings";
 app.get(RATING_BASE_URL + "/:class", RatingController.getRatings);
@@ -153,16 +171,17 @@ const ROLE_BASE_URL = Config.PREFIX + "/roles";
 app.get(ROLE_BASE_URL, RoleController.getAllRoles);
 
 const STUDENT_BASE_URL = Config.PREFIX + "/students";
-app.get(STUDENT_BASE_URL + "/:user", StudentController.getStudentsBelongToUser);
-app.get(STUDENT_BASE_URL + "/:class", StudentController.getStudentsInClass);
-app.post(STUDENT_BASE_URL, StudentController.createStudent);
-app.put(STUDENT_BASE_URL + "/:id", StudentController.updateStudent);
-app.patch(STUDENT_BASE_URL + "/:id", StudentController.updateStudent);
-app.delete(STUDENT_BASE_URL + "/:id", StudentController.deleteStudent);
-
+// Student routes
+app.get(STUDENT_BASE_URL, StudentController.getAllStudents);
+app.get(STUDENT_BASE_URL + "/user/:user_id", StudentController.getStudentsBelongToUser); // Get students belonging to a user
+app.get(STUDENT_BASE_URL + "/class/:class_id", StudentController.getStudentsInClass); // Get students in a specific class
+app.post(STUDENT_BASE_URL, StudentController.createStudent); // Create a new student
+app.put(STUDENT_BASE_URL + "/:id", StudentController.updateStudent); // Update an existing student
+app.patch(STUDENT_BASE_URL + "/:id", StudentController.updateStudent); // Partially update a student
+app.delete(STUDENT_BASE_URL + "/:id", StudentController.deleteStudent); // Delete a student
 
 const USER_BASE_URL = Config.PREFIX + "/users";
-// app.get(USER_BASE_URL, UserController.getAllUsers);
+app.get(USER_BASE_URL, UserController.getAllUsers);
 app.get(USER_BASE_URL + "/:id", UserController.getUser);
 app.post(USER_BASE_URL + "/register", UserController.registerUser);
 app.post(USER_BASE_URL + "/register/admin", UserController.registerAdmin);
@@ -174,13 +193,21 @@ app.put(USER_BASE_URL + "/:id", UserController.updateUserInfo);
 app.patch(USER_BASE_URL + "/:id", UserController.updateUserInfo);
 app.delete(USER_BASE_URL + "/:id", UserController.deleteAccount);
 
-app.listen(port, () => {
-  SLog.log(LogType.Info, "Listen", "server is running at http://127.0.0.1", port);
+// Define the base URL for user-related routes
+const ADMIN_USER_BASE_URL = Config.PREFIX + "/admin";
+app.get(ADMIN_USER_BASE_URL + "/users", AdminController.getAllUsers);
+app.get(ADMIN_USER_BASE_URL + "/users/:user_id/reports", AdminController.getAllReportUserOfUser);
+app.get(ADMIN_USER_BASE_URL + "/classes", AdminController.getAllClasses);
+app.get(ADMIN_USER_BASE_URL + "/classes/:class_id", AdminController.getDetailClass);
 
-  SMySQL.connect();
-  DatabaseSeeder.seed();
+app.listen(port, () => {
+    SLog.log(LogType.Info, "Listen to the port", "server is running at http://127.0.0.1", port);
 });
 
-// DatabaseSeeder.fake();
+SMySQL.connect();
+setUpPermissions();
+setUpRoles();
+setUpGenders();
+// setUpUsers();
 
 export default app;

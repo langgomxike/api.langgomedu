@@ -1,73 +1,284 @@
-import { QueryResult, RowDataPacket } from 'mysql2';
 import User from './../models/User';
-import SLog, { LogType } from './SLog';
 import SMySQL from './SMySQL';
-import SFile from './SFile';
-import SRole from './SRole';
-
-interface IUser extends RowDataPacket {
-    id: string,
-    full_name: string,
-    email: string
-    phone_number: string,
-    password: string,
-    token: string,
-    avatar_id: number,
-    role_id: number,
-    created_at: number,
-    updated_at: number
-}
+import SLog, {LogType} from './SLog';
+import {v4} from "uuid";
+import SFirebase, {FirebaseNode} from "./SFirebase";
 
 export default class SUser {
     public static getAllUsers(onNext: (users: User[]) => void) {
-        const sql = "SELECT * FROM users";
+        const sql = `SELECT users.*,
+                            JSON_OBJECT(
+                                    'id', roles.id,
+                                    'role', roles.name
+                            ) AS role,
+                            JSON_OBJECT(
+                                    'id', files.id,
+                                    'path', files.path,
+                                    'image_width', files.image_with,
+                                    'image_height', files.image_height
+                            ) AS avatar
+                     FROM users
+                      LEFT JOIN roles ON roles.id = users.role_id
+                      LEFT JOIN files ON files.id = users.avatar_id
+                     GROUP BY users.id
+        `;
 
         SMySQL.getConnection((connection) => {
-            connection?.execute<IUser[]>(sql, (err, results) => {
+            connection?.execute<any[]>(sql, (err, results) => {
                 if (err) {
+                    SLog.log(LogType.Error, "get all users", "failed to execute", err);
                     onNext([]);
                     return;
                 }
 
-                SRole.getRolesByIds(results.map(result => result.role_id), (roles) => {
-                    // SLog.log(LogType.Info, "getRolesByIds", "ids: " + results.map(result => result.role_id).join(", "), roles);
-                    SFile.getFilesByIds(results.map(result => result.avatar_id), (files) => {
-                        const users: User[] = [];
-                        results.forEach(iUser => {
-                            const user = new User();
-                            user.id = iUser.id;
-                            user.fullName = iUser.full_name;
-                            user.email = iUser.email;
-                            user.password = iUser.password;
-                            user.token = iUser.token;
-                            user.avatar = files.find(file => file.id === iUser.avatar_id);
-                            user.role = roles.find(role => role.id === iUser.role_id);
-                            user.createdAt = new Date(iUser.created_at);
-                            user.updatedAt = new Date(iUser.updated_at);
-                            users.push(user);
-                        });
+                const users: User[] = [];
 
-                        onNext(users);
-                        // SLog.log(LogType.Info, "getAllUsers", "", { err: err, results: results });
-                    });
+                results.forEach(result => {
+                    const user: User = result;
+                    users.push(user);
                 });
+
+                SLog.log(LogType.Info, "getAllUsers", "", users);
+                onNext(users);
             });
         });
     }
 
     public static getUserById(id: number, onNext: (user: User | undefined) => void) {
+        const sql = `SELECT users.*, 
+                        JSON_OBJECT(
+                                    'id', roles.id,
+                                    'role', roles.name
+                            ) AS role,
+                        JSON_OBJECT(
+                                'id', files.id,
+                                'path', files.path,
+                                'image_width', files.image_with,
+                                'image_height', files.image_height
+                        ) AS avatar
+                    FROM users
+                     INNER JOIN roles ON roles.id = users.role_id
+                     INNER JOIN files ON files.id = users.avatar_id
+                    WHERE id = ?`;
 
+        SMySQL.getConnection(connection => {
+            connection?.execute<any>(sql, [id], (error, result) => {
+                if (error) {
+                    onNext(undefined);
+                    SLog.log(LogType.Error, "getUserById", "", error);
+                    return;
+                } else {
+                    const user: User | undefined = result && result[0] || undefined;
+
+                    SLog.log(LogType.Info, "getUserById", "", user);
+                    onNext(user);
+                }
+            });
+        });
     }
 
     public static getUserByEmail(email: string, onNext: (user: User | undefined) => void) {
+        const sql = `SELECT users.*, 
+                        JSON_OBJECT(
+                            'id', roles.id,
+                            'role', roles.name
+                        ) AS role,
+                        JSON_OBJECT(
+                            'id', files.id,
+                            'path', files.path,
+                            'image_width', files.image_with,
+                            'image_height', files.image_height
+                        ) AS avatar
+                    FROM users 
+                    INNER JOIN roles ON roles.id = users.role_id
+                    INNER JOIN files ON files.id = users.avatar_id
+                    WHERE email = ?`;
 
+        SMySQL.getConnection(connection => {
+            connection?.execute<any>(sql, [email], (error, result) => {
+                if (error) {
+                    onNext(undefined);
+                    SLog.log(LogType.Error, "getUserByEmail", "", error);
+                    return;
+                } else {
+                    const user: User | undefined = result && result[0] || undefined;
+
+                    SLog.log(LogType.Info, "getUserByEmail", "", user);
+                    onNext(user);
+                }
+            });
+        });
     }
 
-    public static getUserByToken(token: string, onNext: (user: User | undefined) => void) { }
+    public static getUserByToken(token: string, onNext: (user: User | undefined) => void) {
+        const sql = `SELECT users.*, 
+                        JSON_OBJECT(
+                                    'id', roles.id,
+                                    'role', roles.name
+                            ) AS role,
+                        JSON_OBJECT(
+                                'id', files.id,
+                                'path', files.path,
+                                'image_width', files.image_with,
+                                'image_height', files.image_height
+                        ) AS avatar
+                    FROM users
+                     INNER JOIN roles ON roles.id = users.role_id
+                     INNER JOIN files ON files.id = users.avatar_id
+                    WHERE token = ?`;
 
-    public static storeUser(user: User, onNext: (id: number | undefined) => void) { }
+        SMySQL.getConnection(connection => {
+            connection?.execute<any>(sql, [token], (error, result) => {
+                if (error) {
+                    onNext(undefined);
+                    SLog.log(LogType.Error, "getUserByToken", "", error);
+                    return;
+                } else {
+                    const user: User | undefined = result && result[0] || undefined;
+                    SLog.log(LogType.Info, "getUserByToken", "", user);
+                    onNext(user);
+                }
+            });
+        });
+    }
 
-    public static updateUserInfo(id: number, onNext: (result: boolean) => void) { }
+    public static getUserByPhoneNumber(phoneNumber: string, onNext: (user: User | undefined) => void) {
+        const sql = `SELECT users.*, 
+                        JSON_OBJECT(
+                                'id', roles.id,
+                                'role', roles.name
+                        ) AS role,
+                        JSON_OBJECT(
+                            'id', files.id,
+                            'path', files.path,
+                            'image_width', files.image_with,
+                            'image_height', files.image_height
+                        ) AS avatar
+                    FROM users
+                    INNER JOIN roles ON roles.id = users.role_id
+                    INNER JOIN files ON files.id = users.avatar_id
+                    WHERE phone_number = ?`;
+
+        SMySQL.getConnection(connection => {
+            connection?.execute<any>(sql, [phoneNumber], (error, result) => {
+                if (error) {
+                    onNext(undefined);
+                    SLog.log(LogType.Error, "getUserByPhoneNumber", "", error);
+                    return;
+                } else {
+                    const user: User | undefined = result && result[0] || undefined;
+                    SLog.log(LogType.Info, "getUserByPhoneNumber", "", user);
+                    onNext(user);
+                }
+            });
+        });
+    }
+
+    public static checkUserPassword(userId: string, password: string, onNext: (result: boolean) => void) {
+        const sql = "SELECT password FROM users WHERE id = ?";
+
+        SMySQL.getConnection(connection => {
+            connection?.execute<any>(sql, [userId ?? -1], (error, result) => {
+                if (error) {
+                    SLog.log(LogType.Error, "checkUserPassword", "", error);
+                    onNext(false);
+                    return;
+                } else {
+                    const userPassword: string = result && result[0] || "";
+                    const flag = /*SEncrypt.decrypt(userPassword, "")*/ userPassword === password;
+                    SLog.log(LogType.Warning, "checkUserPassword", "", flag);
+                    onNext(flag);
+                }
+            });
+        });
+    }
+
+    public static storeUser(user: User, onNext: (result: boolean) => void) {
+        const sql = "INSERT INTO `users`(`id`, `full_name`, `email`, `phone_number`, `password`, `token`, `avatar_id`, `role_id`, `created_at`) VALUES (?,?,?,?,?,?,?,?,?)";
+
+        SMySQL.getConnection(connection => {
+            connection?.execute<any>(sql, [
+                user.id,
+                user.full_name,
+                user.email,
+                user.phone_number,
+                /*SEncrypt.encrypt(user.password, "")*/ user.password,
+                v4(),
+                user.avatar?.id?? -1,
+                user.role?.id?? -1,
+                new Date().getTime()
+            ], (error, result) => {
+                if (error) {
+                    onNext(false);
+                    SLog.log(LogType.Error, "storeUser", "failed to execute", error);
+                    return;
+                }
+
+                //update into firebase
+                SFirebase.push(FirebaseNode.USER, user.id, () => {
+                    SLog.log(LogType.Info, "storeUser", "store user successfully");
+                    onNext(true);
+                });
+            });
+        });
+    }
+
+    public static updateUserInfo(user: User, onNext: (result: boolean) => void) {
+        let sql = "UPDATE `users` SET ";
+        const params = [];
+
+        if (user.full_name) {
+            sql += "`full_name` = ?,";
+            params.push(user.full_name)
+        }
+
+        if (user.email) {
+            sql += "`email` = ?,";
+            params.push(user.email)
+        }
+
+        if (user.phone_number) {
+            sql += "`phone_number` = ?,";
+            params.push(user.phone_number)
+        }
+
+        if (user.password) {
+            sql += "`password` = ?,";
+            params.push(user.password)
+        }
+
+        if (user.token) {
+            sql += "`token` = ?,";
+            params.push(user.token)
+        }
+
+        if (user.role?.id) {
+            sql += "`role_id` = ?,";
+            params.push(user.role?.id);
+        }
+
+        sql += "`updated_at` = ? WHERE id = ?";
+
+        SMySQL.getConnection(connection => {
+            connection?.execute<any>(sql, [
+                ...params,
+                new Date().getTime(),
+                user.id,
+            ], (error, result) => {
+                if (error) {
+                    onNext(false);
+                    SLog.log(LogType.Error, "updateUser", "failed to execute", error);
+                    return;
+                }
+
+                //update into firebase
+                SFirebase.push(FirebaseNode.USER, user.id, () => {
+                    SLog.log(LogType.Info, "updateUser", "update user successfully");
+                    onNext(true);
+                });
+            });
+        });
+    }
 
     public static softDeleteUser(id: number, onNext: (result: boolean) => void) {
 

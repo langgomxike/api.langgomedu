@@ -6,6 +6,7 @@ interface IPermission extends RowDataPacket {
     id: number;
     permission: string;
 }
+
 export default class SPermission {
 
     public static getAllPermissions(onNext: (permissions: Permission[]) => void) {

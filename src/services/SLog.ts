@@ -15,7 +15,7 @@ export default class SLog {
         let newHeader = "";
 
         for (let i = 0; i < header.length; i++) {
-            if (header[i].match(/^[A-Z]$/)) {
+            if (i >= 1 && header[i].match(/^[A-Z]$/)) {
                 newHeader += " ";
             }
 
@@ -23,11 +23,15 @@ export default class SLog {
         }
 
         //log the message
+        console.log();
+        console.log('========================================================================');
         console.group();
         console.log(types[type]);
         console.log("Header   ", newHeader?.toUpperCase());
         console.log("Message  ", message);
         console.log("Data     ", data);
         console.groupEnd();
+        console.log('========================================================================');
+        console.log();
     }
 }

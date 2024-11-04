@@ -63,7 +63,7 @@ GROUP BY cvs.user_id, cvs.biography, cvs.title, cvs.approved_at, u.full_name, u.
         result.forEach((data) => {
           const cv: CV = data.cv;
           cv.user = data.user;
-          cv.information = data.information;
+          cv.information = data.info;
           cv.skills = data.skills;
 
           cvs.push(cv);
