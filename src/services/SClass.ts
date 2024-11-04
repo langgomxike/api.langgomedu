@@ -76,7 +76,7 @@ export default class SClass {
                     SLog.log(LogType.Error, "get all classes", "fail to get all classes in database", err);
                     // Gọi callback với mảng rỗng khi gặp lỗi
                     onNext([]);
-                    return;
+                    // return;
                 }
 
                 // Nếu truy vấn thành công, khởi tạo mảng lưu các lớp học
@@ -256,7 +256,7 @@ export default class SClass {
                 const _class: Class = result[0].class as Class;
                 const related_classes: Class[] = [];
                 const major_id = _class.major?.id;
-                SClass.getRelatedClasses(major_id, (related_class) => {
+                SClass.getRelatedClasses(major_id, id, (related_class) => {
 
                     related_class.forEach(data => {
                         related_classes.push(data)
@@ -270,7 +270,7 @@ export default class SClass {
 
     public static getClassesByKey(key: string, onNext: (classes: Class[]) => void) { }
 
-    public static getRelatedClasses(major_id: number | undefined, onNext: (classes: Class[]) => void) {
+    public static getRelatedClasses(major_id: number | undefined, class_id : number, onNext: (classes: Class[]) => void) {
         //get related classes
         const sql_related_classes = `SELECT 
                     JSON_OBJECT(
@@ -357,13 +357,13 @@ export default class SClass {
                 LEFT JOIN files major_icon ON major_icon.id = majors.icon_id
                 LEFT JOIN class_levels cl ON cl.id = c.class_level_id
                 LEFT JOIN lessons ON lessons.class_id = c.id
-                WHERE c.major_id = ?
+                WHERE c.major_id = ? AND c.id = ?
                 GROUP BY c.id;`
 
         const related_classes: Class[] = [];
 
         SMySQL.getConnection(connection => {
-            connection?.query<any>(sql_related_classes, [major_id], (err, result) => {
+            connection?.query<any>(sql_related_classes, [major_id, class_id], (err, result) => {
                 // console.log(major_id);
                 if (err) {
                     SLog.log(LogType.Error, 'get related classes', "can't not get classes related with major", err);

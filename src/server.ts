@@ -18,6 +18,7 @@ import RoleController from "./controllers/RoleController";
 import StudentController from "./controllers/StudentController";
 import LessonController from "./controllers/LessonController";
 import DatabaseSeeder from "./seeders/DatabaseSeeder";
+import SResponse, { ResponseStatus } from "./services/SResponse";
 
 // call all the required packages
 const bodyParser= require('body-parser')
@@ -83,7 +84,8 @@ app.delete(CLASS_BASE_URL, ClassController.deleteClass);
 app.post(CLASS_BASE_URL + "/request/:id", ClassController.requestToAttendClass);
 app.post(CLASS_BASE_URL + "/accept/:id", ClassController.acceptToAttendClass);
 app.post(CLASS_BASE_URL + "/approve/:id", ClassController.approveToAttendClass);
-app.get(CLASS_BASE_URL + "/levels", ClassController.getAllLevels);
+
+app.get(CLASS_BASE_URL + "/levels", ClassController.getAllLevels); //
 app.post(CLASS_BASE_URL + "/levels", ClassController.createLevel);
 app.put(CLASS_BASE_URL + "/levels/:id", ClassController.updateLevel);
 app.patch(CLASS_BASE_URL + "/levels/:id", ClassController.updateLevel);
@@ -95,6 +97,9 @@ app.post(LESSON_BASE_URL + "/:class", LessonController.createLesson);
 app.put(LESSON_BASE_URL + "/:id", LessonController.updateLesson);
 app.patch(LESSON_BASE_URL + "/:id", LessonController.updateLesson);
 app.delete(LESSON_BASE_URL + "/:id", LessonController.deleteLesson);
+app.get(LESSON_BASE_URL, LessonController.getSchedule);
+//demo
+// app.get(LESSON_BASE_URL, LessonController.demoLesson);
 
 const REPORT_BASE_URL = Config.PREFIX + "/reports";
 app.get(REPORT_BASE_URL + "/class", ReportController.getAllClassReports);
