@@ -3,42 +3,40 @@ import User from "./User";
 
 export default class Message {
     public id: number;
-    public fromUser: User | undefined;
-    public toUser: User | undefined;
+    public from_user: User | undefined;
+    public to_user: User | undefined;
     public content: string;
     public file: File | undefined;
-    public isImage: boolean;
-    public createdAt: Date;
-    public replyToMessage: Message | undefined;
-    public fromUserStatus: boolean;
-    public toUserStatus: boolean;
-    public asRead: boolean;
-
+    public is_image: boolean;
+    public created_at: number;
+    public reply_to_message: Message | undefined;
+    public from_user_status: boolean;
+    public to_user_status: boolean;
+    public as_read: boolean;
 
     constructor(
         id = -1, 
-        fromUser: User | undefined = undefined, 
-        toUser: User | undefined = undefined, 
+        fromUser: User | undefined = undefined,
+        toUser: User | undefined = undefined,
         content = "", 
         file: File | undefined = undefined, 
-        isImage = false, 
-        createdAt = new Date(), 
-        replyToMessage: Message | undefined = undefined, 
-        fromUserStatus = true, 
-        toUserStatus = true, 
+        isImage = false,
+        createdAt = new Date(),
+        replyToMessage: Message | undefined = undefined,
+        fromUserStatus = true,
+        toUserStatus = true,
         asRead = false
     ) {
         this.id = id;
         this.content = content;
-        this.isImage = isImage;
-        this.createdAt = createdAt;
+        this.is_image = isImage;
+        this.created_at = createdAt.getTime();
         this.file = file;
-        this.fromUser = fromUser;
-        this.toUser = toUser;
-        this.replyToMessage = replyToMessage;
-        this.fromUserStatus = fromUserStatus;
-        this.toUserStatus = toUserStatus;
-        this.asRead = asRead;
+        this.from_user = fromUser;
+        this.to_user = toUser;
+        this.reply_to_message = replyToMessage;
+        this.from_user_status = fromUserStatus;
+        this.to_user_status = toUserStatus;
+        this.as_read = asRead;
     }
-
 }

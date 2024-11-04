@@ -1,5 +1,6 @@
 import SLog, { LogType } from "../services/SLog"; // Importing logging service for logging operations
 import SMySQL from "../services/SMySQL"; // Importing the SMySQL service for database operations
+// @ts-ignore
 import genderJsonData from "../datas/genders.json"; // Importing JSON data for gender translations
 
 // Enum to define different types of genders with unique numeric values

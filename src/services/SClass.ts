@@ -2,10 +2,9 @@ import { response } from "express";
 import Class from "./../models/Class";
 import SLog, { LogType } from "./SLog";
 import SMySQL from "./SMySQL";
-import Attendance from "../models/Attendance";
 import User from "../models/User";
 import Major from "../models/Major";
-import { on } from "events";
+import { UserType } from "../configs/UserType";
 
 export default class SClass {
   /**
@@ -169,8 +168,9 @@ export default class SClass {
   public static getUnstartedClasses(onNext: (classes: Class[]) => void) {}
   public static getIncompleteClasses(onNext: (classes: Class[]) => void) {}
 
-  public static getClassById(
+  public static getClassDetailWithUser(
     id: number,
+    userId: string,
     onNext: (_class: Class | undefined, related_classes: Class[]) => void
   ) {
     //get class
@@ -248,7 +248,13 @@ export default class SClass {
                     'address_1', c.address_1,
                     'address_2', c.address_2,
                     'address_3', c.address_3,
-                    'address_4', c.address_4
+                     'address_4', c.address_4,
+        'user_status', CASE 
+            WHEN c.author_id = ? THEN 'author'
+            WHEN c.tutor_id = ? THEN 'tutor'
+            WHEN in_class_members.user_id IS NOT NULL THEN 'member'
+            ELSE 'not_joined'
+        END
                     ) as class
                 FROM classes c
                 LEFT JOIN users tutor ON tutor.id = c.tutor_id
@@ -259,31 +265,36 @@ export default class SClass {
                 LEFT JOIN files major_icon ON major_icon.id = majors.icon_id
                 LEFT JOIN class_levels cl ON cl.id = c.class_level_id
                 LEFT JOIN lessons ON lessons.class_id = c.id
+                LEFT JOIN in_class_members ON in_class_members.class_id = c.id AND in_class_members.user_id = ?
                 WHERE c.id = ?
                 GROUP BY c.id;`;
 
     SMySQL.getConnection((connection) => {
-      connection?.query<any>(sql, [id], (err, result) => {
-        if (err) {
-          SLog.log(
-            LogType.Error,
-            "get Class by ID",
-            "can't not get class",
-            err
-          );
-          onNext(undefined, []);
-        }
+      connection?.query<any>(
+        sql,
+        [userId, userId, userId, id],
+        (err, result) => {
+          if (err) {
+            SLog.log(
+              LogType.Error,
+              "get Class by ID",
+              "can't not get class",
+              err
+            );
+            onNext(undefined, []);
+          }
 
-        const _class: Class = result[0].class as Class;
-        const related_classes: Class[] = [];
-        const major_id = _class.major?.id;
-        SClass.getRelatedClasses(major_id, (related_class) => {
-          related_class.forEach((data) => {
-            related_classes.push(data);
+          const _class: Class = result[0].class as Class;
+          const related_classes: Class[] = [];
+          const major_id = _class.major?.id;
+          SClass.getRelatedClasses(major_id, id, (related_class) => {
+            related_class.forEach((data) => {
+              related_classes.push(data);
+            });
+            onNext(_class, related_class);
           });
-          onNext(_class, related_classes);
-        });
-      });
+        }
+      );
     });
   }
 
@@ -292,8 +303,107 @@ export default class SClass {
     onNext: (classes: Class[]) => void
   ) {}
 
+  public static getSuggestedClasses(
+    userId: string,
+    userType: number,
+    onNext: (classes: Class[]) => void
+  ) {
+    // Xác định điều kiện WHERE theo userType
+    const condition =
+      userType === UserType.TUTOR
+        ? `classes.tutor_id IS NULL AND classes.author_id != ? AND in_class_members.user_id IS NULL`
+        : `classes.author_id != ? AND in_class_members.user_id IS NULL`;
+
+    // SQL query to fetch class information, including tutor, major, and class level details
+    const sql = `SELECT 
+                    JSON_OBJECT(
+                          'id', classes.id ,
+                          'title', classes.title ,
+                          'description', classes.description,
+                          'price', classes.price,
+                          'class_creation_fee', classes.class_creation_fee,
+                          'max_learners', classes.max_learners,
+                          'started_at', classes.started_at,
+                          'ended_at', classes.ended_at,
+                          'created_at', classes.created_at,
+                          'updated_at', classes.updated_at,
+                          'address_1', classes.address_1,
+                          'address_2', classes.address_2,
+                          'address_3', classes.address_3,
+                          'address_4', classes.address_4,
+                          'tutor', JSON_OBJECT(
+                          'id', users.id,
+                          'name', users.full_name,
+                          'email', users.email,
+                          'phone_number', users.phone_number,
+                          'avatar', JSON_OBJECT(
+                                      'id', files_tutor.id,
+                                      'name', files_tutor.name,
+                                      'path', files_tutor.path
+                                    )
+                            ),
+                            'major', JSON_OBJECT(
+                          'id', majors.id,
+                          'vn_name', majors.vn_name,
+                          'en_name', majors.en_name,
+                          'ja_name', majors.ja_name,
+                          'icon', JSON_OBJECT(
+                                      'id', files_major.id,
+                                      'name', files_major.name,
+                                      'path', files_major.path
+                                  )
+                            ),
+                        'class_level', JSON_OBJECT(
+                          'id', class_levels.id,
+                          'vn_name', class_levels.vn_name,
+                          'en_name', class_levels.en_name,
+                          'ja_name', class_levels.ja_name
+                        )
+                      ) AS class
+                  FROM classes
+                  LEFT JOIN users ON users.id = classes.tutor_id
+                  LEFT JOIN majors ON majors.id = classes.major_id
+                  LEFT JOIN class_levels ON class_levels.id = classes.class_level_id
+                  LEFT JOIN files AS files_tutor ON files_tutor.id = users.avatar_id
+                  LEFT JOIN files AS files_major ON files_major.id = majors.icon_id
+                  LEFT JOIN in_class_members ON in_class_members.class_id = classes.id AND in_class_members.user_id = ?
+                  WHERE ${condition};`;
+
+    // Thay thế các giá trị điều kiện theo userType
+    const params =
+      userType === UserType.TUTOR ? [userId, userId] : [userId, userId];
+
+    // Get a database connection
+    SMySQL.getConnection((connection) => {
+      // Execute the SQL query with the provided user_id as a parameter
+      connection?.execute<any[]>(sql, params, (err, rows) => {
+        if (err) {
+          // If an error occurs, return an empty array to the callback
+          onNext([]);
+          return;
+        }
+
+        const classes: Class[] = [];
+
+        // Iterate through each row from the query result
+        rows.forEach((row) => {
+          const _class = row.class;
+
+          // Add the created Class instance to the classes array
+          classes.push(_class);
+        });
+
+        // SLog.log(LogType.Info, "getAttendingClasses","get Attending Classes",rows );
+
+        // Return the list of classes via the callback function
+        return onNext(classes);
+      });
+    });
+  }
+
   public static getRelatedClasses(
     major_id: number | undefined,
+    class_id: number,
     onNext: (classes: Class[]) => void
   ) {
     //get related classes
@@ -388,27 +498,31 @@ export default class SClass {
     const related_classes: Class[] = [];
 
     SMySQL.getConnection((connection) => {
-      connection?.query<any>(sql_related_classes, [major_id], (err, result) => {
-        // console.log(major_id);
-        if (err) {
-          SLog.log(
-            LogType.Error,
-            "get related classes",
-            "can't not get classes related with major",
-            err
-          );
-          onNext([]);
-          return;
+      connection?.query<any>(
+        sql_related_classes,
+        [major_id, class_id],
+        (err, result) => {
+          // console.log(major_id);
+          if (err) {
+            SLog.log(
+              LogType.Error,
+              "get related classes",
+              "can't not get classes related with major",
+              err
+            );
+            onNext([]);
+            return;
+          }
+
+          result.forEach((data) => {
+            const related_class = data.class as Class;
+            related_classes.push(related_class);
+          });
+          // console.log(related_classes);
+
+          onNext(related_classes);
         }
-
-        result.forEach((data) => {
-          const related_class = data.class as Class;
-          related_classes.push(related_class);
-        });
-        // console.log(related_classes);
-
-        onNext(related_classes);
-      });
+      );
     });
   }
 
@@ -944,7 +1058,12 @@ export default class SClass {
           onNext(true, classLevels);
         } else {
           // Trường hợp không phải là mảng, trả về lỗi
-          SLog.log(LogType.Error, "getClassLevels", "Unexpected result format", results);
+          SLog.log(
+            LogType.Error,
+            "getClassLevels",
+            "Unexpected result format",
+            results
+          );
           onNext(false);
         }
       });
@@ -987,6 +1106,141 @@ export default class SClass {
         // Trả về kết quả thành công và ID của lớp học vừa thêm
         const insertId = (result as any).insertId || undefined;
         onNext(true, insertId); // tìm cách trả về ID lớp vừa tạo
+      });
+    });
+  }
+
+  // Join class by leaner
+  public static joinClass(
+    classId: number,
+    userId: string,
+    studentIds: number[],
+    onSuccess: () => void,
+    onError: (error: any) => void
+  ) {
+    console.log(">>> user id", userId);
+    console.log(">>> class id", classId);
+    console.log(">>> student ids", studentIds);
+
+    const sql = `
+          INSERT INTO in_class_members (class_id, user_id)
+          VALUES (?, ?)
+          `;
+
+    // Câu SQL cho bảng in_class_students
+    const studentSql = `
+      INSERT INTO in_class_students (class_id, student_id)
+      VALUES (?, ?)
+      `;
+
+    SMySQL.getConnection((connection) => {
+      // Bắt đầu giao dịch
+      connection?.beginTransaction((err) => {
+        if (err) {
+          return onError(err); // Gọi hàm lỗi nếu không thể bắt đầu giao dịch
+        }
+
+        //Bước 1: Chèn người dùng hiện tại (học sinh chính)
+        connection.execute(sql, [classId, userId], (err) => {
+          if (err) {
+            connection.rollback(() => {
+              return onError(err); // Gọi hàm lỗi nếu có lỗi khi chèn
+            });
+          }
+        });
+
+        //Bước 2:Kiểm tra xem danh sách học sinh có rỗng không
+        if (studentIds.length === 0) {
+          // Nếu danh sách rỗng, commit và gọi onSuccess
+          connection.commit((err) => {
+            if (err) {
+              return onError(err); // Gọi hàm lỗi nếu không thể commit
+            }
+            onSuccess(); // Gọi hàm thành công
+          });
+          return;
+        }
+
+        //Bước 3: Chèn danh sách học sinh nếu không rỗng
+        const inserPromises = studentIds.map((studentId) => {
+          return new Promise((resolve, reject) => {
+            connection.execute(studentSql, [classId, studentId], (err) => {
+              if (err) {
+                reject(err); // Nếu có lỗi, từ chối promise
+              } else {
+                resolve(true); // Nếu thành công, giải quyết promise
+              }
+            });
+          });
+        });
+
+        //Bước 4: Chờ tất cả các phép chèn học sinh hoàn thành
+        Promise.all(inserPromises)
+          .then(() => {
+            connection.commit((err) => {
+              if (err) {
+                return onError(err); // Gọi hàm lỗi nếu không thể commit
+              }
+              onSuccess(); // Gọi hàm thành công khi hoàn tất
+            });
+          })
+          .catch(() => {
+            connection.rollback(() => {
+              return onError(err); // Gọi hàm lỗi nếu có lỗi khi chèn học sinh
+            });
+          });
+      });
+    });
+  }
+
+  // Accpet class to tech
+  public static acceptClassToTeach(
+    classId: number,
+    tutorId: string,
+    onSuccess: () => void,
+    onError: (error: any) => void
+  ) {
+    // Truy vấn để kiểm tra xem lớp học đã có gia sư hoặc người tham gia hay chưa
+    const checkSql = `SELECT classes.tutor_id FROM classes WHERE classes.id = ?; `;
+
+    const updateSql = ` UPDATE classes SET tutor_id =?, updated_at = ?  WHERE id =?`;
+
+    SMySQL.getConnection((connection) => {
+      connection?.execute<any>(checkSql, [classId], (error, results) => {
+        if (error) {
+          onError(error);
+          return;
+        }
+
+        const classInfo = results[0];
+        if (classInfo && (classInfo.tutor_id || classInfo.member_count > 0)) {
+          const errorMessage = "Class already has a tutor.";
+          onError(new Error(errorMessage));
+          console.log(">>> error:", errorMessage);
+          return;
+        }
+
+        // Nếu lớp chưa có gia sư và không có thành viên tham gia, thực hiện cập nhật
+        connection.execute<any>(
+          updateSql,
+          [tutorId, new Date().getTime(), classId],
+          (updateError, updateResults) => {
+            if (updateError) {
+              onError(updateError);
+              return;
+            }
+
+            if (updateResults && updateResults.affectedRows > 0) {
+              onSuccess();
+              console.log(">>> Class accepted by tutor successfully");
+            } else {
+              const errorMessage =
+                "No class was updated. Possibly invalid class ID.";
+              onError(new Error(errorMessage));
+              console.log(">>> error:", errorMessage);
+            }
+          }
+        );
       });
     });
   }

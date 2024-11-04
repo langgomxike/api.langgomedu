@@ -63,4 +63,49 @@ export default class SUserAdmin {
             });
         });
     }
+
+    public static getAllReportUserOfUser(userId: number, onNext: (user: User[] | undefined) => void) {
+        const sql = `
+        SELECT 
+        JSON_OBJECT(
+            'id', from_user.id,
+            'full_name', from_user.full_name,
+            'email', from_user.email,
+            'phone_number', from_user.phone_number,
+            'avatar', (
+                SELECT JSON_OBJECT(
+                    'id', ffu.id,
+                    'name', ffu.name,
+                    'path', ffu.path
+                )
+                FROM files AS ffu
+                WHERE ffu.id = from_user.avatar_id
+            )
+        ) as user
+FROM user_reports AS ur 
+LEFT JOIN users AS from_user ON from_user.id = ur.from_user_id
+WHERE ur.to_user_id = 089204010902;
+        `;
+
+        SMySQL.getConnection((connection) => {
+            connection?.execute<any[]>(sql, [userId] ,(err, results) => {
+                 if (err) {
+                     onNext([]);
+                     return;
+                 }
+ 
+                 const users:User[] = [];
+                //  console.log(">>> user_reports", JSON.stringify(results[0].user, null, 2));
+                 
+                 
+ 
+                 results.forEach((result) => {
+                     const user = result.user;
+                     users.push(user);
+                 });
+                 
+                 onNext(users);
+             });
+         });
+    }
 }
