@@ -15,6 +15,15 @@ export default class CVController {
     }
 
     public static getCV(request: express.Request, response: express.Response) {
+        const user_id = request.params.id;
+        // const userId = user_id?.toString();
+        if(user_id){
+            SCV.getUserCV(user_id, (cv)=>{
+                SResponse.getResponse(ResponseStatus.OK, cv, "get User CV", response);
+            })
+        }else{
+            SResponse.getResponse(ResponseStatus.Internal_Server_Error, [], "can't get User with this ID", response)
+        }
 
     }
 
