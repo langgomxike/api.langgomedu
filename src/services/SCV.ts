@@ -80,7 +80,7 @@ GROUP BY cvs.user_id, cvs.biography, cvs.title, cvs.approved_at, u.full_name, u.
     const sql = `SELECT JSON_OBJECT(
     'user', JSON_OBJECT(
         'id', u.id,
-        'name', u.full_name,
+        'full_name', u.full_name,
         'email', u.email,
         'phone_number', u.phone_number,
         'avatar', JSON_OBJECT(
@@ -91,6 +91,17 @@ GROUP BY cvs.user_id, cvs.biography, cvs.title, cvs.approved_at, u.full_name, u.
             'image_width', f.image_with,
             'image_height', f.image_height
         )
+    ),
+    'information', JSON_OBJECT(
+        'hometown', info.hometown,
+        'address_1', info.address_1,
+        'address_2', info.address_2,
+        'address_3', info.address_3,
+        'address_4', info.address_4,
+        'birthday', info.birthday,
+        'point', info.point,
+        'banking_number', info.banking_number,
+        'banking_code', info.banking_code
     ),
     'biography', cvs.biography,
     'title', cvs.title,
@@ -140,6 +151,23 @@ GROUP BY cvs.user_id, cvs.biography, cvs.title, cvs.approved_at, u.full_name, u.
         'approved', exp.approved,
         'started_at', exp.started_at,
         'ended_at', exp.ended_at
+    )),
+    'certificates', JSON_ARRAYAGG(JSON_OBJECT(
+        'id', c.id,
+        'name', c.name,
+        'vn_desc', c.vn_desc,
+        'en_desc', c.en_desc,
+        'ja_desc', c.ja_desc,
+        'icon', JSON_OBJECT(
+            'id', i_cer.id,
+            'name', i_cer.name,
+            'path', i_cer.path,
+            'capacity', i_cer.capacity,
+            'image_width', i_cer.image_with,
+            'image_height', i_cer.image_height,
+            'created_at', i_cer.created_at,
+            'updated_at', i_cer.updated_at
+        )
     ))
 ) AS CV
 FROM cvs
@@ -153,8 +181,11 @@ JOIN other_skills osk ON osk.id = ics.skill_id
 JOIN files i_skill ON i_skill.id = osk.icon_id
 JOIN majors ON majors.id = exp.major_id
 JOIN files i_major ON i_major.id = majors.icon_id
+JOIN in_cv_certificates icc ON icc.user_id = cvs.user_id
+JOIN certificates c ON c.id = icc.certificate_id
+JOIN files i_cer ON i_cer.id = c.icon_id
 WHERE cvs.user_id = ?
-      GROUP BY cvs.user_id;`
+        GROUP BY cvs.user_id;`
     SMySQL.getConnection((connection)=>{
       connection?.query<any[]>(sql, [user_id], (err, result)=>{
         if(err){
