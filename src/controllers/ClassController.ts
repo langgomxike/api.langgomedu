@@ -94,7 +94,7 @@ export default class ClassController {
     }
 
     public static createClass(request: express.Request, response: express.Response) {
-
+        
     }
 
     /**

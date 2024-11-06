@@ -27,8 +27,7 @@ import { setUpGenders } from "./configs/GenderConfig";
 import SFirebase, { FirebaseNode } from "./services/SFirebase";
 import AdminController from "./controllers/admin/AdminController";
 import {uploadPayment} from "./configs/MulterConfig";
-
-
+import SResponse, { ResponseStatus } from "./services/SResponse";
 import { ClassLevelController } from "./controllers/ClassLevelController";
 import {setUpRoles} from "./configs/RoleConfig";
 import {setUpUsers} from "./configs/UserConfig";
@@ -50,6 +49,13 @@ app.get("/api", (req: Request, res: Response) => {
 
 app.use('/', express.static('public'));
 
+
+
+// ClassLevel routes
+const CLASSLEVEL_BASE_URL = Config.PREFIX + "/class-levels";
+app.get(CLASSLEVEL_BASE_URL, ClassLevelController.getAllClassLevels);
+
+// Attendance routes
 const ATTENDANCE_BASE_URL = Config.PREFIX + "/attendances";
 app.get(ATTENDANCE_BASE_URL + "/histories", AttendanceController.getAttendanceHistories);
 app.post(ATTENDANCE_BASE_URL + "/request", AttendanceController.requestAttendance);
@@ -59,9 +65,6 @@ app.get(ATTENDANCE_BASE_URL + "/tutor/:class_id/:lesson_id/:user_id", Attendance
 app.put(ATTENDANCE_BASE_URL + "/pay", uploadPayment.single('file'),AttendanceController.updatePaymentOfLeaner);
 app.put(ATTENDANCE_BASE_URL + "/confirm_pay",AttendanceController.confirmPaymentByTutor);
 
-// ClassLevel routes
-const CLASSLEVEL_BASE_URL = Config.PREFIX + "/class-levels";
-app.get(CLASSLEVEL_BASE_URL, ClassLevelController.getAllClassLevels);
 
 // Define the base URL for certificate-related routes
 const CERTIFICATE_BASE_URL = Config.PREFIX + "/certificates";
@@ -107,7 +110,8 @@ app.delete(CLASS_BASE_URL,
 app.post(CLASS_BASE_URL + "/:class_id/join", ClassController.requestToAttendClass);
 app.post(CLASS_BASE_URL + "/:class_id/accept_to_teach",ClassController.acceptClassToTeach);
 app.post(CLASS_BASE_URL + "/approve/:id", ClassController.approveToAttendClass);
-app.get(CLASS_BASE_URL + "/levels", ClassController.getAllLevels);
+
+app.get(CLASS_BASE_URL + "/levels", ClassController.getAllLevels); //
 app.post(CLASS_BASE_URL + "/levels", ClassController.createLevel);
 app.put(CLASS_BASE_URL + "/levels/:id", ClassController.updateLevel);
 app.patch(CLASS_BASE_URL + "/levels/:id", ClassController.updateLevel);
@@ -119,6 +123,9 @@ app.post(LESSON_BASE_URL + "/:class", LessonController.createLesson);
 app.put(LESSON_BASE_URL + "/:id", LessonController.updateLesson);
 app.patch(LESSON_BASE_URL + "/:id", LessonController.updateLesson);
 app.delete(LESSON_BASE_URL + "/:id", LessonController.deleteLesson);
+app.get(LESSON_BASE_URL, LessonController.getSchedule);
+//demo
+// app.get(LESSON_BASE_URL, LessonController.demoLesson);
 
 const REPORT_BASE_URL = Config.PREFIX + "/reports";
 app.get(REPORT_BASE_URL + "/class", ReportController.getAllClassReports);
