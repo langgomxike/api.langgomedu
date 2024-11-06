@@ -26,6 +26,7 @@ import PermissionList, { setUpPermissions } from "./configs/PermissionConfig";
 import { setUpGenders } from "./configs/GenderConfig";
 import SFirebase, { FirebaseNode } from "./services/SFirebase";
 import AdminController from "./controllers/admin/AdminController";
+import {uploadPayment} from "./configs/MulterConfig";
 
 
 import { ClassLevelController } from "./controllers/ClassLevelController";
@@ -52,8 +53,11 @@ app.use('/', express.static('public'));
 const ATTENDANCE_BASE_URL = Config.PREFIX + "/attendances";
 app.get(ATTENDANCE_BASE_URL + "/histories", AttendanceController.getAttendanceHistories);
 app.post(ATTENDANCE_BASE_URL + "/request", AttendanceController.requestAttendance);
-app.post(ATTENDANCE_BASE_URL + "/accept", AttendanceController.acceptAttendance);
-app.get(ATTENDANCE_BASE_URL + "/id", AttendanceController.getAttendance);
+app.put(ATTENDANCE_BASE_URL + "/accept", AttendanceController.acceptAttendance);
+app.get(ATTENDANCE_BASE_URL + "/leaner/:class_id/:lesson_id/:user_id", AttendanceController.getAttendanceByLeanerClassLesson);
+app.get(ATTENDANCE_BASE_URL + "/tutor/:class_id/:lesson_id/:user_id", AttendanceController.getAttendanceByTutorClassLesson);
+app.put(ATTENDANCE_BASE_URL + "/pay", uploadPayment.single('file'),AttendanceController.updatePaymentOfLeaner);
+app.put(ATTENDANCE_BASE_URL + "/confirm_pay",AttendanceController.confirmPaymentByTutor);
 
 // ClassLevel routes
 const CLASSLEVEL_BASE_URL = Config.PREFIX + "/class-levels";
