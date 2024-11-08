@@ -124,7 +124,7 @@ export default class MessageController {
                     SResponse.getResponse(ResponseStatus.OK, null, "Message sent successfully", response);
                 } else {
                     SLog.log(LogType.Info, "createMessage", "create message unsuccessfully");
-                    SResponse.getResponse(ResponseStatus.Internal_Server_Error, null, "Create message unsuccessfully", response);
+                    SResponse.getResponse(ResponseStatus.Internal_Server_Error, null, "Failed", response);
                 }
             });
         });
@@ -152,13 +152,9 @@ export default class MessageController {
 
     public static deleteMessage(request: express.Request, response: express.Response) {
         const token: string = request?.headers?.authorization?.replace("Bearer ", "") ?? "";
-        const message: Message = request?.body?.message;
-
-        if (!message) {
-            SLog.log(LogType.Error, "deleteMessage", "delete message unsuccessfully");
-            SResponse.getResponse(ResponseStatus.Internal_Server_Error, null, "Message deleted unsuccessfully. Invalid message", response);
-            return;
-        }
+        const id: number = parseInt(request?.params?.id ?? "-1");
+        const fromUserStatus: boolean = request?.body?.from_user_status ?? true;
+        const toUserStatus: boolean = request?.body?.to_user_status ?? true;
 
         SUser.getUserByToken(token, (user) => {
             if (!user) {
