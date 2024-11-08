@@ -171,7 +171,7 @@ app.delete(MAJOR_BASE_URL + "/:id", MajorController.deleteMajor);
 const MESSAGE_BASE_URL = Config.PREFIX + "/messages";
 app.get(MESSAGE_BASE_URL + "/contacts", MessageController.getContacts);
 app.get(MESSAGE_BASE_URL + "/inboxes", MessageController.getInboxUsers);
-app.get(MESSAGE_BASE_URL, MessageController.getMessages);
+app.get(MESSAGE_BASE_URL + "/:from/:to", MessageController.getMessages);
 app.post(MESSAGE_BASE_URL, MessageController.createMessage);
 app.delete(MESSAGE_BASE_URL, MessageController.deleteMessage);
 
