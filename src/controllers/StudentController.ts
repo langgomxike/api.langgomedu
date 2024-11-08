@@ -11,11 +11,17 @@ export default class StudentController {
         })
     }
     public static getStudentsBelongToUser(request: express.Request, response: express.Response) {
-
+        const userId = request.params.user_id;
+        SStudent.getStudentByUserId(userId, (students) => {
+            SResponse.getResponse(ResponseStatus.OK, students, "get student by user id", response);
+        });
     }
 
     public static getStudentsInClass(request: express.Request, response: express.Response) {
-
+        const classId = request.params.class_id;
+        SStudent.getStudentsInClass(classId, (students) => {
+            SResponse.getResponse(ResponseStatus.OK, students, "get student in class", response);
+        });
     }
 
     public static createStudent(request: express.Request, response: express.Response) {

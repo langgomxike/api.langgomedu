@@ -4,15 +4,30 @@ import SLog, { LogType } from '../services/SLog';
 import Class from '../models/Class';
 import SMySQL from '../services/SMySQL';
 import SClass from '../services/SClass';
+import { UserType } from '../configs/UserType';
 export default class ClassController {
     public static getSuggestedClasses(request: express.Request, response: express.Response) {
+        // Tiêu chí gợi ý của lớp học cho người dùng (phụ huynh học sinh, gia sư)
+        /*
+         * Giợi ý theo ngành học quan tâm (interested_major)
+         * Lớp học cùng cấp độ người dùng quan tâm (user_preferred_class_levels)
+         * Lớp học gần vị trí người dùng
+         * Lớp học có thời gian bắt đầu phù hợp
+        */
+
+        const user_id = request.params.user_id;
+        const user_type:number = Number(request.query.user_type) ?? UserType.LEANER;
+        
+        SClass.getSuggestedClasses(user_id, user_type,(classes) => {
+            SResponse.getResponse(ResponseStatus.OK, classes, "get sugget classes", response);
+        })
 
     }
 
     public static getTeachingClasses(request: express.Request, response: express.Response) {
          // Lấy user_id từ request.params
          const user_id = request.params.user_id;
-        SLog.log(LogType.Info, "getTeachingClasses", "user id", user_id)
+        // SLog.log(LogType.Info, "getTeachingClasses", "user id", user_id)
         SClass.getTeachingClasses(user_id,(classes) => {
             SResponse.getResponse(ResponseStatus.OK, classes, "get teaching classes", response);
         })
@@ -26,7 +41,7 @@ export default class ClassController {
         const now = new Date();
         const currentTime = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
 
-        SLog.log(LogType.Info, currentTime , "user id", user_id)
+        // SLog.log(LogType.Info, currentTime , "user id", user_id)
         SClass.getAttendingClasses(user_id,(classes) => {
             SResponse.getResponse(ResponseStatus.OK, classes, "get attending classes", response);
         })
@@ -34,7 +49,7 @@ export default class ClassController {
     public static getCreatedClasses(request: express.Request, response: express.Response) {
         const user_id = request.params.user_id;
         // const user_id =  request.body.user_id;
-        SLog.log(LogType.Info, "get created classes", "user id", user_id)
+        // SLog.log(LogType.Info, "get created classes", "user id", user_id)
         SClass.getCreatedClasses(user_id,(classes) => {
             SResponse.getResponse(ResponseStatus.OK, classes, "get created classes", response);
         })
@@ -62,14 +77,15 @@ export default class ClassController {
     }
 
     public static getClass(request: express.Request, response: express.Response) {
-        console.log('request: ', request.params);
-        
-        const class_id:number = Number(request.params.class_id) ?? -1;
-        if(class_id <= 0){
+
+        const classId:number = Number(request.params.class_id) ?? -1;
+        const userId:string = String(request.query.user_id) ?? "";
+
+        if(classId <= 0){
             SResponse.getResponse(ResponseStatus.Internal_Server_Error, null, 'unknown this class id', response);
             return;
         }
-        SClass.getClassById(class_id, (_class, related_classes)=>{
+        SClass.getClassDetailWithUser(classId, userId ,(_class, related_classes)=>{
             
             SResponse.getResponse(ResponseStatus.OK, {class: _class,related_classes: related_classes}, 'get class by id', response);
             return;
@@ -78,7 +94,7 @@ export default class ClassController {
     }
 
     public static createClass(request: express.Request, response: express.Response) {
-
+        
     }
 
     /**
@@ -146,11 +162,41 @@ export default class ClassController {
 
 
     public static requestToAttendClass(request: express.Request, response: express.Response) {
+        const userId = request.body.user_id;
+        const classId = Number(request.params.class_id) ?? -1;
+        const studentIds = request.body.student_ids;
 
+        SClass.joinClass(
+            classId,
+            userId,
+            studentIds,
+            () => {
+                // Trả về phản hồi thành công khi lớp học đã được tham gia
+                SResponse.getResponse(ResponseStatus.OK, null, 'Request to attend class successfully', response);
+            },
+            (error) => {
+                // Trả về phản hồi lỗi nếu có lỗi xảy ra
+                SResponse.getResponse(ResponseStatus.Error, error, 'Failed to join the class', response);
+            }
+        );
     }
 
-    public static acceptToAttendClass(request: express.Request, response: express.Response) {
+    public static acceptClassToTeach(request: express.Request, response: express.Response) {
+        const userId = request.body.tutor_id;
+        const classId = Number(request.params.class_id) ?? -1;
 
+        SClass.acceptClassToTeach(
+            classId,
+            userId,
+            () => {
+                // Trả về phản hồi thành công khi lớp học đã được nhận
+                SResponse.getResponse(ResponseStatus.OK, null, 'Request to accept class successfully', response);
+            },
+            (error) => {
+                // Trả về phản hồi lỗi nếu có lỗi xảy ra
+                SResponse.getResponse(ResponseStatus.Error, error, 'Failed to join the class', response);
+            }
+        );
     }
 
     public static approveToAttendClass(request: express.Request, response: express.Response) {

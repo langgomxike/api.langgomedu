@@ -26,7 +26,7 @@ import PermissionList, { setUpPermissions } from "./configs/PermissionConfig";
 import { setUpGenders } from "./configs/GenderConfig";
 import SFirebase, { FirebaseNode } from "./services/SFirebase";
 import AdminController from "./controllers/admin/AdminController";
-
+import SResponse, { ResponseStatus } from "./services/SResponse";
 
 import { ClassLevelController } from "./controllers/ClassLevelController";
 import {setUpRoles} from "./configs/RoleConfig";
@@ -58,6 +58,11 @@ app.get(ATTENDANCE_BASE_URL + "/id", AttendanceController.getAttendance);
 // ClassLevel routes
 const CLASSLEVEL_BASE_URL = Config.PREFIX + "/class-levels";
 app.get(CLASSLEVEL_BASE_URL, ClassLevelController.getAllClassLevels);
+// Attendance routes
+app.get(ATTENDANCE_BASE_URL + "/histories", AttendanceController.getAttendanceHistories); // Get attendance histories
+app.post(ATTENDANCE_BASE_URL + "/request", AttendanceController.requestAttendance); // Request attendance
+app.post(ATTENDANCE_BASE_URL + "/accept", AttendanceController.acceptAttendance); // Accept attendance
+app.get(ATTENDANCE_BASE_URL + "/id", AttendanceController.getAttendance); // Get specific attendance
 
 // Define the base URL for certificate-related routes
 const CERTIFICATE_BASE_URL = Config.PREFIX + "/certificates";
@@ -75,23 +80,14 @@ app.get(CERTIFICATE_BASE_URL + "/:id/levels", CertificateController.getAllLevels
 
 const CLASS_BASE_URL = Config.PREFIX + "/classes";
 app.get(CLASS_BASE_URL, ClassController.getAllClasses);
-app.get(CLASS_BASE_URL + "/suggests", ClassController.getSuggestedClasses);
-app.get(CLASS_BASE_URL + "/attending", ClassController.getAttendingClasses);
-app.get(CLASS_BASE_URL + "/teaching", ClassController.getTeachingClasses);
-app.get(CLASS_BASE_URL + "/:id", ClassController.getClass);
-app.post(CLASS_BASE_URL, ClassController.createClass);
-app.put(CLASS_BASE_URL, ClassController.updateClass);
-app.patch(CLASS_BASE_URL, ClassController.updateClass);
-// Class routes
-app.get(CLASS_BASE_URL, ClassController.getAllClasses); // Get all classes
-app.get(CLASS_BASE_URL + "/suggests", ClassController.getSuggestedClasses); // Get suggested classes
+app.get(CLASS_BASE_URL + "/suggests/:user_id", ClassController.getSuggestedClasses);
 app.get(CLASS_BASE_URL + "/attending/:user_id", ClassController.getAttendingClasses);
 app.get(CLASS_BASE_URL + "/teaching/:user_id", ClassController.getTeachingClasses);
 app.get(CLASS_BASE_URL + "/created/:user_id", ClassController.getCreatedClasses);
-app.get(CLASS_BASE_URL + "/:id", ClassController.getClass); // Get specific class by ID
-app.post(CLASS_BASE_URL, ClassController.createClass); // Create a new class
-app.put(CLASS_BASE_URL, ClassController.updateClass); // Update an existing class
-app.patch(CLASS_BASE_URL, ClassController.updateClass); // Partially update a class
+app.get(CLASS_BASE_URL + "/:class_id", ClassController.getClass);
+app.post(CLASS_BASE_URL, ClassController.createClass);
+app.put(CLASS_BASE_URL, ClassController.updateClass);
+app.patch(CLASS_BASE_URL, ClassController.updateClass);
 
 app.delete(CLASS_BASE_URL,
     (req, res, onNext) => SAuthentication.checkAuthorization(
@@ -109,11 +105,11 @@ app.delete(CLASS_BASE_URL,
     ),
     ClassController.deleteClass
 );
-
-app.post(CLASS_BASE_URL + "/request/:id", ClassController.requestToAttendClass);
-app.post(CLASS_BASE_URL + "/accept/:id", ClassController.acceptToAttendClass);
+app.post(CLASS_BASE_URL + "/:class_id/join", ClassController.requestToAttendClass);
+app.post(CLASS_BASE_URL + "/:class_id/accept_to_teach",ClassController.acceptClassToTeach);
 app.post(CLASS_BASE_URL + "/approve/:id", ClassController.approveToAttendClass);
-app.get(CLASS_BASE_URL + "/levels", ClassController.getAllLevels);
+
+app.get(CLASS_BASE_URL + "/levels", ClassController.getAllLevels); //
 app.post(CLASS_BASE_URL + "/levels", ClassController.createLevel);
 app.put(CLASS_BASE_URL + "/levels/:id", ClassController.updateLevel);
 app.patch(CLASS_BASE_URL + "/levels/:id", ClassController.updateLevel);
@@ -125,6 +121,9 @@ app.post(LESSON_BASE_URL + "/:class", LessonController.createLesson);
 app.put(LESSON_BASE_URL + "/:id", LessonController.updateLesson);
 app.patch(LESSON_BASE_URL + "/:id", LessonController.updateLesson);
 app.delete(LESSON_BASE_URL + "/:id", LessonController.deleteLesson);
+app.get(LESSON_BASE_URL, LessonController.getSchedule);
+//demo
+// app.get(LESSON_BASE_URL, LessonController.demoLesson);
 
 const REPORT_BASE_URL = Config.PREFIX + "/reports";
 app.get(REPORT_BASE_URL + "/class", ReportController.getAllClassReports);
@@ -179,8 +178,8 @@ app.get(ROLE_BASE_URL, RoleController.getAllRoles);
 const STUDENT_BASE_URL = Config.PREFIX + "/students";
 // Student routes
 app.get(STUDENT_BASE_URL, StudentController.getAllStudents);
-app.get(STUDENT_BASE_URL + "/:user", StudentController.getStudentsBelongToUser); // Get students belonging to a user
-app.get(STUDENT_BASE_URL + "/:class", StudentController.getStudentsInClass); // Get students in a specific class
+app.get(STUDENT_BASE_URL + "/user/:user_id", StudentController.getStudentsBelongToUser); // Get students belonging to a user
+app.get(STUDENT_BASE_URL + "/class/:class_id", StudentController.getStudentsInClass); // Get students in a specific class
 app.post(STUDENT_BASE_URL, StudentController.createStudent); // Create a new student
 app.put(STUDENT_BASE_URL + "/:id", StudentController.updateStudent); // Update an existing student
 app.patch(STUDENT_BASE_URL + "/:id", StudentController.updateStudent); // Partially update a student
@@ -202,6 +201,7 @@ app.delete(USER_BASE_URL + "/:id", UserController.deleteAccount);
 // Define the base URL for user-related routes
 const ADMIN_USER_BASE_URL = Config.PREFIX + "/admin";
 app.get(ADMIN_USER_BASE_URL + "/users", AdminController.getAllUsers);
+app.get(ADMIN_USER_BASE_URL + "/users/:user_id/reports", AdminController.getAllReportUserOfUser);
 app.get(ADMIN_USER_BASE_URL + "/classes", AdminController.getAllClasses);
 app.get(ADMIN_USER_BASE_URL + "/classes/:class_id", AdminController.getDetailClass);
 
@@ -213,6 +213,6 @@ SMySQL.connect();
 setUpPermissions();
 setUpRoles();
 setUpGenders();
-setUpUsers();
+// setUpUsers();
 
 export default app;
