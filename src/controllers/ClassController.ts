@@ -2,7 +2,6 @@ import express, { Response } from 'express';
 import SResponse, { ResponseStatus } from '../services/SResponse';
 import SLog, { LogType } from '../services/SLog';
 import Class from '../models/Class';
-import SMySQL from '../services/SMySQL';
 import SClass from '../services/SClass';
 import { UserType } from '../configs/UserType';
 export default class ClassController {
@@ -94,7 +93,34 @@ export default class ClassController {
     }
 
     public static createClass(request: express.Request, response: express.Response) {
-        
+
+        // lấy các giá trị từ request body
+        const { title, description, major_id, class_level_id, price, started_at, ended_at, lessons } = request.body;
+
+        console.log("body: ", request.body);
+
+        // gọi hàm createClass từ SClass
+        SClass.createClass(title,
+            description,
+            major_id,
+            class_level_id,
+            price,
+            started_at,
+            ended_at,
+            lessons, (result, insertId) => {
+            if (result) {
+                // Nếu thêm thành công, trả về phản hồi với ID của lớp học mới
+                response.status(201).json({
+                    message: 'Tạo lớp học thành công',
+                    classId: insertId,
+                });
+            } else {
+                // Nếu có lỗi, trả về mã lỗi 500 và thông báo lỗi
+                response.status(500).json({
+                    message: 'Không thể tạo lớp học',
+                });
+            }
+        })
     }
 
     /**
