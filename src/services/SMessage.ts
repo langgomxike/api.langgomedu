@@ -3,9 +3,9 @@ import SMySQL from "./SMySQL";
 import SLog, {LogType} from "./SLog";
 import SFirebase from "./SFirebase";
 import Inbox from "../models/Inbox";
-import SUser from "./SUser";
 
 export default class SMessage {
+    private static MAX_MESSAGES_IN_ONE_BATCH = 100;
 
     public static getInboxes(userId: string, onNext: (inboxes: Inbox[]) => void) {
         const sql = `SELECT messages.*,
@@ -84,8 +84,37 @@ export default class SMessage {
         });
     }
 
+    public static getMessages(fromUserId: string, toUserId: string, batch: number = 1, onNext : (messages: Message[]) => void) {
+        const sql = `SELECT * FROM messages WHERE from_user_id = ? AND to_user_id = ? ORDER BY created_at DESC `;
+
+        SLog.log(LogType.Warning, "getMessages", "check parameters", {fromUserId, toUserId, batch});
+
+
+        SMySQL.getConnection(connection => {
+            connection?.execute<any[]>(sql, [fromUserId, toUserId], (error, result) => {
+                if (error) {
+                    onNext([]);
+                    SLog.log(LogType.Error, "getMessages", "getMessages unsuccessfully", error);
+                    return;
+                }
+
+                SLog.log(LogType.Info, "getMessages", "sql result", result);
+
+                const messages: Message[] = result;
+                onNext(messages);
+                SLog.log(LogType.Info, "getMessages", "get messages successfully", messages.length);
+            });
+        });
+    }
+
     public static storeMessage(message: Message, onNext: (result: boolean) => void) {
         const sql = "INSERT INTO messages (`from_user_id`, `to_user_id`, `content`, `created_at`) VALUES (?,?,?,?)";
+
+        if (!message || !message.from_user || !message.to_user || !message.content) {
+            onNext(false);
+            SLog.log(LogType.Error, "storeMessage", "storeMessage unsuccessfully", "invalid message");
+            return;
+        }
 
         SMySQL.getConnection(connection => {
             connection?.execute(sql, [
@@ -110,14 +139,14 @@ export default class SMessage {
         })
     }
 
-    public static deleteMessage(id: number, fromUserStatus: boolean, toUserStatus: boolean, onNext: (result: boolean) => void) {
+    public static deleteMessage(message: Message, onNext: (result: boolean) => void) {
         const sql = "UPDATE messages SET from_user_status =?, to_user_status =? WHERE id =?";
 
         SMySQL.getConnection(connection => {
             connection?.execute(sql, [
-                fromUserStatus? 1 : 0,
-                toUserStatus? 1 : 0,
-                id
+                message.from_user_status? 1 : 0,
+                message.to_user_status? 1 : 0,
+                message.id
             ], (error, result) => {
                 if (error) {
                     onNext(false);
