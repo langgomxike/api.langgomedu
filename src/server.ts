@@ -85,7 +85,7 @@ app.get(CLASS_BASE_URL + "/attending/:user_id", ClassController.getAttendingClas
 app.get(CLASS_BASE_URL + "/teaching/:user_id", ClassController.getTeachingClasses);
 app.get(CLASS_BASE_URL + "/created/:user_id", ClassController.getCreatedClasses);
 app.get(CLASS_BASE_URL + "/:class_id", ClassController.getClass);
-app.post(CLASS_BASE_URL, ClassController.createClass);
+app.post(CLASS_BASE_URL + "/class/create", ClassController.createClass);
 app.put(CLASS_BASE_URL, ClassController.updateClass);
 app.patch(CLASS_BASE_URL, ClassController.updateClass);
 
@@ -117,7 +117,7 @@ app.delete(CLASS_BASE_URL + "/levels/:id", ClassController.deleteLevel);
 
 const LESSON_BASE_URL = Config.PREFIX + "/lessons";
 app.get(LESSON_BASE_URL + "/:class", LessonController.getLessonsInClass);
-app.post(LESSON_BASE_URL + "/:class", LessonController.createLesson);
+app.post(LESSON_BASE_URL + "/:class_id", LessonController.createLesson);
 app.put(LESSON_BASE_URL + "/:id", LessonController.updateLesson);
 app.patch(LESSON_BASE_URL + "/:id", LessonController.updateLesson);
 app.delete(LESSON_BASE_URL + "/:id", LessonController.deleteLesson);
