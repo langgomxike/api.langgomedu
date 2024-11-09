@@ -6,9 +6,8 @@ export enum ResponseStatus {
   "Not_Found",
   "Internal_Server_Error",
   "Unauthorized",
-  "Error"
 }
-const statuses = [200, 403, 404, 500, 401, 500];
+const statuses = [200, 403, 404, 500, 401];
 type ResponseType = {
   status: string;
   status_code: number;
