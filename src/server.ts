@@ -90,7 +90,6 @@ app.get(CLASS_BASE_URL + "/:class_id", ClassController.getClass);
 app.post(CLASS_BASE_URL + "/class/create", ClassController.createClass);
 app.put(CLASS_BASE_URL, ClassController.updateClass);
 app.patch(CLASS_BASE_URL, ClassController.updateClass);
-
 app.delete(CLASS_BASE_URL,
     (req, res, onNext) => SAuthentication.checkAuthorization(
         req, res, onNext,
@@ -107,6 +106,7 @@ app.delete(CLASS_BASE_URL,
     ),
     ClassController.deleteClass
 );
+
 app.post(CLASS_BASE_URL + "/:class_id/join", ClassController.requestToAttendClass);
 app.post(CLASS_BASE_URL + "/:class_id/accept_to_teach",ClassController.acceptClassToTeach);
 app.post(CLASS_BASE_URL + "/approve/:id", ClassController.approveToAttendClass);
