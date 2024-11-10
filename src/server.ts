@@ -66,18 +66,19 @@ app.delete(CLASSLEVEL_BASE_URL, ClassLevelController.deleteClassLevel);
 
 // Define the base URL for certificate-related routes
 const CERTIFICATE_BASE_URL = Config.PREFIX + "/certificates";
+app.get(CERTIFICATE_BASE_URL + "/levels", CertificateController.getAllLevels);
+app.post(CERTIFICATE_BASE_URL + "/levels", CertificateController.createLevel);
+app.put(CERTIFICATE_BASE_URL + "/levels", CertificateController.updateLevel);
+app.patch(CERTIFICATE_BASE_URL + "/levels", CertificateController.updateLevel);
+app.delete(CERTIFICATE_BASE_URL + "/levels/:id", CertificateController.deleteLevel);
+app.get(CERTIFICATE_BASE_URL + "/:id/levels", CertificateController.getAllLevelsOfOneCertificate);
+
 app.get(CERTIFICATE_BASE_URL, CertificateController.getAllCertificates);
 app.get(CERTIFICATE_BASE_URL + "/:id", CertificateController.getCertificateById);
 app.post(CERTIFICATE_BASE_URL, CertificateController.createCertificate);
 app.put(CERTIFICATE_BASE_URL, CertificateController.updateCertificate);
 app.patch(CERTIFICATE_BASE_URL, CertificateController.updateCertificate);
 app.delete(CERTIFICATE_BASE_URL + "/:id", CertificateController.deleteCertificate);
-app.get(CERTIFICATE_BASE_URL + "/levels", CertificateController.getAllLevels);
-app.post(CERTIFICATE_BASE_URL + "/levels", CertificateController.createLevel);
-app.put(CERTIFICATE_BASE_URL + "/levels", CertificateController.updateLevel);
-app.patch(CERTIFICATE_BASE_URL + "/levels", CertificateController.updateLevel);
-app.delete(CERTIFICATE_BASE_URL + "/levels", CertificateController.deleteLevel);
-app.get(CERTIFICATE_BASE_URL + "/:id/levels", CertificateController.getAllLevelsOfOneCertificate);
 
 const CLASS_BASE_URL = Config.PREFIX + "/classes";
 app.get(CLASS_BASE_URL, ClassController.getAllClasses);
