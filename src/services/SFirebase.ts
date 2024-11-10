@@ -25,6 +25,7 @@ export enum FirebaseNode {
   USER = 14,
   USER_REPORT = 15,
   CLASS_LEVEL = 16,
+  CERTIFICATE_LEVEL = 17,
 }
 
 export default class SFirebase {

@@ -1,6 +1,7 @@
 import CertificateLevel from './../models/CertificateLevel';
 import SMySQL from "./SMySQL";
 import SLog, {LogType} from "./SLog";
+import SFirebase, {FirebaseNode} from "./SFirebase";
 
 export default class SCertificateLevel {
     public static getAllCertificateLevels(onNext: (levels: CertificateLevel[]) => void) {
@@ -83,7 +84,9 @@ export default class SCertificateLevel {
 
                 const id = result.insertId;
                 SLog.log(LogType.Info, "storeCertificateLevel", "store certificate level successfully", id);
-                onNext(id);
+                SFirebase.push(FirebaseNode.CERTIFICATE_LEVEL, id, () => {
+                    onNext(id);
+                });
             });
         });
     }
@@ -123,7 +126,9 @@ export default class SCertificateLevel {
                 }
 
                 SLog.log(LogType.Info, "updateCertificateLevel", "update certificate level successfully");
-                onNext(true);
+                SFirebase.push(FirebaseNode.CERTIFICATE_LEVEL, level.id, () => {
+                    onNext(true);
+                });
             });
         });
     }
@@ -140,7 +145,9 @@ export default class SCertificateLevel {
                 }
 
                 SLog.log(LogType.Info, "deleteCertificateLevel", "delete certificate level successfully");
-                onNext(true);
+                SFirebase.delete(FirebaseNode.CERTIFICATE_LEVEL, id, () => {
+                    onNext(true);
+                });
             });
         });
     }
