@@ -3,6 +3,9 @@ import SMySQL from './SMySQL';
 import SLog, {LogType} from './SLog';
 import {v4} from "uuid";
 import SFirebase, {FirebaseNode} from "./SFirebase";
+import Inbox from "../models/Inbox";
+import Message from "../models/Message";
+import SMessage from "./SMessage";
 
 export default class SUser {
     public static getAllUsers(onNext: (users: User[]) => void) {
@@ -18,8 +21,8 @@ export default class SUser {
                                     'image_height', files.image_height
                             ) AS avatar
                      FROM users
-                      LEFT JOIN roles ON roles.id = users.role_id
-                      LEFT JOIN files ON files.id = users.avatar_id
+                              LEFT JOIN roles ON roles.id = users.role_id
+                              LEFT JOIN files ON files.id = users.avatar_id
                      GROUP BY users.id
         `;
 
@@ -44,22 +47,31 @@ export default class SUser {
         });
     }
 
+    public static getContactUsers(userId: string, onNext: (users: User[]) => void) {
+        SMessage.getInboxes(userId, inboxes => {
+            const contacts = inboxes.map(inbox => inbox.user);
+
+            SLog.log(LogType.Info, "getContactUsers", "", contacts.length);
+            onNext(contacts);
+        });
+    }
+
     public static getUserById(id: number, onNext: (user: User | undefined) => void) {
-        const sql = `SELECT users.*, 
-                        JSON_OBJECT(
+        const sql = `SELECT users.*,
+                            JSON_OBJECT(
                                     'id', roles.id,
                                     'role', roles.name
                             ) AS role,
-                        JSON_OBJECT(
-                                'id', files.id,
-                                'path', files.path,
-                                'image_width', files.image_with,
-                                'image_height', files.image_height
-                        ) AS avatar
-                    FROM users
-                     INNER JOIN roles ON roles.id = users.role_id
-                     INNER JOIN files ON files.id = users.avatar_id
-                    WHERE id = ?`;
+                            JSON_OBJECT(
+                                    'id', files.id,
+                                    'path', files.path,
+                                    'image_width', files.image_with,
+                                    'image_height', files.image_height
+                            ) AS avatar
+                     FROM users
+                              INNER JOIN roles ON roles.id = users.role_id
+                              INNER JOIN files ON files.id = users.avatar_id
+                     WHERE id = ?`;
 
         SMySQL.getConnection(connection => {
             connection?.execute<any>(sql, [id], (error, result) => {
@@ -78,21 +90,21 @@ export default class SUser {
     }
 
     public static getUserByEmail(email: string, onNext: (user: User | undefined) => void) {
-        const sql = `SELECT users.*, 
-                        JSON_OBJECT(
-                            'id', roles.id,
-                            'role', roles.name
-                        ) AS role,
-                        JSON_OBJECT(
-                            'id', files.id,
-                            'path', files.path,
-                            'image_width', files.image_with,
-                            'image_height', files.image_height
-                        ) AS avatar
-                    FROM users 
-                    INNER JOIN roles ON roles.id = users.role_id
-                    INNER JOIN files ON files.id = users.avatar_id
-                    WHERE email = ?`;
+        const sql = `SELECT users.*,
+                            JSON_OBJECT(
+                                    'id', roles.id,
+                                    'role', roles.name
+                            ) AS role,
+                            JSON_OBJECT(
+                                    'id', files.id,
+                                    'path', files.path,
+                                    'image_width', files.image_with,
+                                    'image_height', files.image_height
+                            ) AS avatar
+                     FROM users
+                              INNER JOIN roles ON roles.id = users.role_id
+                              INNER JOIN files ON files.id = users.avatar_id
+                     WHERE email = ?`;
 
         SMySQL.getConnection(connection => {
             connection?.execute<any>(sql, [email], (error, result) => {
@@ -111,21 +123,21 @@ export default class SUser {
     }
 
     public static getUserByToken(token: string, onNext: (user: User | undefined) => void) {
-        const sql = `SELECT users.*, 
-                        JSON_OBJECT(
+        const sql = `SELECT users.*,
+                            JSON_OBJECT(
                                     'id', roles.id,
                                     'role', roles.name
                             ) AS role,
-                        JSON_OBJECT(
-                                'id', files.id,
-                                'path', files.path,
-                                'image_width', files.image_with,
-                                'image_height', files.image_height
-                        ) AS avatar
-                    FROM users
-                     INNER JOIN roles ON roles.id = users.role_id
-                     INNER JOIN files ON files.id = users.avatar_id
-                    WHERE token = ?`;
+                            JSON_OBJECT(
+                                    'id', files.id,
+                                    'path', files.path,
+                                    'image_width', files.image_with,
+                                    'image_height', files.image_height
+                            ) AS avatar
+                     FROM users
+                              INNER JOIN roles ON roles.id = users.role_id
+                              INNER JOIN files ON files.id = users.avatar_id
+                     WHERE token = ?`;
 
         SMySQL.getConnection(connection => {
             connection?.execute<any>(sql, [token], (error, result) => {
@@ -143,21 +155,21 @@ export default class SUser {
     }
 
     public static getUserByPhoneNumber(phoneNumber: string, onNext: (user: User | undefined) => void) {
-        const sql = `SELECT users.*, 
-                        JSON_OBJECT(
-                                'id', roles.id,
-                                'role', roles.name
-                        ) AS role,
-                        JSON_OBJECT(
-                            'id', files.id,
-                            'path', files.path,
-                            'image_width', files.image_with,
-                            'image_height', files.image_height
-                        ) AS avatar
-                    FROM users
-                    INNER JOIN roles ON roles.id = users.role_id
-                    INNER JOIN files ON files.id = users.avatar_id
-                    WHERE phone_number = ?`;
+        const sql = `SELECT users.*,
+                            JSON_OBJECT(
+                                    'id', roles.id,
+                                    'role', roles.name
+                            ) AS role,
+                            JSON_OBJECT(
+                                    'id', files.id,
+                                    'path', files.path,
+                                    'image_width', files.image_with,
+                                    'image_height', files.image_height
+                            ) AS avatar
+                     FROM users
+                              INNER JOIN roles ON roles.id = users.role_id
+                              INNER JOIN files ON files.id = users.avatar_id
+                     WHERE phone_number = ?`;
 
         SMySQL.getConnection(connection => {
             connection?.execute<any>(sql, [phoneNumber], (error, result) => {
@@ -204,8 +216,8 @@ export default class SUser {
                 user.phone_number,
                 /*SEncrypt.encrypt(user.password, "")*/ user.password,
                 v4(),
-                user.avatar?.id?? -1,
-                user.role?.id?? -1,
+                user.avatar?.id ?? -1,
+                user.role?.id ?? -1,
                 new Date().getTime()
             ], (error, result) => {
                 if (error) {

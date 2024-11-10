@@ -58,25 +58,27 @@ app.get(ATTENDANCE_BASE_URL + "/id", AttendanceController.getAttendance);
 // ClassLevel routes
 const CLASSLEVEL_BASE_URL = Config.PREFIX + "/class-levels";
 app.get(CLASSLEVEL_BASE_URL, ClassLevelController.getAllClassLevels);
-// Attendance routes
-app.get(ATTENDANCE_BASE_URL + "/histories", AttendanceController.getAttendanceHistories); // Get attendance histories
-app.post(ATTENDANCE_BASE_URL + "/request", AttendanceController.requestAttendance); // Request attendance
-app.post(ATTENDANCE_BASE_URL + "/accept", AttendanceController.acceptAttendance); // Accept attendance
-app.get(ATTENDANCE_BASE_URL + "/id", AttendanceController.getAttendance); // Get specific attendance
+app.post(CLASSLEVEL_BASE_URL, ClassLevelController.createClassLevel);
+app.put(CLASSLEVEL_BASE_URL, ClassLevelController.updateClasslevel);
+app.patch(CLASSLEVEL_BASE_URL, ClassLevelController.updateClasslevel);
+app.delete(CLASSLEVEL_BASE_URL, ClassLevelController.deleteClassLevel);
+
 
 // Define the base URL for certificate-related routes
 const CERTIFICATE_BASE_URL = Config.PREFIX + "/certificates";
-app.get(CERTIFICATE_BASE_URL, CertificateController.getAllCertificates);
-app.post(CERTIFICATE_BASE_URL, CertificateController.createCertificate);
-app.put(CERTIFICATE_BASE_URL, CertificateController.updateCertificate);
-app.patch(CERTIFICATE_BASE_URL, CertificateController.updateCertificate);
-app.delete(CERTIFICATE_BASE_URL, CertificateController.deleteCertificate);
 app.get(CERTIFICATE_BASE_URL + "/levels", CertificateController.getAllLevels);
 app.post(CERTIFICATE_BASE_URL + "/levels", CertificateController.createLevel);
 app.put(CERTIFICATE_BASE_URL + "/levels", CertificateController.updateLevel);
 app.patch(CERTIFICATE_BASE_URL + "/levels", CertificateController.updateLevel);
-app.delete(CERTIFICATE_BASE_URL + "/levels", CertificateController.deleteLevel);
+app.delete(CERTIFICATE_BASE_URL + "/levels/:id", CertificateController.deleteLevel);
 app.get(CERTIFICATE_BASE_URL + "/:id/levels", CertificateController.getAllLevelsOfOneCertificate);
+
+app.get(CERTIFICATE_BASE_URL, CertificateController.getAllCertificates);
+app.get(CERTIFICATE_BASE_URL + "/:id", CertificateController.getCertificateById);
+app.post(CERTIFICATE_BASE_URL, CertificateController.createCertificate);
+app.put(CERTIFICATE_BASE_URL, CertificateController.updateCertificate);
+app.patch(CERTIFICATE_BASE_URL, CertificateController.updateCertificate);
+app.delete(CERTIFICATE_BASE_URL + "/:id", CertificateController.deleteCertificate);
 
 const CLASS_BASE_URL = Config.PREFIX + "/classes";
 app.get(CLASS_BASE_URL, ClassController.getAllClasses);
@@ -153,9 +155,9 @@ app.patch(MAJOR_BASE_URL + "/:id", MajorController.updateMajor);
 app.delete(MAJOR_BASE_URL + "/:id", MajorController.deleteMajor);
 
 const MESSAGE_BASE_URL = Config.PREFIX + "/messages";
-app.get(MESSAGE_BASE_URL + "/contacts/:id", MessageController.getContacts);
-app.get(MESSAGE_BASE_URL + "/inboxes/:id", MessageController.getInboxUsers);
-app.get(MESSAGE_BASE_URL + "/:from/:to", MessageController.getMessages);
+app.get(MESSAGE_BASE_URL + "/contacts", MessageController.getContacts);
+app.get(MESSAGE_BASE_URL + "/inboxes", MessageController.getInboxUsers);
+app.get(MESSAGE_BASE_URL, MessageController.getMessages);
 app.post(MESSAGE_BASE_URL, MessageController.createMessage);
 app.delete(MESSAGE_BASE_URL, MessageController.deleteMessage);
 
