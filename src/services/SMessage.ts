@@ -69,7 +69,7 @@ export default class SMessage {
                 });
 
                 //remove the same user
-                for (let i = 1; i < inboxes.length ; i++) {
+                for (let i = 1; i < inboxes.length; i++) {
                     for (let j = 0; j < i; j++) {
                         if (inboxes[j]?.user.id === inboxes[i]?.user.id) {
                             inboxes.splice(j, 1);
@@ -84,11 +84,14 @@ export default class SMessage {
         });
     }
 
-    public static getMessages(fromUserId: string, toUserId: string, batch: number = 1, onNext : (messages: Message[]) => void) {
-        const sql = `SELECT * FROM messages WHERE from_user_id = ? AND to_user_id = ? ORDER BY created_at DESC `;
+    public static getMessages(fromUserId: string, toUserId: string, batch: number = 1, onNext: (messages: Message[]) => void) {
+        const sql = `SELECT *
+                     FROM messages
+                     WHERE from_user_id = ? AND to_user_id = ? AND from_user_status = 1
+                        OR to_user_status = 1
+                     ORDER BY created_at DESC `;
 
         SLog.log(LogType.Warning, "getMessages", "check parameters", {fromUserId, toUserId, batch});
-
 
         SMySQL.getConnection(connection => {
             connection?.execute<any[]>(sql, [fromUserId, toUserId], (error, result) => {
@@ -101,8 +104,14 @@ export default class SMessage {
                 SLog.log(LogType.Info, "getMessages", "sql result", result);
 
                 const messages: Message[] = result;
-                onNext(messages);
-                SLog.log(LogType.Info, "getMessages", "get messages successfully", messages.length);
+
+                this.markAsRead(messages, () => {
+                    SLog.log(LogType.Info, "getMessages", "get messages successfully", messages.length);
+
+                    SFirebase.pushMessage(fromUserId, toUserId, () => {
+                        onNext(messages);
+                    })
+                });
             });
         });
     }
@@ -144,8 +153,8 @@ export default class SMessage {
 
         SMySQL.getConnection(connection => {
             connection?.execute(sql, [
-                message.from_user_status? 1 : 0,
-                message.to_user_status? 1 : 0,
+                message.from_user_status ? 1 : 0,
+                message.to_user_status ? 1 : 0,
                 message.id
             ], (error, result) => {
                 if (error) {
@@ -156,6 +165,25 @@ export default class SMessage {
 
                 onNext(true);
                 SLog.log(LogType.Info, "deleteMessage successfully");
+            });
+        });
+    }
+
+    private static markAsRead(messages: Message[], onNext: () => void) {
+        const sql = `UPDATE messages
+                     SET as_read = 1
+                     WHERE id IN (${messages.map(message => message.id).join(",")})`;
+
+        SMySQL.getConnection(connection => {
+            connection?.execute(sql, (error) => {
+                if (error) {
+                    SLog.log(LogType.Error, "markAsRead", "markAsRead unsuccessfully", error);
+                    onNext();
+                    return;
+                }
+
+                messages.forEach(message => message.as_read = true);
+                onNext();
             });
         });
     }
