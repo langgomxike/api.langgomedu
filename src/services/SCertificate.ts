@@ -160,5 +160,4 @@ export default class SCertificate {
             });
         });
     }
-
 }
