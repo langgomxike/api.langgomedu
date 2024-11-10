@@ -2,6 +2,7 @@ import Certificate from "../models/Certificate";
 import SMySQL from "./SMySQL";
 import SLog, {LogType} from "./SLog";
 import SFirebase, {FirebaseNode} from "./SFirebase";
+import SCertificateLevel from "./SCertificateLevel";
 
 export default class SCertificate {
     public static getAllCertificates(onNext: (certificates: Certificate[]) => void) {
@@ -150,9 +151,12 @@ export default class SCertificate {
 
                 SLog.log(LogType.Info, "deleteCertificate", "delete certificate successfully");
 
-                SFirebase.delete(FirebaseNode.CERTIFICATE, id, () => {
-                    onNext(true);
+                SCertificateLevel.deleteCertificateLevelOfOneCertificate(id, result => {
+                    SFirebase.delete(FirebaseNode.CERTIFICATE, id, () => {
+                        onNext(true);
+                    });
                 });
+
             });
         });
     }
