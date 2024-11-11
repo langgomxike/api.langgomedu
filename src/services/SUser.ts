@@ -1,11 +1,8 @@
-import User from './../models/User';
-import SMySQL from './SMySQL';
-import SLog, {LogType} from './SLog';
-import {v4} from "uuid";
-import SFirebase, {FirebaseNode} from "./SFirebase";
-import Inbox from "../models/Inbox";
-import Message from "../models/Message";
-import SMessage from "./SMessage";
+import User from "./../models/User";
+import SMySQL from "./SMySQL";
+import SLog, { LogType } from "./SLog";
+import { v4 } from "uuid";
+import SFirebase, { FirebaseNode } from "./SFirebase";
 
 export default class SUser {
   public static getAllUsers(onNext: (users: User[]) => void) {
@@ -41,24 +38,18 @@ export default class SUser {
           users.push(user);
         });
 
-                SLog.log(LogType.Info, "getAllUsers", "", users);
-                onNext(users);
-            });
-        });
-    }
+        SLog.log(LogType.Info, "getAllUsers", "", users);
+        onNext(users);
+      });
+    });
+  }
 
-    public static getContactUsers(userId: string, onNext: (users: User[]) => void) {
-        SMessage.getInboxes(userId, inboxes => {
-            const contacts = inboxes.map(inbox => inbox.user);
-
-            SLog.log(LogType.Info, "getContactUsers", "", contacts.length);
-            onNext(contacts);
-        });
-    }
-
-    public static getUserById(id: number, onNext: (user: User | undefined) => void) {
-        const sql = `SELECT users.*,
-                            JSON_OBJECT(
+  public static getUserById(
+    id: number,
+    onNext: (user: User | undefined) => void
+  ) {
+    const sql = `SELECT users.*, 
+                        JSON_OBJECT(
                                     'id', roles.id,
                                     'role', roles.name
                             ) AS role,
@@ -89,22 +80,25 @@ export default class SUser {
     });
   }
 
-    public static getUserByEmail(email: string, onNext: (user: User | undefined) => void) {
-        const sql = `SELECT users.*,
-                            JSON_OBJECT(
-                                    'id', roles.id,
-                                    'role', roles.name
-                            ) AS role,
-                            JSON_OBJECT(
-                                    'id', files.id,
-                                    'path', files.path,
-                                    'image_width', files.image_with,
-                                    'image_height', files.image_height
-                            ) AS avatar
-                     FROM users
-                              INNER JOIN roles ON roles.id = users.role_id
-                              INNER JOIN files ON files.id = users.avatar_id
-                     WHERE email = ?`;
+  public static getUserByEmail(
+    email: string,
+    onNext: (user: User | undefined) => void
+  ) {
+    const sql = `SELECT users.*, 
+                        JSON_OBJECT(
+                            'id', roles.id,
+                            'role', roles.name
+                        ) AS role,
+                        JSON_OBJECT(
+                            'id', files.id,
+                            'path', files.path,
+                            'image_width', files.image_with,
+                            'image_height', files.image_height
+                        ) AS avatar
+                    FROM users 
+                    INNER JOIN roles ON roles.id = users.role_id
+                    INNER JOIN files ON files.id = users.avatar_id
+                    WHERE email = ?`;
 
     SMySQL.getConnection((connection) => {
       connection?.execute<any>(sql, [email], (error, result) => {
@@ -122,9 +116,12 @@ export default class SUser {
     });
   }
 
-    public static getUserByToken(token: string, onNext: (user: User | undefined) => void) {
-        const sql = `SELECT users.*,
-                            JSON_OBJECT(
+  public static getUserByToken(
+    token: string,
+    onNext: (user: User | undefined) => void
+  ) {
+    const sql = `SELECT users.*, 
+                        JSON_OBJECT(
                                     'id', roles.id,
                                     'role', roles.name
                             ) AS role,
@@ -154,22 +151,25 @@ export default class SUser {
     });
   }
 
-    public static getUserByPhoneNumber(phoneNumber: string, onNext: (user: User | undefined) => void) {
-        const sql = `SELECT users.*,
-                            JSON_OBJECT(
-                                    'id', roles.id,
-                                    'role', roles.name
-                            ) AS role,
-                            JSON_OBJECT(
-                                    'id', files.id,
-                                    'path', files.path,
-                                    'image_width', files.image_with,
-                                    'image_height', files.image_height
-                            ) AS avatar
-                     FROM users
-                              INNER JOIN roles ON roles.id = users.role_id
-                              INNER JOIN files ON files.id = users.avatar_id
-                     WHERE phone_number = ?`;
+  public static getUserByPhoneNumber(
+    phoneNumber: string,
+    onNext: (user: User | undefined) => void
+  ) {
+    const sql = `SELECT users.*, 
+                        JSON_OBJECT(
+                                'id', roles.id,
+                                'role', roles.name
+                        ) AS role,
+                        JSON_OBJECT(
+                            'id', files.id,
+                            'path', files.path,
+                            'image_width', files.image_with,
+                            'image_height', files.image_height
+                        ) AS avatar
+                    FROM users
+                    INNER JOIN roles ON roles.id = users.role_id
+                    INNER JOIN files ON files.id = users.avatar_id
+                    WHERE phone_number = ?`;
 
     SMySQL.getConnection((connection) => {
       connection?.execute<any>(sql, [phoneNumber], (error, result) => {
@@ -214,23 +214,26 @@ export default class SUser {
     const sql =
       "INSERT INTO `users`(`id`, `full_name`, `email`, `phone_number`, `password`, `token`, `avatar_id`, `role_id`, `created_at`) VALUES (?,?,?,?,?,?,?,?,?)";
 
-        SMySQL.getConnection(connection => {
-            connection?.execute<any>(sql, [
-                user.id,
-                user.full_name,
-                user.email,
-                user.phone_number,
-                /*SEncrypt.encrypt(user.password, "")*/ user.password,
-                v4(),
-                user.avatar?.id ?? -1,
-                user.role?.id ?? -1,
-                new Date().getTime()
-            ], (error, result) => {
-                if (error) {
-                    onNext(false);
-                    SLog.log(LogType.Error, "storeUser", "failed to execute", error);
-                    return;
-                }
+    SMySQL.getConnection((connection) => {
+      connection?.execute<any>(
+        sql,
+        [
+          user.id,
+          user.full_name,
+          user.email,
+          user.phone_number,
+          /*SEncrypt.encrypt(user.password, "")*/ user.password,
+          v4(),
+          user.avatar?.id ?? -1,
+          user.role?.id ?? -1,
+          new Date().getTime(),
+        ],
+        (error, result) => {
+          if (error) {
+            onNext(false);
+            SLog.log(LogType.Error, "storeUser", "failed to execute", error);
+            return;
+          }
 
           //update into firebase
           SFirebase.push(FirebaseNode.USER, user.id, () => {
