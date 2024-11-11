@@ -202,7 +202,7 @@ export default class ClassController {
             },
             (error) => {
                 // Trả về phản hồi lỗi nếu có lỗi xảy ra
-                SResponse.getResponse(ResponseStatus.Error, error, 'Failed to join the class', response);
+                SResponse.getResponse(ResponseStatus.Internal_Server_Error, error, 'Failed to join the class', response);
             }
         );
     }
@@ -220,7 +220,7 @@ export default class ClassController {
             },
             (error) => {
                 // Trả về phản hồi lỗi nếu có lỗi xảy ra
-                SResponse.getResponse(ResponseStatus.Error, error, 'Failed to join the class', response);
+                SResponse.getResponse(ResponseStatus.Internal_Server_Error, error, 'Failed to join the class', response);
             }
         );
     }
