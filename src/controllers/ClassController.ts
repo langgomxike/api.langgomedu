@@ -218,5 +218,37 @@ export default class ClassController {
     public static deleteLevel(request: express.Request, response: express.Response) {
 
     }
+    // Hàm khoá lớp học
+// Hàm khoá lớp học
+public static LockClass(
+    request: express.Request,
+    response: express.Response
+  ) {
+    const classId = request?.body?.classId;  // Sửa lại trường `classId`
+    console.log("request: " + JSON.stringify(request.body));
+    console.log("classId: " + classId);
+  
+    // Kiểm tra nếu `classId` không tồn tại
+    if (!classId) {
+      return response
+        .status(400)
+        .json({ success: false, message: "Class ID is required." });
+    }
+  
+    // Gọi phương thức LockClass của SClass
+    SClass.LockClass(classId, (result) => {
+      if (result) {
+        // Nếu thành công, gửi phản hồi JSON
+        response
+          .status(200)
+          .json({ success: true, message: "Class locked successfully." });
+      } else {
+        // Nếu thất bại, gửi phản hồi lỗi
+        response
+          .status(500)
+          .json({ success: false, message: "Failed to lock class." });
+      }
+    });
+  }
 
 }

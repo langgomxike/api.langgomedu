@@ -1244,4 +1244,49 @@ export default class SClass {
       });
     });
   }
+   //khoá lớp học
+//  UPDATE classes
+// SET status = 1
+// WHERE class_id = your_class_id
+// LIMIT 1;
+public static LockClass(class_id: string, onNext: (result: boolean) => void) {
+  // Câu truy vấn SQL để khóa lớp học
+  const sql = `
+      UPDATE classes
+      SET status = 1
+      WHERE id = ?
+      LIMIT 1;
+  `;
+
+  // Lấy kết nối và thực thi truy vấn
+  SMySQL.getConnection((connection) => {
+      connection?.execute(
+          sql,
+          [class_id], // Truyền vào `class_id` làm tham số
+          (error, result) => {
+              // Nếu có lỗi, ghi log lỗi và gọi callback với `false`
+              if (error) {
+                  onNext(false);
+                  SLog.log(
+                      LogType.Error,
+                      "LockClass",
+                      "Cannot lock class",
+                      error
+                  );
+                  return;
+              }
+
+              // Nếu thành công, ghi log và gọi callback với `true`
+              SLog.log(
+                  LogType.Info,
+                  "LockClass",
+                  "Locked class successfully"
+              );
+              onNext(true);
+          }
+      );
+  });
+}
+
+
 }

@@ -153,4 +153,47 @@ SMySQL.getConnection((connection) => {
       });
     });
   }
+  //khoá user reports
+//   UPDATE user_reports
+// SET status = 1
+// WHERE id = ?
+// LIMIT 1;
+public static LockUserReport(report_id: string, onNext: (result: boolean) => void) {
+  // Câu truy vấn SQL để khóa báo cáo người dùng
+  const sql = `
+      UPDATE user_reports
+      SET status = 1
+      WHERE id = ?
+      LIMIT 1;
+  `;
+
+  // Lấy kết nối và thực thi truy vấn
+  SMySQL.getConnection((connection) => {
+      connection?.execute(
+          sql,
+          [report_id], // Truyền vào `report_id` làm tham số
+          (error, result) => {
+              // Nếu có lỗi, ghi log lỗi và gọi callback với `false`
+              if (error) {
+                  onNext(false);
+                  SLog.log(
+                      LogType.Error,
+                      "LockUserReport",
+                      "Cannot lock user report",
+                      error
+                  );
+                  return;
+              }
+
+              // Nếu thành công, ghi log và gọi callback với `true`
+              SLog.log(
+                  LogType.Info,
+                  "LockUserReport",
+                  "Locked user report successfully"
+              );
+              onNext(true);
+          }
+      );
+  });
+}
 }
