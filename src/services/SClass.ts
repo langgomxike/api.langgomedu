@@ -4,6 +4,7 @@ import SLog, { LogType } from "./SLog";
 import SMySQL from "./SMySQL";
 import User from "../models/User";
 import Major from "../models/Major";
+import Lesson from "../models/Lesson";
 import { UserType } from "../configs/UserType";
 
 export default class SClass {
@@ -1078,12 +1079,7 @@ export default class SClass {
     price: number,
     started_at: number,
     ended_at: number,
-    lessons: {
-      day: number;
-      started_at: number;
-      duration: number;
-      is_online: boolean;
-    }[],
+    lessons: Lesson[],
     onNext: (result: boolean, insertId?: number) => void
   ) {
     const sql =
@@ -1132,10 +1128,14 @@ export default class SClass {
                 lesson.is_online
               );
             });
+            console.log("values: " + values);
+            
             // Xây dựng câu truy vấn `INSERT` với nhiều giá trị
             const placeholders = lessons.map(() => "(?,?,?,?,?)").join(",");
             const sqlLesson = `INSERT INTO lessons (class_id, day, started_at, duration, is_online) VALUES ${placeholders}`;
 
+            console.log("sql lesson: ", sqlLesson);
+            
             connection.query(sqlLesson, values, (lessonErr) => {
               if (lessonErr) {
                 SLog.log(
