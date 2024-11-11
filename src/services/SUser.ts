@@ -295,4 +295,46 @@ export default class SUser {
     public static softDeleteUser(id: number, onNext: (result: boolean) => void) {
 
     }
+// Hàm khoá tài khoản người dùng
+public static LockUserAccount(
+    user_id: string,
+    onNext: (result: boolean) => void
+  ) {
+    // Câu truy vấn SQL để khoá tài khoản người dùng
+    const sql = `
+        UPDATE users
+        SET status = 1
+        WHERE id = ?
+        LIMIT 1;
+    `;
+
+    // Lấy kết nối và thực thi truy vấn
+    SMySQL.getConnection((connection) => {
+      connection?.execute(
+        sql,
+        [user_id], // Truyền vào `user_id` làm tham số
+        (error, result) => {
+          // Nếu có lỗi, ghi log lỗi và gọi callback với `false`
+          if (error) {
+            onNext(false);
+            SLog.log(
+              LogType.Error,
+              "LockUserAccount",
+              "Cannot lock user account",
+              error
+            );
+            return;
+          }
+
+          // Nếu thành công, ghi log và gọi callback với `true`
+          SLog.log(
+            LogType.Info,
+            "LockUserAccount",
+            "Locked user account successfully"
+          );
+          onNext(true);
+        }
+      );
+    });
+  }
 }
