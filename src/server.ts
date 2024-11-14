@@ -1,9 +1,9 @@
 // Import necessary modules and libraries
 // @ts-ignore
-import express, {Express, Request, Response} from "express";
+import express, { Express, Request, Response } from "express";
 // @ts-ignore
 import dotenv from "dotenv";
-import SLog, {LogType} from "./services/SLog";
+import SLog, { LogType } from "./services/SLog";
 import SMySQL from "./services/SMySQL";
 import UserController from "./controllers/UserController";
 import AttendanceController from "./controllers/AttendanceController";
@@ -21,14 +21,14 @@ import RoleController from "./controllers/RoleController";
 import StudentController from "./controllers/StudentController";
 import LessonController from "./controllers/LessonController";
 import DatabaseSeeder from "./seeders/DatabaseSeeder";
-import SAuthentication, {OWNING_KEY_COLUMNS, OWNING_REF_COLUMNS, OWNING_REF_TABLES} from "./services/SAuthentication";
-import PermissionList, {setUpPermissions} from "./configs/PermissionConfig";
-import {setUpGenders} from "./configs/GenderConfig";
-import SFirebase, {FirebaseNode} from "./services/SFirebase";
+import SAuthentication, { OWNING_KEY_COLUMNS, OWNING_REF_COLUMNS, OWNING_REF_TABLES } from "./services/SAuthentication";
+import PermissionList, { setUpPermissions } from "./configs/PermissionConfig";
+import { setUpGenders } from "./configs/GenderConfig";
+import SFirebase, { FirebaseNode } from "./services/SFirebase";
 import AdminController from "./controllers/admin/AdminController";
-import SResponse, {ResponseStatus} from "./services/SResponse";
+import SResponse, { ResponseStatus } from "./services/SResponse";
 
-import {ClassLevelController} from "./controllers/ClassLevelController";
+import { ClassLevelController } from "./controllers/ClassLevelController";
 import {setUpRoles} from "./configs/RoleConfig";
 import {setUpUsers} from "./configs/UserConfig";
 
@@ -128,14 +128,28 @@ app.get(LESSON_BASE_URL, LessonController.getSchedule);
 // app.get(LESSON_BASE_URL, LessonController.demoLesson);
 
 const REPORT_BASE_URL = Config.PREFIX + "/reports";
+
 app.get(REPORT_BASE_URL + "/class", ReportController.getAllClassReports);
 app.get(REPORT_BASE_URL + "/class/:id", ReportController.getClassReport);
 app.post(REPORT_BASE_URL + "/class", ReportController.createClassReport);
+//khoas lop va tru diem uy tin nguoi co lop hoc bi bao cao
 app.post(REPORT_BASE_URL + "/class/:id", ReportController.approveClassReport);
 app.get(REPORT_BASE_URL + "/user", ReportController.getAllUserReports);
 app.get(REPORT_BASE_URL + "/user/:id", ReportController.getUserReport);
 app.post(REPORT_BASE_URL + "/user", ReportController.createUserReport);
 app.post(REPORT_BASE_URL + "/user/:id", ReportController.approveUserReport);
+
+//trừ điểm uy tín của người dùng
+app.post(REPORT_BASE_URL + "/minusUserPoints", UserController.MinusUserPoints);
+//khoá tài khoản của người dùng
+app.post(REPORT_BASE_URL + "/lockUserAccount", UserController.LockUserAccount);
+//khoá lớp học của người dùng
+app.post(REPORT_BASE_URL + "/lockClass", ClassController.LockClass);
+//khoá user reports
+app.post(REPORT_BASE_URL + "/lockUserReport", ReportController.LockUserReport);
+//khoa class reports
+app.post(REPORT_BASE_URL + "/lockClassReport", ReportController.LockClassReport);
+
 
 const CV_BASE_URL = Config.PREFIX + "/cvs";
 app.get(CV_BASE_URL, CVController.getAllCVs);
