@@ -311,9 +311,10 @@ export default class SClass {
   ) {
     // Xác định điều kiện WHERE theo userType
     const condition =
-      userType === UserType.TUTOR
-        ? `classes.tutor_id IS NULL AND classes.author_id != ? AND in_class_members.user_id IS NULL`
-        : `classes.author_id != ? AND in_class_members.user_id IS NULL`;
+    userType === UserType.TUTOR
+      ? `classes.tutor_id IS NULL AND classes.author_id != ? AND in_class_members.user_id IS NULL`
+      : `classes.author_id != ? AND classes.tutor_id != ? AND in_class_members.user_id IS NULL`;
+
 
     // SQL query to fetch class information, including tutor, major, and class level details
     const sql = `SELECT 
@@ -372,7 +373,7 @@ export default class SClass {
 
     // Thay thế các giá trị điều kiện theo userType
     const params =
-      userType === UserType.TUTOR ? [userId, userId] : [userId, userId];
+    userType === UserType.TUTOR ? [userId, userId] : [userId, userId, userId];
 
     // Get a database connection
     SMySQL.getConnection((connection) => {
@@ -793,7 +794,7 @@ export default class SClass {
                           'ja_name', class_levels.ja_name
                       ) AS class_level
                   FROM classes
-                  INNER JOIN users ON users.id = classes.tutor_id
+                  LEFT JOIN users ON users.id = classes.tutor_id
                   LEFT JOIN majors ON majors.id = classes.major_id
                   LEFT JOIN class_levels ON class_levels.id = classes.class_level_id
                   LEFT JOIN files AS files_tutor ON files_tutor.id = users.avatar_id
@@ -1162,8 +1163,7 @@ export default class SClass {
     classId: number,
     userId: string,
     studentIds: number[],
-    onSuccess: () => void,
-    onError: (error: any) => void
+    onNext: (message, result) => void,
   ) {
     console.log(">>> user id", userId);
     console.log(">>> class id", classId);
@@ -1184,14 +1184,15 @@ export default class SClass {
       // Bắt đầu giao dịch
       connection?.beginTransaction((err) => {
         if (err) {
-          return onError(err); // Gọi hàm lỗi nếu không thể bắt đầu giao dịch
+          // Gọi hàm lỗi nếu không thể bắt đầu giao dịch
+          return onNext(`Error starting transaction: ${err.message}`, false); 
         }
 
         //Bước 1: Chèn người dùng hiện tại (học sinh chính)
         connection.execute(sql, [classId, userId], (err) => {
           if (err) {
             connection.rollback(() => {
-              return onError(err); // Gọi hàm lỗi nếu có lỗi khi chèn
+              return onNext(`Error inserting main user: ${err.message}`, false);
             });
           }
         });
@@ -1201,9 +1202,9 @@ export default class SClass {
           // Nếu danh sách rỗng, commit và gọi onSuccess
           connection.commit((err) => {
             if (err) {
-              return onError(err); // Gọi hàm lỗi nếu không thể commit
+              return onNext(`Error committing transaction: ${err.message}`, false);
             }
-            onSuccess(); // Gọi hàm thành công
+            onNext(`Join in class id: ${classId} successful!`, true);
           });
           return;
         }
@@ -1213,9 +1214,9 @@ export default class SClass {
           return new Promise((resolve, reject) => {
             connection.execute(studentSql, [classId, studentId], (err) => {
               if (err) {
-                reject(err); // Nếu có lỗi, từ chối promise
+                reject(new Error(`Error inserting student ${studentId}: ${err.message}`));
               } else {
-                resolve(true); // Nếu thành công, giải quyết promise
+                resolve(true);
               }
             });
           });
@@ -1226,14 +1227,14 @@ export default class SClass {
           .then(() => {
             connection.commit((err) => {
               if (err) {
-                return onError(err); // Gọi hàm lỗi nếu không thể commit
+                return onNext(`Error committing transaction after student insertions: ${err.message}`, false);
               }
-              onSuccess(); // Gọi hàm thành công khi hoàn tất
+              onNext(`Join in class id: ${classId} successful!`, true);
             });
           })
-          .catch(() => {
+          .catch((err) => {
             connection.rollback(() => {
-              return onError(err); // Gọi hàm lỗi nếu có lỗi khi chèn học sinh
+              return onNext(`Error during student insertions: ${err.message}`, false);
             });
           });
       });
@@ -1244,8 +1245,7 @@ export default class SClass {
   public static acceptClassToTeach(
     classId: number,
     tutorId: string,
-    onSuccess: () => void,
-    onError: (error: any) => void
+    onNext: (message, result) => void,
   ) {
     // Truy vấn để kiểm tra xem lớp học đã có gia sư hoặc người tham gia hay chưa
     const checkSql = `SELECT classes.tutor_id FROM classes WHERE classes.id = ?; `;
@@ -1255,14 +1255,14 @@ export default class SClass {
     SMySQL.getConnection((connection) => {
       connection?.execute<any>(checkSql, [classId], (error, results) => {
         if (error) {
-          onError(error);
+          onNext(error, false);
           return;
         }
 
         const classInfo = results[0];
         if (classInfo && (classInfo.tutor_id || classInfo.member_count > 0)) {
           const errorMessage = "Class already has a tutor.";
-          onError(new Error(errorMessage));
+          onNext(errorMessage, false);
           console.log(">>> error:", errorMessage);
           return;
         }
@@ -1273,17 +1273,17 @@ export default class SClass {
           [tutorId, new Date().getTime(), classId],
           (updateError, updateResults) => {
             if (updateError) {
-              onError(updateError);
+              onNext(updateError, false);
               return;
             }
 
             if (updateResults && updateResults.affectedRows > 0) {
-              onSuccess();
+              onNext("Class accepted by tutor successfully", true)
               console.log(">>> Class accepted by tutor successfully");
             } else {
               const errorMessage =
                 "No class was updated. Possibly invalid class ID.";
-              onError(new Error(errorMessage));
+              onNext(errorMessage, false);
               console.log(">>> error:", errorMessage);
             }
           }
