@@ -26,8 +26,8 @@ import PermissionList, { setUpPermissions } from "./configs/PermissionConfig";
 import { setUpGenders } from "./configs/GenderConfig";
 import SFirebase, { FirebaseNode } from "./services/SFirebase";
 import AdminController from "./controllers/admin/AdminController";
+import {uploadPayment} from "./configs/MulterConfig";
 import SResponse, { ResponseStatus } from "./services/SResponse";
-
 import { ClassLevelController } from "./controllers/ClassLevelController";
 import {setUpRoles} from "./configs/RoleConfig";
 import {setUpUsers} from "./configs/UserConfig";
@@ -49,36 +49,36 @@ app.get("/api", (req: Request, res: Response) => {
 
 app.use('/', express.static('public'));
 
-const ATTENDANCE_BASE_URL = Config.PREFIX + "/attendances";
-app.get(ATTENDANCE_BASE_URL + "/histories", AttendanceController.getAttendanceHistories);
-app.post(ATTENDANCE_BASE_URL + "/request", AttendanceController.requestAttendance);
-app.post(ATTENDANCE_BASE_URL + "/accept", AttendanceController.acceptAttendance);
-app.get(ATTENDANCE_BASE_URL + "/id", AttendanceController.getAttendance);
+
 
 // ClassLevel routes
 const CLASSLEVEL_BASE_URL = Config.PREFIX + "/class-levels";
 app.get(CLASSLEVEL_BASE_URL, ClassLevelController.getAllClassLevels);
-app.post(CLASSLEVEL_BASE_URL, ClassLevelController.createClassLevel);
-app.put(CLASSLEVEL_BASE_URL, ClassLevelController.updateClasslevel);
-app.patch(CLASSLEVEL_BASE_URL, ClassLevelController.updateClasslevel);
-app.delete(CLASSLEVEL_BASE_URL, ClassLevelController.deleteClassLevel);
+
+// Attendance routes
+const ATTENDANCE_BASE_URL = Config.PREFIX + "/attendances";
+app.get(ATTENDANCE_BASE_URL + "/histories", AttendanceController.getAttendanceHistories);
+app.post(ATTENDANCE_BASE_URL + "/request", AttendanceController.requestAttendance);
+app.put(ATTENDANCE_BASE_URL + "/accept", AttendanceController.acceptAttendance);
+app.get(ATTENDANCE_BASE_URL + "/learner/:class_id/:lesson_id/:user_id", AttendanceController.getAttendanceByLearnerClassLesson);
+app.get(ATTENDANCE_BASE_URL + "/tutor/:class_id/:lesson_id/:user_id", AttendanceController.getAttendanceByTutorClassLesson);
+app.post(ATTENDANCE_BASE_URL + "/pay", uploadPayment.single('file'),AttendanceController.updatePaymentOfLearner);
+app.put(ATTENDANCE_BASE_URL + "/confirm_pay",AttendanceController.confirmPaymentByTutor);
 
 
 // Define the base URL for certificate-related routes
 const CERTIFICATE_BASE_URL = Config.PREFIX + "/certificates";
+app.get(CERTIFICATE_BASE_URL, CertificateController.getAllCertificates);
+app.post(CERTIFICATE_BASE_URL, CertificateController.createCertificate);
+app.put(CERTIFICATE_BASE_URL, CertificateController.updateCertificate);
+app.patch(CERTIFICATE_BASE_URL, CertificateController.updateCertificate);
+app.delete(CERTIFICATE_BASE_URL, CertificateController.deleteCertificate);
 app.get(CERTIFICATE_BASE_URL + "/levels", CertificateController.getAllLevels);
 app.post(CERTIFICATE_BASE_URL + "/levels", CertificateController.createLevel);
 app.put(CERTIFICATE_BASE_URL + "/levels", CertificateController.updateLevel);
 app.patch(CERTIFICATE_BASE_URL + "/levels", CertificateController.updateLevel);
-app.delete(CERTIFICATE_BASE_URL + "/levels/:id", CertificateController.deleteLevel);
+app.delete(CERTIFICATE_BASE_URL + "/levels", CertificateController.deleteLevel);
 app.get(CERTIFICATE_BASE_URL + "/:id/levels", CertificateController.getAllLevelsOfOneCertificate);
-
-app.get(CERTIFICATE_BASE_URL, CertificateController.getAllCertificates);
-app.get(CERTIFICATE_BASE_URL + "/:id", CertificateController.getCertificateById);
-app.post(CERTIFICATE_BASE_URL, CertificateController.createCertificate);
-app.put(CERTIFICATE_BASE_URL, CertificateController.updateCertificate);
-app.patch(CERTIFICATE_BASE_URL, CertificateController.updateCertificate);
-app.delete(CERTIFICATE_BASE_URL + "/:id", CertificateController.deleteCertificate);
 
 const CLASS_BASE_URL = Config.PREFIX + "/classes";
 app.get(CLASS_BASE_URL, ClassController.getAllClasses);
@@ -87,7 +87,7 @@ app.get(CLASS_BASE_URL + "/attending/:user_id", ClassController.getAttendingClas
 app.get(CLASS_BASE_URL + "/teaching/:user_id", ClassController.getTeachingClasses);
 app.get(CLASS_BASE_URL + "/created/:user_id", ClassController.getCreatedClasses);
 app.get(CLASS_BASE_URL + "/:class_id", ClassController.getClass);
-app.post(CLASS_BASE_URL + "/class/create", ClassController.createClass);
+app.post(CLASS_BASE_URL + "/create", ClassController.createClass);
 app.put(CLASS_BASE_URL, ClassController.updateClass);
 app.patch(CLASS_BASE_URL, ClassController.updateClass);
 app.delete(CLASS_BASE_URL,
@@ -106,7 +106,6 @@ app.delete(CLASS_BASE_URL,
     ),
     ClassController.deleteClass
 );
-
 app.post(CLASS_BASE_URL + "/:class_id/join", ClassController.requestToAttendClass);
 app.post(CLASS_BASE_URL + "/:class_id/accept_to_teach", ClassController.acceptClassToTeach);
 app.post(CLASS_BASE_URL + "/approve/:id", ClassController.approveToAttendClass);
@@ -119,7 +118,7 @@ app.delete(CLASS_BASE_URL + "/levels/:id", ClassController.deleteLevel);
 
 const LESSON_BASE_URL = Config.PREFIX + "/lessons";
 app.get(LESSON_BASE_URL + "/:class", LessonController.getLessonsInClass);
-app.post(LESSON_BASE_URL + "/:class_id", LessonController.createLesson);
+app.post(LESSON_BASE_URL + "/:class", LessonController.createLesson);
 app.put(LESSON_BASE_URL + "/:id", LessonController.updateLesson);
 app.patch(LESSON_BASE_URL + "/:id", LessonController.updateLesson);
 app.delete(LESSON_BASE_URL + "/:id", LessonController.deleteLesson);
@@ -128,11 +127,9 @@ app.get(LESSON_BASE_URL, LessonController.getSchedule);
 // app.get(LESSON_BASE_URL, LessonController.demoLesson);
 
 const REPORT_BASE_URL = Config.PREFIX + "/reports";
-
 app.get(REPORT_BASE_URL + "/class", ReportController.getAllClassReports);
 app.get(REPORT_BASE_URL + "/class/:id", ReportController.getClassReport);
 app.post(REPORT_BASE_URL + "/class", ReportController.createClassReport);
-//khoas lop va tru diem uy tin nguoi co lop hoc bi bao cao
 app.post(REPORT_BASE_URL + "/class/:id", ReportController.approveClassReport);
 app.get(REPORT_BASE_URL + "/user", ReportController.getAllUserReports);
 app.get(REPORT_BASE_URL + "/user/:id", ReportController.getUserReport);

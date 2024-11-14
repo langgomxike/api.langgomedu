@@ -10,7 +10,7 @@ export default class User {
     public phone_number: string;
     public password: string;
     public information: Information | undefined;
-    public student: Student | undefined;
+    public students: Student[] | undefined;
     public is_reported: boolean;
     public token: string;
     public avatar: File | undefined;
@@ -25,7 +25,7 @@ export default class User {
         phone_number = "",
         password = "",
         information: Information | undefined = undefined,
-        student: Student | undefined = undefined,
+        students: Student[] | undefined = [],
         is_reported = false,
         token = "",
         created_at = new Date().getTime(),
@@ -37,7 +37,7 @@ export default class User {
         this.phone_number = phone_number;
         this.password = password;
         this.information = information;
-        this.student = student;
+        this.students = students;
         this.is_reported = is_reported;
         this.token = token;
         this.created_at = created_at;
