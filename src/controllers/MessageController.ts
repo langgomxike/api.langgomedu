@@ -44,9 +44,10 @@ export default class MessageController {
 
     public static getMessages(request: express.Request, response: express.Response) {
         const token: string = request?.headers?.authorization?.replace("Bearer ", "")?? "";
+
         const fromUser : User = request?.body?.from_user ;
         const toUser : User = request?.body?.to_user;
-        const batch: number = parseInt(request?.query?.batch?? "1");
+        const batch: number = parseInt(request?.query?.batch?? "100");
 
         if (!fromUser || !toUser) {
             SLog.log(LogType.Info, "getMessages", "get messages unsuccessfully", "Cannot get the from_user or to_user");
@@ -61,7 +62,7 @@ export default class MessageController {
                 return;
             }
 
-            SMessage.getMessages(fromUser.id, toUser.id, batch, (messages) => {
+            SMessage.getMessages(user.id === fromUser.id ,fromUser.id, toUser.id, batch, (messages) => {
                 SResponse.getResponse(ResponseStatus.OK, messages, "get messages successfully", response);
             });
         });
@@ -121,6 +122,33 @@ export default class MessageController {
                     SLog.log(LogType.Error, "deleteMessage", "delete message unsuccessfully");
                     SResponse.getResponse(ResponseStatus.Internal_Server_Error, null, "Message deleted unsuccessfully", response);
                 }
+            });
+        });
+    }
+
+    public static markAsRead(request: express.Request, response: express.Response) {
+        const token: string = request?.headers?.authorization?.replace("Bearer ", "")?? "";
+
+        const fromUser : User = request?.body?.from_user ;
+        const toUser : User = request?.body?.to_user;
+        const messages: Message[] = request?.body?.messages;
+
+        if (!fromUser || !toUser) {
+            SLog.log(LogType.Info, "markAsRead", "mark as read messages unsuccessfully", "Cannot get the from_user or to_user");
+            SResponse.getResponse(ResponseStatus.Internal_Server_Error, null, "Cannot get the from user or to user", response);
+            return;
+        }
+
+        SUser.getUserByToken(token, (user) => {
+            if (!user) {
+                SLog.log(LogType.Error, "markAsRead", "User not found");
+                SResponse.getResponse(ResponseStatus.Unauthorized, null, "Invalid token", response);
+                return;
+            }
+
+            SMessage.markAsRead(user.id, fromUser.id, toUser.id ,messages, () => {
+                SLog.log(LogType.Info, "markAsRead", "read all");
+                SResponse.getResponse(ResponseStatus.OK, null, "mark as read messages successfully", response);
             });
         });
     }

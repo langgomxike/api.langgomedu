@@ -12,12 +12,18 @@ export function setUpUsers() {
     SMySQL.getConnection(connection => {
         const ADMIN_ID = process.env.ADMIN_ID;
         const deleteSQL = "DELETE FROM users WHERE id = ?";
-        connection?.execute(deleteSQL, [ADMIN_ID]);
+        connection?.execute(deleteSQL, [ADMIN_ID ?? ""]);
 
         const token = v4();
 
-        const user = new User(ADMIN_ID, process.env.ADMIN_NAME, process.env.ADMIN_EMAIL, process.env.ADMIN_PHONE_NUMBER, process.env.ADMIN_PASSWORD, token, new Date().getTime());
+        const user = new User();
         user.role = new Role(RoleConfig.SUPER_ADMIN_ROLE, RoleConfig[RoleConfig.SUPER_ADMIN_ROLE]);
+        user.id = ADMIN_ID;
+        user.full_name = process.env.ADMIN_NAME;
+        user.email = process.env.ADMIN_EMAIL;
+        user.phone_number = process.env.ADMIN_PHONE_NUMBER;
+        user.password = process.env.ADMIN_PASSWORD;
+        user.token = token;
 
         SUser.storeUser(user, () => {});
     });

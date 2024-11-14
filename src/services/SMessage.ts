@@ -25,8 +25,8 @@ export default class SMessage {
                             JSON_OBJECT(
                                     'id', to_users.id,
                                     'full_name', to_users.full_name,
-                                    'email', from_users.email,
-                                    'phone_number', from_users.phone_number,
+                                    'email', to_users.email,
+                                    'phone_number', to_users.phone_number,
                                     'avatar', JSON_OBJECT(
                                             'id', to_user_avatars.id,
                                             'name', to_user_avatars.name,
@@ -36,10 +36,10 @@ export default class SMessage {
                                               )
                             ) AS to_user
                      FROM messages
-                              LEFT JOIN users from_users ON messages.from_user_id = from_users.id
-                              LEFT JOIN users to_users ON messages.to_user_id = to_users.id
-                              LEFT JOIN files from_user_avatars ON from_user_avatars.id = from_users.avatar_id
-                              LEFT JOIN files to_user_avatars ON to_user_avatars.id = to_users.avatar_id
+                              LEFT JOIN users AS from_users ON messages.from_user_id = from_users.id
+                              LEFT JOIN users AS to_users ON messages.to_user_id = to_users.id
+                              LEFT JOIN files AS from_user_avatars ON from_user_avatars.id = from_users.avatar_id
+                              LEFT JOIN files AS to_user_avatars ON to_user_avatars.id = to_users.avatar_id
                      WHERE from_user_status + to_user_status > 0
                      ORDER BY messages.created_at DESC`;
         const inboxes: Inbox[] = [];
@@ -59,18 +59,20 @@ export default class SMessage {
                 messages.forEach(message => {
                     if (message.from_user?.id === userId) {
                         const user = message.to_user;
+                        message.as_read = true;
                         const inbox = new Inbox(user, message);
                         inboxes.push(inbox);
                     } else if (message.to_user?.id === userId) {
                         const user = message.from_user;
+                        message.as_read = message.as_read ? true : false;
                         const inbox = new Inbox(user, message);
                         inboxes.push(inbox);
                     }
                 });
 
                 //remove the same user
-                for (let i = 1; i < inboxes.length; i++) {
-                    for (let j = 0; j < i; j++) {
+                for (let i = 0; i < inboxes.length - 1; i++) {
+                    for (let j = i + 1; j < inboxes.length; j++) {
                         if (inboxes[j]?.user.id === inboxes[i]?.user.id) {
                             inboxes.splice(j, 1);
                             j--;
@@ -84,34 +86,43 @@ export default class SMessage {
         });
     }
 
-    public static getMessages(fromUserId: string, toUserId: string, batch: number = 1, onNext: (messages: Message[]) => void) {
-        const sql = `SELECT *
+    public static getMessages(isMine: boolean, fromUserId: string, toUserId: string, batch: number = 1, onNext: (messages: Message[]) => void) {
+        const sql = `SELECT messages.*,
+                            JSON_OBJECT(
+                                    'id', from_users.id,
+                                    'full_name', from_users.full_name,
+                                    'email', from_users.email,
+                                    'phone_number', from_users.phone_number
+                            ) AS from_user,
+                            JSON_OBJECT(
+                                    'id', to_users.id,
+                                    'full_name', to_users.full_name,
+                                    'email', to_users.email,
+                                    'phone_number', to_users.phone_number
+                            ) AS to_user
                      FROM messages
-                     WHERE from_user_id = ? AND to_user_id = ? AND from_user_status = 1
-                        OR to_user_status = 1
+                              LEFT JOIN users AS from_users ON messages.from_user_id = from_users.id
+                              LEFT JOIN users AS to_users ON messages.to_user_id = to_users.id
+                     WHERE (from_user_id = ?
+                         AND to_user_id = ?)
+                        OR (to_user_id = ?
+                         AND from_user_id = ?)
+                         AND (from_user_status = 1
+                             OR to_user_status = 1)
                      ORDER BY created_at DESC `;
 
-        SLog.log(LogType.Warning, "getMessages", "check parameters", {fromUserId, toUserId, batch});
+        // SLog.log(LogType.Warning, "getMessages", "check parameters", {fromUserId, toUserId, batch});
 
         SMySQL.getConnection(connection => {
-            connection?.execute<any[]>(sql, [fromUserId, toUserId], (error, result) => {
+            connection?.execute<any[]>(sql, [fromUserId, toUserId, fromUserId, toUserId], (error, result) => {
                 if (error) {
                     onNext([]);
                     SLog.log(LogType.Error, "getMessages", "getMessages unsuccessfully", error);
                     return;
                 }
 
-                SLog.log(LogType.Info, "getMessages", "sql result", result);
-
                 const messages: Message[] = result;
-
-                this.markAsRead(messages, () => {
-                    SLog.log(LogType.Info, "getMessages", "get messages successfully", messages.length);
-
-                    SFirebase.pushMessage(fromUserId, toUserId, () => {
-                        onNext(messages);
-                    })
-                });
+                onNext(messages);
             });
         });
     }
@@ -141,8 +152,11 @@ export default class SMessage {
                 // push message into firebase
                 SFirebase.pushMessage(message.from_user?.id, message.to_user?.id,
                     () => {
-                        SLog.log(LogType.Info, "storeMessage successfully");
-                        onNext(true);
+                        SFirebase.pushMessage(message.to_user?.id, message.from_user?.id,
+                            () => {
+                                SLog.log(LogType.Info, "storeMessage successfully");
+                                onNext(true);
+                            });
                     });
             });
         })
@@ -169,13 +183,15 @@ export default class SMessage {
         });
     }
 
-    private static markAsRead(messages: Message[], onNext: () => void) {
+    public static markAsRead(userId: string, fromUserId: string, toUserId: string, messages: Message[], onNext: () => void) {
         const sql = `UPDATE messages
                      SET as_read = 1
-                     WHERE id IN (${messages.map(message => message.id).join(",")})`;
+                     WHERE id IN (${["-1",...messages.map(message => message.id)].join(",")})`;
+
+        SLog.log(LogType.Warning, "mask as read messages", "", messages.map(m => m.content));
 
         SMySQL.getConnection(connection => {
-            connection?.execute(sql, (error) => {
+            connection?.execute(sql, [userId ?? "-1"], (error) => {
                 if (error) {
                     SLog.log(LogType.Error, "markAsRead", "markAsRead unsuccessfully", error);
                     onNext();
@@ -183,7 +199,8 @@ export default class SMessage {
                 }
 
                 messages.forEach(message => message.as_read = true);
-                onNext();
+
+                SFirebase.pushMessage(toUserId, fromUserId, onNext);
             });
         });
     }

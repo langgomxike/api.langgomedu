@@ -51,16 +51,33 @@ export default class SFile {
                     file.name = iFile.name;
                     file.capacity = iFile.capacity;
                     file.path = iFile.path;
-                    file.imageWidth = iFile.image_with;
-                    file.imageHeight = iFile.image_height;
-                    file.createdAt = new Date(iFile.created_at);
-                    file.updatedAt = new Date(iFile.updated_at);
+                    file.image_width = iFile.image_with;
+                    file.image_height = iFile.image_height;
+                    file.created_at = new Date(iFile.created_at).getTime();
+                    file.updated_at = new Date(iFile.updated_at).getTime();
 
                     files.push(file);
                 });
 
                 onNext(files);
                 // SLog.log(LogType.Info, "getFilesByIds", "ids: " + ids.join(", "), { err: err, results: results });
+            });
+        });
+    }
+
+    public static storeFile(file: File, onNext: (result: boolean)=> void) {
+        const sql = "INSERT INTO files (name, path, capacity, image_with, image_height, created_at) VALUES (?,?,?,?,?, ?)";
+
+        SMySQL.getConnection(connection => {
+            connection?.execute(sql, [file.name, file.path, file.capacity, file.image_width, file.image_height, new Date().getTime()], (err, result) => {
+                if (err) {
+                    onNext(false);
+                    SLog.log(LogType.Error, "storeFile", "", err);
+                    return;
+                }
+
+                SLog.log(LogType.Info, "storeFile", "store file successfully");
+                onNext(true);
             });
         });
     }

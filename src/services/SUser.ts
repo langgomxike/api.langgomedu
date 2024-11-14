@@ -6,6 +6,12 @@ import SFirebase, {FirebaseNode} from "./SFirebase";
 import Inbox from "../models/Inbox";
 import Message from "../models/Message";
 import SMessage from "./SMessage";
+import SInformation from "./SInformation";
+import SFile from "./SFile";
+import SRole from "./SRole";
+import Role from "../models/Role";
+import RoleList from "../configs/RoleConfig";
+import SPermission from "./SPermission";
 
 export default class SUser {
     public static getAllUsers(onNext: (users: User[]) => void) {
@@ -52,11 +58,14 @@ export default class SUser {
             const contacts = inboxes.map(inbox => inbox.user);
 
             SLog.log(LogType.Info, "getContactUsers", "", contacts.length);
+
+            contacts.sort((a,b) => a.full_name > b.full_name? 1 : -1);
+
             onNext(contacts);
         });
     }
 
-    public static getUserById(id: number, onNext: (user: User | undefined) => void) {
+    public static getUserById(id: string, onNext: (user: User | undefined) => void) {
         const sql = `SELECT users.*,
                             JSON_OBJECT(
                                     'id', roles.id,
@@ -67,11 +76,26 @@ export default class SUser {
                                     'path', files.path,
                                     'image_width', files.image_with,
                                     'image_height', files.image_height
-                            ) AS avatar
+                            ) AS avatar,
+                            JSON_OBJECT(
+                                    'hometown', informations.hometown,
+                                    'address_1', informations.address_1,
+                                    'address_2', informations.address_2,
+                                    'address_3', informations.address_3,
+                                    'address_4', informations.address_4,
+                                    'birthday', informations.birthday,
+                                    'gender', JSON_OBJECT(
+                                            'vn_gender', genders.vn_gender,
+                                            'ja_gender', genders.ja_gender,
+                                            'en_gender', genders.en_gender
+                                              )
+                            ) AS information
                      FROM users
                               INNER JOIN roles ON roles.id = users.role_id
                               INNER JOIN files ON files.id = users.avatar_id
-                     WHERE id = ?`;
+                              INNER JOIN informations ON informations.user_id = users.id
+                              INNER JOIN genders ON genders.id = informations.gender_id
+                     WHERE users.id = ?`;
 
         SMySQL.getConnection(connection => {
             connection?.execute<any>(sql, [id], (error, result) => {
@@ -147,7 +171,7 @@ export default class SUser {
                     return;
                 } else {
                     const user: User | undefined = result && result[0] || undefined;
-                    SLog.log(LogType.Info, "getUserByToken", "", user);
+                    SLog.log(LogType.Info, "getUserByToken", "", user?.full_name);
                     onNext(user);
                 }
             });
@@ -216,8 +240,8 @@ export default class SUser {
                 user.phone_number,
                 /*SEncrypt.encrypt(user.password, "")*/ user.password,
                 v4(),
-                user.avatar?.id ?? -1,
-                user.role?.id ?? -1,
+                user.avatar?.id ?? 1,
+                RoleList.USER_ROLE,
                 new Date().getTime()
             ], (error, result) => {
                 if (error) {
@@ -226,11 +250,20 @@ export default class SUser {
                     return;
                 }
 
-                //update into firebase
-                SFirebase.push(FirebaseNode.USER, user.id, () => {
-                    SLog.log(LogType.Info, "storeUser", "store user successfully");
-                    onNext(true);
-                });
+                if (user.information) {
+                    SInformation.storeInformation(user.id, user.information, () => {
+                        //update into firebase
+                        SFirebase.push(FirebaseNode.USER, user.id, () => {
+                            SLog.log(LogType.Info, "storeUser", "store user successfully");
+                            onNext(true);
+                        });
+                    });
+                } else {
+                    SFirebase.push(FirebaseNode.USER, user.id, () => {
+                        SLog.log(LogType.Info, "storeUser", "store user successfully");
+                        onNext(true);
+                    });
+                }
             });
         });
     }
@@ -269,6 +302,11 @@ export default class SUser {
             params.push(user.role?.id);
         }
 
+        if (user.avatar?.id) {
+            sql += "`avatar_id` = ?,";
+            params.push(user.avatar?.id);
+        }
+
         sql += "`updated_at` = ? WHERE id = ?";
 
         SMySQL.getConnection(connection => {
@@ -292,7 +330,16 @@ export default class SUser {
         });
     }
 
-    public static softDeleteUser(id: number, onNext: (result: boolean) => void) {
+    public static softDeleteUser(id: string, onNext: (result: boolean) => void) {
+        SPermission.removePermissionsOfUser(id, (result) => {
+            if (!result) {
+                SLog.log(LogType.Error, "softDeleteUser", "failed to remove permissions");
+                onNext(false);
+                return;
+            }
 
+            SLog.log(LogType.Info, "softDeleteUser", "success to remove permissions");
+            onNext(true);
+        });
     }
 }
