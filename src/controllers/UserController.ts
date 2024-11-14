@@ -139,12 +139,7 @@ export default class UserController {
     return response.send("login");
   }
 
-  public static registerAdmin(
-    request: express.Request,
-    response: express.Response
-  ) {
-    return response.send("login");
-  }
+
 
   public static auth(request: express.Request, response: express.Response) {
     return response.send("login");
@@ -276,4 +271,35 @@ export default class UserController {
       }
     });
   }
+  //tạo admin
+
+public static registerAdmin(
+  request: express.Request,
+  response: express.Response
+) {
+  const { phone, email, password } = request.body;
+
+  // Kiểm tra các thông số cần thiết
+  if (!phone || !email || !password) {
+    return response.status(400).json({
+      success: false,
+      message: "Phone number, email, and password are required.",
+    });
+  }
+
+  // Gọi phương thức CreateAdminUser để tạo tài khoản admin
+  SUser.CreateAdminUser(phone, email, password, (result) => {
+    if (result) {
+      response.status(200).json({
+        success: true,
+        message: "Admin account created successfully.",
+      });
+    } else {
+      response.status(500).json({
+        success: false,
+        message: "Failed to create admin account.",
+      });
+    }
+  });
+}
 }
