@@ -1,258 +1,399 @@
-import express, { Response } from 'express';
-import SResponse, { ResponseStatus } from '../services/SResponse';
-import SLog, { LogType } from '../services/SLog';
-import Class from '../models/Class';
-import SClass from '../services/SClass';
-import { UserType } from '../configs/UserType';
+import express, { Response } from "express";
+import SResponse, { ResponseStatus } from "../services/SResponse";
+import SLog, { LogType } from "../services/SLog";
+import Class from "../models/Class";
+import SClass from "../services/SClass";
+import { UserType } from "../configs/UserType";
 export default class ClassController {
-    public static getSuggestedClasses(request: express.Request, response: express.Response) {
-        // Tiêu chí gợi ý của lớp học cho người dùng (phụ huynh học sinh, gia sư)
-        /*
-         * Giợi ý theo ngành học quan tâm (interested_major)
-         * Lớp học cùng cấp độ người dùng quan tâm (user_preferred_class_levels)
-         * Lớp học gần vị trí người dùng
-         * Lớp học có thời gian bắt đầu phù hợp
-        */
-
-        const user_id = request.params.user_id;
-        const user_type:number = Number(request.query.user_type) ?? UserType.LEANER;
-        
-        SClass.getSuggestedClasses(user_id, user_type,(classes) => {
-            SResponse.getResponse(ResponseStatus.OK, classes, "get sugget classes", response);
-        })
-
-    }
-
-    public static getTeachingClasses(request: express.Request, response: express.Response) {
-         // Lấy user_id từ request.params
-         const user_id = request.params.user_id;
-        // SLog.log(LogType.Info, "getTeachingClasses", "user id", user_id)
-        SClass.getTeachingClasses(user_id,(classes) => {
-            SResponse.getResponse(ResponseStatus.OK, classes, "get teaching classes", response);
-        })
-    }
-
-    public static getAttendingClasses(request: express.Request, response: express.Response) {
-        // Lấy user_id
-        const user_id = request.params.user_id;
-        // const user_id =  request.body.user_id;
-
-        const now = new Date();
-        const currentTime = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
-
-        // SLog.log(LogType.Info, currentTime , "user id", user_id)
-        SClass.getAttendingClasses(user_id,(classes) => {
-            SResponse.getResponse(ResponseStatus.OK, classes, "get attending classes", response);
-        })
-    }
-    public static getCreatedClasses(request: express.Request, response: express.Response) {
-        const user_id = request.params.user_id;
-        // const user_id =  request.body.user_id;
-        // SLog.log(LogType.Info, "get created classes", "user id", user_id)
-        SClass.getCreatedClasses(user_id,(classes) => {
-            SResponse.getResponse(ResponseStatus.OK, classes, "get created classes", response);
-        })
-    }
-
-
-
-    public static getAllClasses(request: express.Request, response: express.Response) {
-        SClass.getAllClasses((classes)=> {
-            SResponse.getResponse(ResponseStatus.OK, classes, "get All classes", response);
-            return;
-        })
-    }
-    public static getAuthorClasses(request: express.Request, response : express.Response){
-        const author_id : string = request?.body?.author_id ?? '';
-        //get fail when get author_id incorrect type or null
-        if(author_id === ''){
-            SResponse.getResponse(ResponseStatus.Internal_Server_Error, null, 'unknown this user_id! ', response);
-            return;
-        }
-        SClass.getAuthorClasses(author_id, (classes)=> {
-            SResponse.getResponse(ResponseStatus.OK, classes, "Get all classes create by this user", response);
-            return;
-        })
-    }
-
-    public static getClass(request: express.Request, response: express.Response) {
-
-        const classId:number = Number(request.params.class_id) ?? -1;
-        const userId:string = String(request.query.user_id) ?? "";
-
-        if(classId <= 0){
-            SResponse.getResponse(ResponseStatus.Internal_Server_Error, null, 'unknown this class id', response);
-            return;
-        }
-        SClass.getClassDetailWithUser(classId, userId ,(_class, related_classes)=>{
-            
-            SResponse.getResponse(ResponseStatus.OK, {class: _class,related_classes: related_classes}, 'get class by id', response);
-            return;
-        })
-
-    }
-
-    public static createClass(request: express.Request, response: express.Response) {
-
-        // lấy các giá trị từ request body
-        const { title, description, major_id, class_level_id, price, started_at, ended_at, lessons } = request.body;
-
-        console.log("body: ", request.body);
-
-        // gọi hàm createClass từ SClass
-        SClass.createClass(title,
-            description,
-            major_id,
-            class_level_id,
-            price,
-            started_at,
-            ended_at,
-            lessons, (result, insertId) => {
-            if (result) {
-                // Nếu thêm thành công, trả về phản hồi với ID của lớp học mới
-                response.status(201).json({
-                    message: 'Tạo lớp học thành công',
-                    classId: insertId,
-                });
-            } else {
-                // Nếu có lỗi, trả về mã lỗi 500 và thông báo lỗi
-                response.status(500).json({
-                    message: 'Không thể tạo lớp học',
-                });
-            }
-        })
-    }
-
-    /**
-  * Updates a class based on the data provided in the request body.
-  * 
-  * @param request - The Express request object containing the class data in the request body.
-  * @param response - The Express response object used to send the response back to the client.
-  */
-    public static updateClass(request: express.Request, response: express.Response) {
-        // Extract the class object from the request body, or set to undefined if not provided
-        const updatedClass: Class | undefined = request?.body?.class ?? undefined;
-
-        // If the class object is not valid, return an internal server error response
-        if (!updatedClass) {
-            SResponse.getResponse(ResponseStatus.Internal_Server_Error, null, "Class is not valid", response);
-            return;
-        }
-
-        // Update the class using SClass.updateClass and handle the callback
-        SClass.updateClass(updatedClass, (result) => {
-            // If the update fails, return an internal server error response
-            if (!result) {
-                SResponse.getResponse(ResponseStatus.Internal_Server_Error, null, "Server cannot update", response);
-                return;
-            }
-
-            // If the update succeeds, return a success response
-            SResponse.getResponse(ResponseStatus.OK, null, "Update class successfully", response);
-            return;
-        });
-    }
-
-    /**
-     * Deletes a class based on the ID provided in the request query parameters.
-     * 
-     * @param request - The Express request object containing the class ID in the query parameters.
-     * @param response - The Express response object used to send the response back to the client.
-     */
-    public static deleteClass(request: express.Request, response: express.Response) {
-        // Parse the class ID from the query parameters, defaulting to -1 if not provided
-        const id: number = +(request?.query?.id ?? -1);
-
-        // Log the request query parameters for debugging purposes
-        SLog.log(LogType.Info, "deleteClass", "show query params", request?.query);
-
-        // If the ID is not valid (less than or equal to zero), return an internal server error response
-        if (id <= 0) {
-            SResponse.getResponse(ResponseStatus.Internal_Server_Error, null, "Server cannot deleted class with id " + id, response);
-            return;
-        }
-
-        // Attempt to perform a soft delete on the class with the specified ID
-        SClass.softDeleteClass(id, (result) => {
-            // If the deletion fails, return an internal server error response
-            if (!result) {
-                SResponse.getResponse(ResponseStatus.Internal_Server_Error, null, "Server cannot deleted class with id " + id, response);
-                return;
-            }
-
-            // If the deletion succeeds, return a success response
-            SResponse.getResponse(ResponseStatus.OK, null, "Update class with id " + id + " successfully", response);
-            return;
-        });
-    }
-
-
-    public static requestToAttendClass(request: express.Request, response: express.Response) {
-        const userId = request.body.user_id;
-        const classId = Number(request.params.class_id) ?? -1;
-        const studentIds = request.body.student_ids;
-
-        SClass.joinClass(
-            classId,
-            userId,
-            studentIds,
-            (message, result) => {
-                // Trả về phản hồi thành công khi lớp học đã được tham gia
-                SResponse.getResponse(ResponseStatus.OK, {message, result}, 'Request to attend class successfully', response);
-            },
-        );
-    }
-
-    public static acceptClassToTeach(request: express.Request, response: express.Response) {
-        const userId = request.body.tutor_id;
-        const classId = Number(request.params.class_id) ?? -1;
-
-        SClass.acceptClassToTeach(
-            classId,
-            userId,
-            (message, result) => {
-                // Trả về phản hồi thành công khi lớp học đã được nhận
-                SResponse.getResponse(ResponseStatus.OK, {message, result}, 'Request to accept class successfully', response);
-            },
-        );
-    }
-
-    public static approveToAttendClass(request: express.Request, response: express.Response) {
-
-    }
-
-    public static getAllLevels(request: express.Request, response: express.Response) {
-
-    }
-
-    public static createLevel(request: express.Request, response: express.Response) {
-
-    }
-
-    public static updateLevel(request: express.Request, response: express.Response) {
-
-    }
-
-    public static deleteLevel(request: express.Request, response: express.Response) {
-
-    }
-    // Hàm khoá lớp học
-// Hàm khoá lớp học
-public static LockClass(
+  public static getSuggestedClasses(
     request: express.Request,
     response: express.Response
   ) {
-    const classId = request?.body?.classId;  // Sửa lại trường `classId`
+    // Tiêu chí gợi ý của lớp học cho người dùng (phụ huynh học sinh, gia sư)
+    /*
+     * Giợi ý theo ngành học quan tâm (interested_major)
+     * Lớp học cùng cấp độ người dùng quan tâm (user_preferred_class_levels)
+     * Lớp học gần vị trí người dùng
+     * Lớp học có thời gian bắt đầu phù hợp
+     */
+
+    const user_id = request.params.user_id;
+    const user_type: number =
+      Number(request.query.user_type) ?? UserType.LEANER;
+
+    SClass.getSuggestedClasses(user_id, user_type, (classes) => {
+      SResponse.getResponse(
+        ResponseStatus.OK,
+        classes,
+        "get sugget classes",
+        response
+      );
+    });
+  }
+
+  public static getTeachingClasses(
+    request: express.Request,
+    response: express.Response
+  ) {
+    // Lấy user_id từ request.params
+    const user_id = request.params.user_id;
+    // SLog.log(LogType.Info, "getTeachingClasses", "user id", user_id)
+    SClass.getTeachingClasses(user_id, (classes) => {
+      SResponse.getResponse(
+        ResponseStatus.OK,
+        classes,
+        "get teaching classes",
+        response
+      );
+    });
+  }
+
+  public static getAttendingClasses(
+    request: express.Request,
+    response: express.Response
+  ) {
+    // Lấy user_id
+    const user_id = request.params.user_id;
+    // const user_id =  request.body.user_id;
+
+    const now = new Date();
+    const currentTime = `${now.getFullYear()}-${(now.getMonth() + 1)
+      .toString()
+      .padStart(2, "0")}-${now.getDate().toString().padStart(2, "0")} ${now
+      .getHours()
+      .toString()
+      .padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}:${now
+      .getSeconds()
+      .toString()
+      .padStart(2, "0")}`;
+
+    // SLog.log(LogType.Info, currentTime , "user id", user_id)
+    SClass.getAttendingClasses(user_id, (classes) => {
+      SResponse.getResponse(
+        ResponseStatus.OK,
+        classes,
+        "get attending classes",
+        response
+      );
+    });
+  }
+  public static getCreatedClasses(
+    request: express.Request,
+    response: express.Response
+  ) {
+    const user_id = request.params.user_id;
+    // const user_id =  request.body.user_id;
+    // SLog.log(LogType.Info, "get created classes", "user id", user_id)
+    SClass.getCreatedClasses(user_id, (classes) => {
+      SResponse.getResponse(
+        ResponseStatus.OK,
+        classes,
+        "get created classes",
+        response
+      );
+    });
+  }
+
+  public static getAllClasses(
+    request: express.Request,
+    response: express.Response
+  ) {
+    SClass.getAllClasses((classes) => {
+      SResponse.getResponse(
+        ResponseStatus.OK,
+        classes,
+        "get All classes",
+        response
+      );
+      return;
+    });
+  }
+  public static getAuthorClasses(
+    request: express.Request,
+    response: express.Response
+  ) {
+    const author_id: string = request?.body?.author_id ?? "";
+    //get fail when get author_id incorrect type or null
+    if (author_id === "") {
+      SResponse.getResponse(
+        ResponseStatus.Internal_Server_Error,
+        null,
+        "unknown this user_id! ",
+        response
+      );
+      return;
+    }
+    SClass.getAuthorClasses(author_id, (classes) => {
+      SResponse.getResponse(
+        ResponseStatus.OK,
+        classes,
+        "Get all classes create by this user",
+        response
+      );
+      return;
+    });
+  }
+
+  public static getClass(request: express.Request, response: express.Response) {
+    const classId: number = Number(request.params.class_id) ?? -1;
+    const userId: string = String(request.query.user_id) ?? "";
+
+    if (classId <= 0) {
+      SResponse.getResponse(
+        ResponseStatus.Internal_Server_Error,
+        null,
+        "unknown this class id",
+        response
+      );
+      return;
+    }
+    SClass.getClassDetailWithUser(
+      classId,
+      userId,
+      (_class, related_classes) => {
+        SResponse.getResponse(
+          ResponseStatus.OK,
+          { class: _class, related_classes: related_classes },
+          "get class by id",
+          response
+        );
+        return;
+      }
+    );
+  }
+
+  public static createClass(
+    request: express.Request,
+    response: express.Response
+  ) {
+    // lấy các giá trị từ request body
+    const {
+      title,
+      description,
+      major_id,
+      class_level_id,
+      price,
+      started_at,
+      ended_at,
+      lessons,
+    } = request.body;
+
+    console.log("body: ", request.body);
+
+    // gọi hàm createClass từ SClass
+    SClass.createClass(
+      title,
+      description,
+      major_id,
+      class_level_id,
+      price,
+      started_at,
+      ended_at,
+      lessons,
+      (result, insertId) => {
+        if (result) {
+          // Nếu thêm thành công, trả về phản hồi với ID của lớp học mới
+          SResponse.getResponse(
+            ResponseStatus.OK,
+            {
+              message: "Tạo lớp học thành công",
+              classId: insertId,
+            },
+            "Create class successfully!",
+            response
+          );
+        } else {
+          // Nếu có lỗi, trả về mã lỗi 500 và thông báo lỗi
+          SResponse.getResponse(
+            ResponseStatus.OK,
+            {
+                message: "Không thể tạo lớp học",
+            },
+            "Create class successfully!",
+            response
+          );
+        }
+      }
+    );
+  }
+
+  /**
+   * Updates a class based on the data provided in the request body.
+   *
+   * @param request - The Express request object containing the class data in the request body.
+   * @param response - The Express response object used to send the response back to the client.
+   */
+  public static updateClass(
+    request: express.Request,
+    response: express.Response
+  ) {
+    // Extract the class object from the request body, or set to undefined if not provided
+    const updatedClass: Class | undefined = request?.body?.class ?? undefined;
+
+    // If the class object is not valid, return an internal server error response
+    if (!updatedClass) {
+      SResponse.getResponse(
+        ResponseStatus.Internal_Server_Error,
+        null,
+        "Class is not valid",
+        response
+      );
+      return;
+    }
+
+    // Update the class using SClass.updateClass and handle the callback
+    SClass.updateClass(updatedClass, (result) => {
+      // If the update fails, return an internal server error response
+      if (!result) {
+        SResponse.getResponse(
+          ResponseStatus.Internal_Server_Error,
+          null,
+          "Server cannot update",
+          response
+        );
+        return;
+      }
+
+      // If the update succeeds, return a success response
+      SResponse.getResponse(
+        ResponseStatus.OK,
+        null,
+        "Update class successfully",
+        response
+      );
+      return;
+    });
+  }
+
+  /**
+   * Deletes a class based on the ID provided in the request query parameters.
+   *
+   * @param request - The Express request object containing the class ID in the query parameters.
+   * @param response - The Express response object used to send the response back to the client.
+   */
+  public static deleteClass(
+    request: express.Request,
+    response: express.Response
+  ) {
+    // Parse the class ID from the query parameters, defaulting to -1 if not provided
+    const id: number = +(request?.query?.id ?? -1);
+
+    // Log the request query parameters for debugging purposes
+    SLog.log(LogType.Info, "deleteClass", "show query params", request?.query);
+
+    // If the ID is not valid (less than or equal to zero), return an internal server error response
+    if (id <= 0) {
+      SResponse.getResponse(
+        ResponseStatus.Internal_Server_Error,
+        null,
+        "Server cannot deleted class with id " + id,
+        response
+      );
+      return;
+    }
+
+    // Attempt to perform a soft delete on the class with the specified ID
+    SClass.softDeleteClass(id, (result) => {
+      // If the deletion fails, return an internal server error response
+      if (!result) {
+        SResponse.getResponse(
+          ResponseStatus.Internal_Server_Error,
+          null,
+          "Server cannot deleted class with id " + id,
+          response
+        );
+        return;
+      }
+
+      // If the deletion succeeds, return a success response
+      SResponse.getResponse(
+        ResponseStatus.OK,
+        null,
+        "Update class with id " + id + " successfully",
+        response
+      );
+      return;
+    });
+  }
+
+  public static requestToAttendClass(
+    request: express.Request,
+    response: express.Response
+  ) {
+    const userId = request.body.user_id;
+    const classId = Number(request.params.class_id) ?? -1;
+    const studentIds = request.body.student_ids;
+
+    SClass.joinClass(classId, userId, studentIds, (message, result) => {
+      // Trả về phản hồi thành công khi lớp học đã được tham gia
+      SResponse.getResponse(
+        ResponseStatus.OK,
+        { message, result },
+        "Request to attend class successfully",
+        response
+      );
+    });
+  }
+
+  public static acceptClassToTeach(
+    request: express.Request,
+    response: express.Response
+  ) {
+    const userId = request.body.tutor_id;
+    const classId = Number(request.params.class_id) ?? -1;
+
+    SClass.acceptClassToTeach(classId, userId, (message, result) => {
+      // Trả về phản hồi thành công khi lớp học đã được nhận
+      SResponse.getResponse(
+        ResponseStatus.OK,
+        { message, result },
+        "Request to accept class successfully",
+        response
+      );
+    });
+  }
+
+  public static approveToAttendClass(
+    request: express.Request,
+    response: express.Response
+  ) {}
+
+  public static getAllLevels(
+    request: express.Request,
+    response: express.Response
+  ) {}
+
+  public static createLevel(
+    request: express.Request,
+    response: express.Response
+  ) {}
+
+  public static updateLevel(
+    request: express.Request,
+    response: express.Response
+  ) {}
+
+  public static deleteLevel(
+    request: express.Request,
+    response: express.Response
+  ) {}
+  // Hàm khoá lớp học
+  // Hàm khoá lớp học
+  public static LockClass(
+    request: express.Request,
+    response: express.Response
+  ) {
+    const classId = request?.body?.classId; // Sửa lại trường `classId`
     console.log("request: " + JSON.stringify(request.body));
     console.log("classId: " + classId);
-  
+
     // Kiểm tra nếu `classId` không tồn tại
     if (!classId) {
       return response
         .status(400)
         .json({ success: false, message: "Class ID is required." });
     }
-  
+
     // Gọi phương thức LockClass của SClass
     SClass.LockClass(classId, (result) => {
       if (result) {
@@ -268,5 +409,4 @@ public static LockClass(
       }
     });
   }
-
 }
