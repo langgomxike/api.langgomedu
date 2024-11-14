@@ -162,7 +162,7 @@ export default class SMessage {
         })
     }
 
-    public static deleteMessage(message: Message, onNext: (result: boolean) => void) {
+    public static updateMessage(message: Message, onNext: (result: boolean) => void) {
         const sql = "UPDATE messages SET from_user_status =?, to_user_status =? WHERE id =?";
 
         SMySQL.getConnection(connection => {

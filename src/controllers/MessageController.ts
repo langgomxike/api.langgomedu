@@ -97,7 +97,7 @@ export default class MessageController {
         });
     }
 
-    public static deleteMessage(request: express.Request, response: express.Response) {
+    public static updateMessage(request: express.Request, response: express.Response) {
         const token: string = request?.headers?.authorization?.replace("Bearer ", "") ?? "";
         const message: Message = request?.body?.message;
 
@@ -114,7 +114,7 @@ export default class MessageController {
                 return;
             }
 
-            SMessage.deleteMessage(message, (result) => {
+            SMessage.updateMessage(message, (result) => {
                 if (result) {
                     SLog.log(LogType.Info, "deleteMessage", "delete message successfully");
                     SResponse.getResponse(ResponseStatus.OK, null, "Message deleted successfully", response);

@@ -174,8 +174,11 @@ app.get(MESSAGE_BASE_URL + "/inboxes", MessageController.getInboxUsers);
 app.post(MESSAGE_BASE_URL + "/two-users", MessageController.getMessages);
 app.put(MESSAGE_BASE_URL + "/two-users/mark-as-read", MessageController.markAsRead);
 app.patch(MESSAGE_BASE_URL + "/two-users/mark-as-read", MessageController.markAsRead);
+app.put(MESSAGE_BASE_URL + "/two-users/reply", MessageController.updateMessage);
+app.patch(MESSAGE_BASE_URL + "/two-users/reply", MessageController.updateMessage);
+app.put(MESSAGE_BASE_URL + "/two-users/delete", MessageController.updateMessage);
+app.patch(MESSAGE_BASE_URL + "/two-users/delete", MessageController.updateMessage);
 app.post(MESSAGE_BASE_URL, MessageController.createMessage);
-app.delete(MESSAGE_BASE_URL, MessageController.deleteMessage);
 
 const OTHER_SKILL_BASE_URL = Config.PREFIX + "/skills";
 app.get(OTHER_SKILL_BASE_URL, OtherSkillController.getAllSkills);
