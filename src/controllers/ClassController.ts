@@ -2,7 +2,6 @@ import express, { Response } from 'express';
 import SResponse, { ResponseStatus } from '../services/SResponse';
 import SLog, { LogType } from '../services/SLog';
 import Class from '../models/Class';
-import SMySQL from '../services/SMySQL';
 import SClass from '../services/SClass';
 import { UserType } from '../configs/UserType';
 export default class ClassController {
@@ -94,7 +93,34 @@ export default class ClassController {
     }
 
     public static createClass(request: express.Request, response: express.Response) {
-        
+
+        // lấy các giá trị từ request body
+        const { title, description, major_id, class_level_id, price, started_at, ended_at, lessons } = request.body;
+
+        console.log("body: ", request.body);
+
+        // gọi hàm createClass từ SClass
+        SClass.createClass(title,
+            description,
+            major_id,
+            class_level_id,
+            price,
+            started_at,
+            ended_at,
+            lessons, (result, insertId) => {
+            if (result) {
+                // Nếu thêm thành công, trả về phản hồi với ID của lớp học mới
+                response.status(201).json({
+                    message: 'Tạo lớp học thành công',
+                    classId: insertId,
+                });
+            } else {
+                // Nếu có lỗi, trả về mã lỗi 500 và thông báo lỗi
+                response.status(500).json({
+                    message: 'Không thể tạo lớp học',
+                });
+            }
+        })
     }
 
     /**
@@ -210,5 +236,37 @@ export default class ClassController {
     public static deleteLevel(request: express.Request, response: express.Response) {
 
     }
+    // Hàm khoá lớp học
+// Hàm khoá lớp học
+public static LockClass(
+    request: express.Request,
+    response: express.Response
+  ) {
+    const classId = request?.body?.classId;  // Sửa lại trường `classId`
+    console.log("request: " + JSON.stringify(request.body));
+    console.log("classId: " + classId);
+  
+    // Kiểm tra nếu `classId` không tồn tại
+    if (!classId) {
+      return response
+        .status(400)
+        .json({ success: false, message: "Class ID is required." });
+    }
+  
+    // Gọi phương thức LockClass của SClass
+    SClass.LockClass(classId, (result) => {
+      if (result) {
+        // Nếu thành công, gửi phản hồi JSON
+        response
+          .status(200)
+          .json({ success: true, message: "Class locked successfully." });
+      } else {
+        // Nếu thất bại, gửi phản hồi lỗi
+        response
+          .status(500)
+          .json({ success: false, message: "Failed to lock class." });
+      }
+    });
+  }
 
 }

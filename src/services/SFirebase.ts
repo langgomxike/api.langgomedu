@@ -8,11 +8,24 @@ import SLog, { LogType } from "./SLog";
 import firebaseNodeProps from "../../firebase_node_props.json";
 
 export enum FirebaseNode {
-  MAJOR = 0,
-  CLASS = 1,
-  CV = 2,
-  USER = 3,
-  ATTENDANCE = 4,
+  ATTENDANCE = 0,
+  CERTIFICATE = 1,
+  CLASS = 2,
+  CLASS_REPORT = 3,
+  CV = 4,
+  LESSON = 5,
+  MAJOR = 6,
+  MESSAGE = 7,
+  OTHER_SKILL = 8,
+  OTP = 9,
+  PERMISSION = 10,
+  RATING = 11,
+  ROLE = 12,
+  STUDENT = 13,
+  USER = 14,
+  USER_REPORT = 15,
+  CLASS_LEVEL = 16,
+  CERTIFICATE_LEVEL = 17,
 }
 
 export default class SFirebase {

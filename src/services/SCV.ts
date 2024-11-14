@@ -152,6 +152,25 @@ GROUP BY cvs.user_id, cvs.biography, cvs.title, cvs.approved_at, u.full_name, u.
         'started_at', exp.started_at,
         'ended_at', exp.ended_at
     )),
+    'interested_majors', JSON_ARRAYAGG(JSON_OBJECT(
+        'major', JSON_OBJECT(
+        	'id', ims.id,
+        	'icon', JSON_OBJECT(
+                'id', imsfile.id,
+                'name', imsfile.name,
+                'path', imsfile.path,
+                'capacity', imsfile.capacity,
+                'image_width', imsfile.image_with,
+                'image_height', imsfile.image_height,
+                'created_at', imsfile.created_at,
+                'updated_at', imsfile.updated_at
+            ),
+            'vn_name', ims.vn_name,
+            'en_name', ims.en_name,
+            'ja_name', ims.ja_name
+    	),
+        'priority', im.priority
+    )),
     'certificates', JSON_ARRAYAGG(JSON_OBJECT(
         'id', c.id,
         'name', c.name,
@@ -174,18 +193,21 @@ FROM cvs
 JOIN users u ON u.id = cvs.user_id
 JOIN files f ON u.avatar_id = f.id
 JOIN informations info ON info.user_id = cvs.user_id
-JOIN educations edu ON edu.user_id = cvs.user_id
-JOIN experiences exp ON exp.user_id = cvs.user_id
-JOIN in_cv_skills ics ON ics.user_id = cvs.user_id
-JOIN other_skills osk ON osk.id = ics.skill_id
-JOIN files i_skill ON i_skill.id = osk.icon_id
-JOIN majors ON majors.id = exp.major_id
-JOIN files i_major ON i_major.id = majors.icon_id
-JOIN in_cv_certificates icc ON icc.user_id = cvs.user_id
-JOIN certificates c ON c.id = icc.certificate_id
-JOIN files i_cer ON i_cer.id = c.icon_id
-WHERE cvs.user_id = ?
-        GROUP BY cvs.user_id;`
+LEFT JOIN educations edu ON edu.user_id = cvs.user_id
+LEFT JOIN experiences exp ON exp.user_id = cvs.user_id
+LEFT JOIN in_cv_skills ics ON ics.user_id = cvs.user_id
+LEFT JOIN other_skills osk ON osk.id = ics.skill_id
+LEFT JOIN files i_skill ON i_skill.id = osk.icon_id
+LEFT JOIN majors ON majors.id = exp.major_id
+LEFT JOIN files i_major ON i_major.id = majors.icon_id
+LEFT JOIN in_cv_certificates icc ON icc.user_id = cvs.user_id
+LEFT JOIN certificates c ON c.id = icc.certificate_id
+LEFT JOIN files i_cer ON i_cer.id = c.icon_id
+LEFT JOIN interested_majors im ON im.user_id = cvs.user_id
+LEFT JOIN majors ims ON ims.id = im.major_id
+LEFT JOIN files imsfile ON imsfile.id = ims.icon_id
+WHERE cvs.user_id = 089204010903
+          GROUP BY cvs.user_id;`
     SMySQL.getConnection((connection)=>{
       connection?.query<any[]>(sql, [user_id], (err, result)=>{
         if(err){
@@ -202,3 +224,4 @@ WHERE cvs.user_id = ?
 
   }
 }
+
