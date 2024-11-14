@@ -12,6 +12,7 @@ export enum FirebaseNode {
   CLASS = 1,
   CV = 2,
   USER = 3,
+  ATTENDANCE = 4,
 }
 
 export default class SFirebase {

@@ -170,14 +170,10 @@ export default class ClassController {
             classId,
             userId,
             studentIds,
-            () => {
+            (message, result) => {
                 // Trả về phản hồi thành công khi lớp học đã được tham gia
-                SResponse.getResponse(ResponseStatus.OK, null, 'Request to attend class successfully', response);
+                SResponse.getResponse(ResponseStatus.OK, {message, result}, 'Request to attend class successfully', response);
             },
-            (error) => {
-                // Trả về phản hồi lỗi nếu có lỗi xảy ra
-                SResponse.getResponse(ResponseStatus.Error, error, 'Failed to join the class', response);
-            }
         );
     }
 
@@ -188,14 +184,10 @@ export default class ClassController {
         SClass.acceptClassToTeach(
             classId,
             userId,
-            () => {
+            (message, result) => {
                 // Trả về phản hồi thành công khi lớp học đã được nhận
-                SResponse.getResponse(ResponseStatus.OK, null, 'Request to accept class successfully', response);
+                SResponse.getResponse(ResponseStatus.OK, {message, result}, 'Request to accept class successfully', response);
             },
-            (error) => {
-                // Trả về phản hồi lỗi nếu có lỗi xảy ra
-                SResponse.getResponse(ResponseStatus.Error, error, 'Failed to join the class', response);
-            }
         );
     }
 
