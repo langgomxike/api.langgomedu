@@ -4,6 +4,7 @@ import SLog, { LogType } from "./SLog";
 import SMySQL from "./SMySQL";
 import User from "../models/User";
 import Major from "../models/Major";
+import Lesson from "../models/Lesson";
 import { UserType } from "../configs/UserType";
 
 export default class SClass {
@@ -1071,42 +1072,88 @@ export default class SClass {
   }
 
   public static createClass(
-    newClass: Class,
+    title: string,
+    description: string,
+    major_id: number,
     class_level_id: number,
+    price: number,
+    started_at: number,
+    ended_at: number,
+    lessons: Lesson[],
     onNext: (result: boolean, insertId?: number) => void
   ) {
     const sql =
-      "INSERT INTO classes (title, description, price, class_level_id, started_at, ended_at, created_at) VALUES (?,?,?,?,?,?,?)";
+      "INSERT INTO classes (title, description, major_id, price, class_level_id, started_at, ended_at) VALUES (?,?,?,?,?,?,?)";
 
     //class_level_id:  lấy danh sách cấp học -> lưu lại id
     // bỏ mô tả và yêu cầu trong giao diện
-    const values = [
-      newClass.title,
-      newClass.description,
-      newClass.price,
-      class_level_id,
-      newClass.started_at,
-      newClass.ended_at,
-      new Date().getTime(),
-    ];
 
     SMySQL.getConnection((connection) => {
-      connection?.query(sql, values, (err, result) => {
-        if (err) {
-          // Xử lý khi có lỗi
-          SLog.log(
-            LogType.Error,
-            "addNewClass",
-            "Failed to insert new class",
-            err
-          );
-          onNext(false);
-          return;
+      connection?.query(
+        sql,
+        [
+          title,
+          description,
+          major_id,
+          price,
+          class_level_id,
+          started_at,
+          ended_at,
+        ],
+        (err, result) => {
+          if (err) {
+            // Xử lý khi có lỗi
+            SLog.log(
+              LogType.Error,
+              "addNewClass",
+              "Failed to insert new class",
+              err
+            );
+            onNext(false);
+            return;
+          }
+          // Trả về kết quả thành công và ID của lớp học vừa thêm
+          const classId = (result as any).insertId || undefined;
+          onNext(true, classId); // tìm cách trả về ID lớp vừa tạo
+
+          // Chuẩn bị dữ liệu cho việc chèn nhiều dòng trong bảng lessons
+          if (lessons.length > 0) {
+            const values: any[] = [];
+            lessons.forEach((lesson) => {
+              values.push(
+                classId,
+                lesson.day,
+                lesson.started_at,
+                lesson.duration,
+                lesson.is_online
+              );
+            });
+            console.log("values: " + values);
+            
+            // Xây dựng câu truy vấn `INSERT` với nhiều giá trị
+            const placeholders = lessons.map(() => "(?,?,?,?,?)").join(",");
+            const sqlLesson = `INSERT INTO lessons (class_id, day, started_at, duration, is_online) VALUES ${placeholders}`;
+
+            console.log("sql lesson: ", sqlLesson);
+            
+            connection.query(sqlLesson, values, (lessonErr) => {
+              if (lessonErr) {
+                SLog.log(
+                  LogType.Error,
+                  "addLessons",
+                  "Failed to insert lessons",
+                  lessonErr
+                );
+                onNext(false);
+              } else {
+                onNext(true, classId); // thanh cong tra ve id cho lop
+              }
+            });
+          } else {
+            onNext(true, classId);
+          }
         }
-        // Trả về kết quả thành công và ID của lớp học vừa thêm
-        const insertId = (result as any).insertId || undefined;
-        onNext(true, insertId); // tìm cách trả về ID lớp vừa tạo
-      });
+      );
     });
   }
 
@@ -1244,4 +1291,49 @@ export default class SClass {
       });
     });
   }
+   //khoá lớp học
+//  UPDATE classes
+// SET status = 1
+// WHERE class_id = your_class_id
+// LIMIT 1;
+public static LockClass(class_id: string, onNext: (result: boolean) => void) {
+  // Câu truy vấn SQL để khóa lớp học
+  const sql = `
+      UPDATE classes
+      SET status = 1
+      WHERE id = ?
+      LIMIT 1;
+  `;
+
+  // Lấy kết nối và thực thi truy vấn
+  SMySQL.getConnection((connection) => {
+      connection?.execute(
+          sql,
+          [class_id], // Truyền vào `class_id` làm tham số
+          (error, result) => {
+              // Nếu có lỗi, ghi log lỗi và gọi callback với `false`
+              if (error) {
+                  onNext(false);
+                  SLog.log(
+                      LogType.Error,
+                      "LockClass",
+                      "Cannot lock class",
+                      error
+                  );
+                  return;
+              }
+
+              // Nếu thành công, ghi log và gọi callback với `true`
+              SLog.log(
+                  LogType.Info,
+                  "LockClass",
+                  "Locked class successfully"
+              );
+              onNext(true);
+          }
+      );
+  });
+}
+
+
 }
