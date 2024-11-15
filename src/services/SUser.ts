@@ -13,6 +13,7 @@ import Role from "../models/Role";
 import RoleList from "../configs/RoleConfig";
 import SPermission from "./SPermission";
 import * as crypto from "crypto";
+import PermissionList from "../configs/PermissionConfig";
 
 export default class SUser {
     public static getAllUsers(onNext: (users: User[]) => void) {
@@ -353,6 +354,18 @@ export default class SUser {
     user_id: string,
     onNext: (result: boolean) => void
   ) {
+    //khoá quyền
+    const permission1=PermissionList.VIEW_USER_INFORMATION;
+    const permission2=PermissionList.VIEW_OTHER_USER_INFORMATION;
+    const permission3=PermissionList.VIEW_PERSONAL_CLASS_LIST;
+    const permission4=PermissionList.VIEW_PERSONAL_CLASS;
+    const permission5=PermissionList.VIEW_OTHER_USER_CLASS_LIST;
+    const permission6=PermissionList.VIEW_OTHER_USER_CLASS;
+    const permission7=PermissionList.VIEW_CV_LIST;
+    const permission8=PermissionList.VIEW_CV;
+    const permission9=PermissionList.UPDATE_CV;
+    const permission10=PermissionList.DELETE_CV;
+   
     // Câu truy vấn DELETE để xóa các quyền hiện tại của user_id
     const deleteSql = `
       DELETE FROM user_permissions
@@ -363,16 +376,16 @@ export default class SUser {
     const insertSql = `
       INSERT INTO user_permissions (user_id, permission_id)
       VALUES
-        (?, 16),
-        (?, 20),
-        (?, 37),
-        (?, 38),
-        (?, 42),
-        (?, 43),
-        (?, 47),
-        (?, 48),
-        (?, 49),
-        (?, 50);
+        (?, ${permission1}),
+        (?, ${permission2}),
+        (?, ${permission3}),
+        (?, ${permission4}),
+        (?, ${permission5}),
+        (?, ${permission6}),
+        (?, ${permission7}),
+        (?, ${permission8}),
+        (?, ${permission9}),
+        (?, ${permission10});
     `;
 
     // Lấy kết nối và thực thi câu truy vấn DELETE trước
