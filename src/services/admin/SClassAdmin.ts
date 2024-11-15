@@ -48,7 +48,11 @@ export default class SClassAdmin {
                 'vn_name', class_levels.vn_name,
                 'en_name', class_levels.en_name,
                 'ja_name', class_levels.ja_name
-            	)
+            	),
+        'is_reported', CASE 
+                WHEN class_reports.class_id IS NOT NULL THEN true 
+                ELSE false 
+            END
         ) AS class
         FROM
             classes
@@ -58,7 +62,8 @@ export default class SClassAdmin {
         LEFT JOIN class_levels ON class_levels.id = classes.class_level_id
         LEFT JOIN files AS files_author ON files_author.id = author.avatar_id
         LEFT JOIN files AS files_tutor ON files_tutor.id = tutor.avatar_id
-        LEFT JOIN files AS files_major ON files_major.id = majors.icon_id;
+        LEFT JOIN files AS files_major ON files_major.id = majors.icon_id
+        LEFT JOIN class_reports ON class_reports.class_id = classes.id
         `;
 
         SMySQL.getConnection((connection) => {
@@ -73,7 +78,7 @@ export default class SClassAdmin {
 
                 results.forEach((result) => {
                     const _class = result.class;
-                    // user.is_reported = result.user.is_reported === 1 ? true : false;
+                    _class.is_reported = result.class.is_reported === 1 ? true : false;
                     classes.push(_class);
                 });
                 
