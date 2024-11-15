@@ -69,61 +69,50 @@ export default class AttendanceController {
     request: express.Request,
     response: express.Response
   ) {
-    const { attendance_ids, paid, type, deferred } = request.body;
+    let { attendance_ids, paid, type, deferred } = request.body;
 
     console.log("data:", request.body);
 
     // Lấy đường dẫn file đã upload
     const file = (request as any).file;
-    const filePath = file ? `uploads/payments/${file.filename}` : null;
-
-    console.log("file: ", file);
-    SResponse.getResponse(
-      ResponseStatus.OK,
-      { message: 'Check logs for details', body: request.body },
-      "update payment of leaner",
-      response
-    );
-    
+    const filePath = file ? `/uploads/payments/${file.filename}` : null;
 
     // Chuyển đổi `paid` từ chuỗi sang boolean
-    const paidBoolean = paid === "true";
+    paid = paid === "true";
+    deferred = deferred === "true";
 
-    // SAttendance.updatePaymentOfLearner(
-    //   attendance_ids,
-    //   paidBoolean,
-    //   filePath,
-    //   type,
-    //   deferred,
-    //   (message, result) => {
-    //     SResponse.getResponse(
-    //       ResponseStatus.OK,
-    //       { message, result },
-    //       "update payment of leaner",
-    //       response
-    //     );
-    //   }
-    // );
+    const attendanceIds = typeof attendance_ids === 'string' ? JSON.parse(attendance_ids) : attendance_ids;
+
+    SAttendance.updatePaymentOfLearner(
+      attendanceIds,
+      paid,
+      filePath,
+      type,
+      deferred,
+      (message, result) => {
+        SResponse.getResponse(
+          ResponseStatus.OK,
+          { message, result },
+          "update payment of leaner",
+          response
+        );
+      }
+    );
   }
 
   public static confirmPaymentByTutor(
     request: express.Request,
     response: express.Response
   ) {
-    const { lesson_id, user_id, confirmed_by_tutor } = request.body;
-    const confirmedByTutor = confirmed_by_tutor === "true";
+    const { attendance_ids, confirmed_by_tutor } = request.body;
+
+    console.log(request.body);
+
 
     SAttendance.confirmPaymentByTutor(
-      lesson_id,
-      user_id,
-      confirmedByTutor,
+      attendance_ids, confirmed_by_tutor,
       (message, result) => {
-        SResponse.getResponse(
-          ResponseStatus.OK,
-          { message, result },
-          "confirm payment by tutor",
-          response
-        );
+        SResponse.getResponse(ResponseStatus.OK, { message, result }, "confirm payment by tutor", response);
       }
     );
   }
@@ -155,7 +144,7 @@ export default class AttendanceController {
       },
       (message) => {
         // Xử lý lỗi
-        SResponse.getResponse(ResponseStatus.Error, null, message, response);
+        SResponse.getResponse(ResponseStatus.Internal_Server_Error, null, message, response);
       }
     );
   }
@@ -185,7 +174,7 @@ export default class AttendanceController {
       },
       (message) => {
         // Xử lý lỗi
-        SResponse.getResponse(ResponseStatus.Error, null, message, response);
+        SResponse.getResponse(ResponseStatus.Internal_Server_Error, null, message, response);
       }
     );
   }

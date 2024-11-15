@@ -162,7 +162,10 @@ export default class SAttendance {
             "paid", ap.paid,
             "confirmed_by_tutor", ap.confirmed_by_tutor,
             "payment_path", ap.payment_path,
-            "paid_at", ap.paid_at
+            "paid_at", ap.paid_at,
+            "confirmed_at", ap.confirmed_at,
+            "type", ap.type,
+            "deferred", ap.deferred
         )    
     ) as attendance
 
@@ -202,6 +205,7 @@ export default class SAttendance {
             attendance_payment: {
               ...result.attendance.attendance_payment,
               paid: Boolean(result.attendance.attendance_payment?.paid),
+              deferred: Boolean(result.attendance.attendance_payment?.deferred),
               confirmed_by_tutor: Boolean(result.attendance.attendance_payment?.confirmed_by_tutor),
             }
           }));
@@ -325,7 +329,10 @@ export default class SAttendance {
             "paid", ap.paid,
             "confirmed_by_tutor", ap.confirmed_by_tutor,
             "payment_path", ap.payment_path,
-            "paid_at", ap.paid_at
+            "paid_at", ap.paid_at,
+            "confirmed_at", ap.confirmed_at,
+            "type", ap.type,
+            "deferred", ap.deferred
         )    
     ) as attendance
 
@@ -616,6 +623,7 @@ export default class SAttendance {
 
     console.log("attendanceIds: ", attendanceIds);
     console.log("paid: ", paid);
+    console.log("deferred: ", deferred);
     console.log("paymentPath: ", paymentPath);
     
     const placeholders = attendanceIds.map(() => '?').join(', ');
@@ -653,23 +661,21 @@ export default class SAttendance {
 
    // Hàm cập nhật thanh toán cho learner
    public static confirmPaymentByTutor(
-    lessonId:string, userId:string, confirmedByTutor: boolean,
+    attendanceIds: number[], confirmedByTutor: boolean,
     onNext: (messages: string, result: boolean) => void
   ) {
   
+    const placeholders = attendanceIds.map(() => '?').join(', ');
     const sql = `
       UPDATE attendance_payments SET confirmed_by_tutor = ?, confirmed_at = ?
-      WHERE attendance_id IN (
-        SELECT id
-        FROM attendances
-        WHERE lesson_id =? AND user_id =?
-      )
+      WHERE attendance_id IN (${placeholders});
     `;
 
     const confirmedAt = new Date().getTime();
+    const values = [confirmedByTutor, confirmedAt,  ...attendanceIds];
 
     SMySQL.getConnection((connection) => {
-        connection?.execute<any>(sql, [confirmedByTutor, confirmedAt ,lessonId, userId], (err, results) => {
+        connection?.execute<any>(sql, values, (err, results) => {
           if (err) {
             onNext('Update failed', false);
             console.log('>>> Update failed:', err);
