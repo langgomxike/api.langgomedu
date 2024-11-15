@@ -16,8 +16,8 @@ import * as crypto from "crypto";
 import PermissionList from "../configs/PermissionConfig";
 
 export default class SUser {
-    public static getAllUsers(onNext: (users: User[]) => void) {
-        const sql = `SELECT users.*,
+  public static getAllUsers(onNext: (users: User[]) => void) {
+    const sql = `SELECT users.*,
                             JSON_OBJECT(
                                     'id', roles.id,
                                     'role', roles.name
@@ -34,26 +34,26 @@ export default class SUser {
                      GROUP BY users.id
         `;
 
-        SMySQL.getConnection((connection) => {
-            connection?.execute<any[]>(sql, (err, results) => {
-                if (err) {
-                    SLog.log(LogType.Error, "get all users", "failed to execute", err);
-                    onNext([]);
-                    return;
-                }
+    SMySQL.getConnection((connection) => {
+      connection?.execute<any[]>(sql, (err, results) => {
+        if (err) {
+          SLog.log(LogType.Error, "get all users", "failed to execute", err);
+          onNext([]);
+          return;
+        }
 
-                const users: User[] = [];
+        const users: User[] = [];
 
-                results.forEach(result => {
-                    const user: User = result;
-                    users.push(user);
-                });
-
-                SLog.log(LogType.Info, "getAllUsers", "", users);
-                onNext(users);
-            });
+        results.forEach((result) => {
+          const user: User = result;
+          users.push(user);
         });
-    }
+
+        SLog.log(LogType.Info, "getAllUsers", "", users);
+        onNext(users);
+      });
+    });
+  }
 
   public static getContactUsers(
     userId: string,
@@ -62,13 +62,13 @@ export default class SUser {
     SMessage.getInboxes(userId, (inboxes) => {
       const contacts = inboxes.map((inbox) => inbox.user);
 
-            SLog.log(LogType.Info, "getContactUsers", "", contacts.length);
+      SLog.log(LogType.Info, "getContactUsers", "", contacts.length);
 
-            contacts.sort((a,b) => a.full_name > b.full_name? 1 : -1);
+      contacts.sort((a, b) => (a.full_name > b.full_name ? 1 : -1));
 
-            onNext(contacts);
-        });
-    }
+      onNext(contacts);
+    });
+  }
 
   public static getUserById(
     id: string,
@@ -288,7 +288,7 @@ export default class SUser {
 
   public static updateUserInfo(user: User, onNext: (result: boolean) => void) {
     let sql = "UPDATE `users` SET ";
-    const params = [];
+    const params: any[] = [];
 
     if (user.full_name) {
       sql += "`full_name` = ?,";
@@ -320,12 +320,12 @@ export default class SUser {
       params.push(user.role?.id);
     }
 
-        if (user.avatar?.id) {
-            sql += "`avatar_id` = ?,";
-            params.push(user.avatar?.id);
-        }
+    if (user.avatar?.id) {
+      sql += "`avatar_id` = ?,";
+      params.push(user.avatar?.id);
+    }
 
-        sql += "`updated_at` = ? WHERE id = ?";
+    sql += "`updated_at` = ? WHERE id = ?";
 
     SMySQL.getConnection((connection) => {
       connection?.execute<any>(
@@ -355,17 +355,17 @@ export default class SUser {
     onNext: (result: boolean) => void
   ) {
     //khoá quyền
-    const permission1=PermissionList.VIEW_USER_INFORMATION;
-    const permission2=PermissionList.VIEW_OTHER_USER_INFORMATION;
-    const permission3=PermissionList.VIEW_PERSONAL_CLASS_LIST;
-    const permission4=PermissionList.VIEW_PERSONAL_CLASS;
-    const permission5=PermissionList.VIEW_OTHER_USER_CLASS_LIST;
-    const permission6=PermissionList.VIEW_OTHER_USER_CLASS;
-    const permission7=PermissionList.VIEW_CV_LIST;
-    const permission8=PermissionList.VIEW_CV;
-    const permission9=PermissionList.UPDATE_CV;
-    const permission10=PermissionList.DELETE_CV;
-   
+    const permission1 = PermissionList.VIEW_USER_INFORMATION;
+    const permission2 = PermissionList.VIEW_OTHER_USER_INFORMATION;
+    const permission3 = PermissionList.VIEW_PERSONAL_CLASS_LIST;
+    const permission4 = PermissionList.VIEW_PERSONAL_CLASS;
+    const permission5 = PermissionList.VIEW_OTHER_USER_CLASS_LIST;
+    const permission6 = PermissionList.VIEW_OTHER_USER_CLASS;
+    const permission7 = PermissionList.VIEW_CV_LIST;
+    const permission8 = PermissionList.VIEW_CV;
+    const permission9 = PermissionList.UPDATE_CV;
+    const permission10 = PermissionList.DELETE_CV;
+
     // Câu truy vấn DELETE để xóa các quyền hiện tại của user_id
     const deleteSql = `
       DELETE FROM user_permissions
@@ -406,7 +406,18 @@ export default class SUser {
         // Sau khi DELETE thành công, thực thi câu truy vấn INSERT
         connection.execute(
           insertSql,
-          [user_id, user_id, user_id, user_id, user_id, user_id, user_id, user_id, user_id, user_id],
+          [
+            user_id,
+            user_id,
+            user_id,
+            user_id,
+            user_id,
+            user_id,
+            user_id,
+            user_id,
+            user_id,
+            user_id,
+          ],
           (insertError, result) => {
             // Nếu có lỗi trong INSERT, ghi log lỗi và gọi callback với `false`
             if (insertError) {
@@ -482,7 +493,8 @@ export default class SUser {
     onNext: (result: boolean) => void
   ) {
     // Tạo ID với chuỗi "99" + 10 số ngẫu nhiên
-    const id = "99" + Math.floor(1000000000 + Math.random() * 9999999999).toString();
+    const id =
+      "99" + Math.floor(1000000000 + Math.random() * 9999999999).toString();
 
     // Thiết lập các giá trị mặc định
     const fullName = "admin";
@@ -491,7 +503,10 @@ export default class SUser {
     const token = ""; // Thêm token mặc định (ví dụ là chuỗi rỗng hoặc giá trị khác nếu cần)
 
     // Mã hóa mật khẩu
-    const hashedPassword = crypto.createHash("sha256").update(password).digest("hex");
+    const hashedPassword = crypto
+      .createHash("sha256")
+      .update(password)
+      .digest("hex");
 
     // Câu truy vấn INSERT để thêm admin vào cơ sở dữ liệu
     const insertSql = `
