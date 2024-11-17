@@ -1,4 +1,5 @@
 import SMySQL from "../services/SMySQL";
+// @ts-ignore
 import genders from "../datas/genders.json";
 import SLog, { LogType } from "../services/SLog";
 

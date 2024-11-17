@@ -4,9 +4,9 @@ export default class Major {
     public vn_name: string;
     public ja_name: string;
     public en_name: string;
-    public icon: File | undefined;
+    public icon: string;
 
-    constructor(id: -1, vn_name: "", ja_name: "", en_name: "", icon?: File){
+    constructor(id: -1, vn_name: "", ja_name: "", en_name: "", icon: ""){
         this.id = id;
         this.vn_name = vn_name;
         this.ja_name = ja_name;

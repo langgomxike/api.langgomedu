@@ -90,7 +90,6 @@ app.get(CLASS_BASE_URL + "/:class_id", ClassController.getClass);
 app.post(CLASS_BASE_URL + "/create", ClassController.createClass);
 app.put(CLASS_BASE_URL, ClassController.updateClass);
 app.patch(CLASS_BASE_URL, ClassController.updateClass);
-
 app.delete(CLASS_BASE_URL,
     (req, res, onNext) => SAuthentication.checkAuthorization(
         req, res, onNext,
@@ -108,7 +107,7 @@ app.delete(CLASS_BASE_URL,
     ClassController.deleteClass
 );
 app.post(CLASS_BASE_URL + "/:class_id/join", ClassController.requestToAttendClass);
-app.post(CLASS_BASE_URL + "/:class_id/accept_to_teach",ClassController.acceptClassToTeach);
+app.post(CLASS_BASE_URL + "/:class_id/accept_to_teach", ClassController.acceptClassToTeach);
 app.post(CLASS_BASE_URL + "/approve/:id", ClassController.approveToAttendClass);
 
 app.get(CLASS_BASE_URL + "/levels", ClassController.getAllLevels); //
@@ -137,6 +136,18 @@ app.get(REPORT_BASE_URL + "/user/:id", ReportController.getUserReport);
 app.post(REPORT_BASE_URL + "/user", ReportController.createUserReport);
 app.post(REPORT_BASE_URL + "/user/:id", ReportController.approveUserReport);
 
+//trừ điểm uy tín của người dùng
+app.post(REPORT_BASE_URL + "/minusUserPoints", UserController.MinusUserPoints);
+//khoá tài khoản của người dùng
+app.post(REPORT_BASE_URL + "/lockUserAccount", UserController.LockUserAccount);
+//khoá lớp học của người dùng
+app.post(REPORT_BASE_URL + "/lockClass", ClassController.LockClass);
+//khoá user reports
+app.post(REPORT_BASE_URL + "/lockUserReport", ReportController.LockUserReport);
+//khoa class reports
+app.post(REPORT_BASE_URL + "/lockClassReport", ReportController.LockClassReport);
+
+
 const CV_BASE_URL = Config.PREFIX + "/cvs";
 app.get(CV_BASE_URL, CVController.getAllCVs);
 app.get(CV_BASE_URL + "/suggest", CVController.getSuggestedCVs);
@@ -155,11 +166,16 @@ app.patch(MAJOR_BASE_URL + "/:id", MajorController.updateMajor);
 app.delete(MAJOR_BASE_URL + "/:id", MajorController.deleteMajor);
 
 const MESSAGE_BASE_URL = Config.PREFIX + "/messages";
-app.get(MESSAGE_BASE_URL + "/contacts/:id", MessageController.getContacts);
-app.get(MESSAGE_BASE_URL + "/inboxes/:id", MessageController.getInboxUsers);
-app.get(MESSAGE_BASE_URL + "/:from/:to", MessageController.getMessages);
+app.get(MESSAGE_BASE_URL + "/contacts", MessageController.getContacts);
+app.get(MESSAGE_BASE_URL + "/inboxes", MessageController.getInboxUsers);
+app.post(MESSAGE_BASE_URL + "/two-users", MessageController.getMessages);
+app.put(MESSAGE_BASE_URL + "/two-users/mark-as-read", MessageController.markAsRead);
+app.patch(MESSAGE_BASE_URL + "/two-users/mark-as-read", MessageController.markAsRead);
+app.put(MESSAGE_BASE_URL + "/two-users/reply", MessageController.updateMessage);
+app.patch(MESSAGE_BASE_URL + "/two-users/reply", MessageController.updateMessage);
+app.put(MESSAGE_BASE_URL + "/two-users/delete", MessageController.updateMessage);
+app.patch(MESSAGE_BASE_URL + "/two-users/delete", MessageController.updateMessage);
 app.post(MESSAGE_BASE_URL, MessageController.createMessage);
-app.delete(MESSAGE_BASE_URL, MessageController.deleteMessage);
 
 const OTHER_SKILL_BASE_URL = Config.PREFIX + "/skills";
 app.get(OTHER_SKILL_BASE_URL, OtherSkillController.getAllSkills);
@@ -169,9 +185,11 @@ app.patch(OTHER_SKILL_BASE_URL, OtherSkillController.updateSkill);
 app.delete(OTHER_SKILL_BASE_URL, OtherSkillController.deleteSkill);
 
 const PERMISSION_BASE_URL = Config.PREFIX + "/permissions";
+app.get(PERMISSION_BASE_URL, PermissionController.getAllPermissions);
+app.get(PERMISSION_BASE_URL + "/of-user", PermissionController.getPermissionsOfUser);
 
 const RATING_BASE_URL = Config.PREFIX + "/ratings";
-app.get(RATING_BASE_URL + "/:class", RatingController.getRatings);
+app.get(RATING_BASE_URL + "/:id", RatingController.getRatings);
 app.post(RATING_BASE_URL, RatingController.createRating);
 
 const ROLE_BASE_URL = Config.PREFIX + "/roles";
@@ -180,24 +198,24 @@ app.get(ROLE_BASE_URL, RoleController.getAllRoles);
 const STUDENT_BASE_URL = Config.PREFIX + "/students";
 // Student routes
 app.get(STUDENT_BASE_URL, StudentController.getAllStudents);
-app.get(STUDENT_BASE_URL + "/user/:user_id", StudentController.getStudentsBelongToUser); // Get students belonging to a user
-app.get(STUDENT_BASE_URL + "/class/:class_id", StudentController.getStudentsInClass); // Get students in a specific class
-app.post(STUDENT_BASE_URL, StudentController.createStudent); // Create a new student
-app.put(STUDENT_BASE_URL + "/:id", StudentController.updateStudent); // Update an existing student
-app.patch(STUDENT_BASE_URL + "/:id", StudentController.updateStudent); // Partially update a student
-app.delete(STUDENT_BASE_URL + "/:id", StudentController.deleteStudent); // Delete a student
+app.get(STUDENT_BASE_URL + "/user/:user_id", StudentController.getStudentsBelongToUser);
+app.get(STUDENT_BASE_URL + "/class/:class_id", StudentController.getStudentsInClass);
+app.post(STUDENT_BASE_URL, StudentController.createStudent);
+app.put(STUDENT_BASE_URL + "/:id", StudentController.updateStudent);
+app.patch(STUDENT_BASE_URL + "/:id", StudentController.updateStudent);
+app.delete(STUDENT_BASE_URL + "/:id", StudentController.deleteStudent);
 
 const USER_BASE_URL = Config.PREFIX + "/users";
 app.get(USER_BASE_URL, UserController.getAllUsers);
-app.get(USER_BASE_URL + "/:id", UserController.getUser);
+app.get(USER_BASE_URL + "/:id", UserController.getUserInfo);
 app.post(USER_BASE_URL + "/register", UserController.registerUser);
 app.post(USER_BASE_URL + "/register/admin", UserController.registerAdmin);
 app.post(USER_BASE_URL + "/auth", UserController.auth);
 app.post(USER_BASE_URL + "/login", UserController.login);
 app.post(USER_BASE_URL + "/password/reset/:id", UserController.resetPassword);
 app.post(USER_BASE_URL + "/password/change/:id", UserController.changePassword);
-app.put(USER_BASE_URL + "/:id", UserController.updateUserInfo);
-app.patch(USER_BASE_URL + "/:id", UserController.updateUserInfo);
+app.put(USER_BASE_URL, UserController.updateUserInfo);
+app.patch(USER_BASE_URL, UserController.updateUserInfo);
 app.delete(USER_BASE_URL + "/:id", UserController.deleteAccount);
 
 // Define the base URL for user-related routes
@@ -215,6 +233,6 @@ SMySQL.connect();
 setUpPermissions();
 setUpRoles();
 setUpGenders();
-// setUpUsers();
+setUpUsers();
 
 export default app;
