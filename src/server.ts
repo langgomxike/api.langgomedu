@@ -129,7 +129,7 @@ app.get(LESSON_BASE_URL, LessonController.getSchedule);
 const REPORT_BASE_URL = Config.PREFIX + "/reports";
 app.get(REPORT_BASE_URL + "/class", ReportController.getAllClassReports);
 app.get(REPORT_BASE_URL + "/class/:id", ReportController.getClassReport);
-app.post(REPORT_BASE_URL + "/class", ReportController.createClassReport);
+
 app.post(REPORT_BASE_URL + "/class/:id", ReportController.approveClassReport);
 app.get(REPORT_BASE_URL + "/user", ReportController.getAllUserReports);
 app.get(REPORT_BASE_URL + "/user/:id", ReportController.getUserReport);
@@ -143,9 +143,9 @@ app.post(REPORT_BASE_URL + "/lockUserAccount", UserController.LockUserAccount);
 //khoá lớp học của người dùng
 app.post(REPORT_BASE_URL + "/lockClass", ClassController.LockClass);
 //khoá user reports
-app.post(REPORT_BASE_URL + "/lockUserReport", ReportController.LockUserReport);
-//khoa class reports
-app.post(REPORT_BASE_URL + "/lockClassReport", ReportController.LockClassReport);
+app.post(REPORT_BASE_URL + "/lockUserReport", ReportController.LockReport);
+//tạo report
+app.post(REPORT_BASE_URL + "/created_report", ReportController.createReport);
 
 
 const CV_BASE_URL = Config.PREFIX + "/cvs";
@@ -230,9 +230,9 @@ app.listen(port, () => {
 });
 
 SMySQL.connect();
-setUpPermissions();
-setUpRoles();
-setUpGenders();
-setUpUsers();
+// setUpPermissions();
+// setUpRoles();
+// setUpGenders();
+// setUpUsers();
 
 export default app;

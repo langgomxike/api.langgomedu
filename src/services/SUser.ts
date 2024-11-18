@@ -254,7 +254,6 @@ export default class SUser {
   public static storeUser(user: User, onNext: (result: boolean) => void) {
     // const sql =
     //   "INSERT INTO `users`(`id`, `full_name`, `email`, `phone_number`, `password`, `token`, `avatar_id`, `role_id`, `created_at`) VALUES (?,?,?,?,?,?,?,?,?)";
-
     // SMySQL.getConnection((connection) => {
     //   connection?.execute<any>(
     //     sql,
@@ -275,7 +274,6 @@ export default class SUser {
     //         SLog.log(LogType.Error, "storeUser", "failed to execute", error);
     //         return;
     //       }
-
     //       //update into firebase
     //       SFirebase.push(FirebaseNode.USER, user.id, () => {
     //         SLog.log(LogType.Info, "storeUser", "store user successfully");
@@ -349,77 +347,58 @@ export default class SUser {
   }
 
   public static softDeleteUser(id: number, onNext: (result: boolean) => void) {}
-  // Hàm khoá tài khoản người dùng
+  
   public static LockUserAccount(
     user_id: string,
+    permissionIds: string[], // Mảng ID quyền truyền vào
     onNext: (result: boolean) => void
   ) {
-    //khoá quyền
-    const permission1 = PermissionList.VIEW_USER_INFORMATION;
-    const permission2 = PermissionList.VIEW_OTHER_USER_INFORMATION;
-    const permission3 = PermissionList.VIEW_PERSONAL_CLASS_LIST;
-    const permission4 = PermissionList.VIEW_PERSONAL_CLASS;
-    const permission5 = PermissionList.VIEW_OTHER_USER_CLASS_LIST;
-    const permission6 = PermissionList.VIEW_OTHER_USER_CLASS;
-    const permission7 = PermissionList.VIEW_CV_LIST;
-    const permission8 = PermissionList.VIEW_CV;
-    const permission9 = PermissionList.UPDATE_CV;
-    const permission10 = PermissionList.DELETE_CV;
+    // Nếu mảng quyền rỗng, đặt mặc định là quyền 13
+    if (permissionIds.length === 0) {
+      permissionIds = ["13"];
+    }
+
+    // Tạo danh sách quyền dưới dạng chuỗi để chèn vào SQL
+    const permissionValues = permissionIds.map(() => "(?, ?)").join(", ");
 
     // Câu truy vấn DELETE để xóa các quyền hiện tại của user_id
     const deleteSql = `
-      DELETE FROM user_permissions
-      WHERE user_id = ?;
+      DELETE FROM user_role
+      WHERE user_id = ? AND role_id IN (${permissionIds
+        .map(() => "?")
+        .join(", ")});
     `;
 
     // Câu truy vấn INSERT để thêm lại các quyền mới cho user_id
     const insertSql = `
-      INSERT INTO user_permissions (user_id, permission_id)
-      VALUES
-        (?, ${permission1}),
-        (?, ${permission2}),
-        (?, ${permission3}),
-        (?, ${permission4}),
-        (?, ${permission5}),
-        (?, ${permission6}),
-        (?, ${permission7}),
-        (?, ${permission8}),
-        (?, ${permission9}),
-        (?, ${permission10});
+      INSERT INTO user_role (user_id, role_id)
+      VALUES ${permissionValues};
     `;
 
-    // Lấy kết nối và thực thi câu truy vấn DELETE trước
+    // Thực thi câu truy vấn DELETE trước
     SMySQL.getConnection((connection) => {
-      connection?.execute(deleteSql, [user_id], (deleteError) => {
-        // Nếu có lỗi trong DELETE, ghi log lỗi và gọi callback với `false`
-        if (deleteError) {
-          onNext(false);
-          SLog.log(
-            LogType.Error,
-            "LockUserAccount",
-            "Cannot delete user permissions",
-            deleteError
-          );
-          return;
-        }
+      connection?.execute(
+        deleteSql,
+        [user_id, ...permissionIds],
+        (deleteError) => {
+          if (deleteError) {
+            onNext(false);
+            SLog.log(
+              LogType.Error,
+              "LockUserAccount",
+              "Cannot delete user permissions",
+              deleteError
+            );
+            return;
+          }
 
-        // Sau khi DELETE thành công, thực thi câu truy vấn INSERT
-        connection.execute(
-          insertSql,
-          [
-            user_id,
-            user_id,
-            user_id,
-            user_id,
-            user_id,
-            user_id,
-            user_id,
-            user_id,
-            user_id,
-            user_id,
-          ],
-          (insertError, result) => {
-            // Nếu có lỗi trong INSERT, ghi log lỗi và gọi callback với `false`
+          // Sau khi DELETE thành công, thực thi câu truy vấn INSERT
+          const insertParams: (string | number)[] = [];
+          permissionIds.forEach((permissionId) => {
+            insertParams.push(user_id, permissionId);
+          });
+
+          connection.execute(insertSql, insertParams, (insertError) => {
             if (insertError) {
               onNext(false);
               SLog.log(
@@ -438,11 +417,12 @@ export default class SUser {
               "Locked user account successfully"
             );
             onNext(true);
-          }
-        );
-      });
+          });
+        }
+      );
     });
   }
+
   //trừ điểm uy tín của người dùng
   public static MinusUserPoints(
     user_id: string,

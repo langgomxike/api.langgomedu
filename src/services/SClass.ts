@@ -1396,11 +1396,11 @@ export default class SClass {
 public static LockClass(class_id: string, onNext: (result: boolean) => void) {
   // Câu truy vấn SQL để khóa lớp học
   const sql = `
-      UPDATE classes
-      SET status = 1
-      WHERE id = ?
-      LIMIT 1;
-  `;
+  UPDATE classes
+  SET ended_at = (UNIX_TIMESTAMP() * 1000)
+  WHERE id = ?
+  LIMIT 1;
+`;
 
   // Lấy kết nối và thực thi truy vấn
   SMySQL.getConnection((connection) => {
