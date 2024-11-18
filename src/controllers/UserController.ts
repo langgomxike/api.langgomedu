@@ -168,14 +168,15 @@ export default class UserController {
                 PermissionList.VIEW_CERTIFICATE_LIST,
                 PermissionList.VIEW_OTHER_USER_CLASS_LIST,
                 PermissionList.VIEW_PERSONAL_CLASS,
-                PermissionList.VIEW_OTHER_USER_CLASS_LIST,
                 PermissionList.VIEW_OTHER_USER_CLASS,
                 PermissionList.VIEW_USER_INFORMATION,
             ];
             const userPermissions: Permission[] = [];
 
             permissions.forEach(permission => {
-                userPermissions.push(new Permission(permission, PermissionList[permission]));
+                if (!userPermissions.map(p => p.id).includes(permission)) {
+                    userPermissions.push(new Permission(permission, PermissionList[permission]));
+                }
             });
 
             SPermission.addPermissionsToUser(user.id, userPermissions, result => {
