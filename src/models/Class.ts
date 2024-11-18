@@ -1,4 +1,5 @@
 
+import Address from "./Address";
 import ClassLevel from "./ClassLevel";
 import Major from "./Major";
 import User from "./User";
@@ -14,20 +15,17 @@ export default class Class {
     public price: number;
     public class_creation_fee: number;
     public class_level: ClassLevel | undefined;
-    public type: string[];
-    public duration: number;
     public max_learners: number;
     public started_at: number;
     public ended_at: number;
+    public address: Address | undefined;
+    public paid : boolean;
+    public author_accepted: boolean;
+    public admin_accepted: boolean;
     public created_at: number;
     public updated_at: number;
-    public address_1: string;
-    public address_2: string;
-    public address_3: string;
-    public address_4: string;
-    public user_status: string;
 
-    constructor(id = -1, title = "", description = "", major: Major | undefined = undefined, tutor: User | undefined = undefined, author: User | undefined = undefined, price = 0, classCreationFee = 0, classLevel: ClassLevel | undefined = undefined, type: string[] = [], duration = 0, maxLearners = 0, startedAt = new Date(), endedAt = new Date(), createdAt = new Date(), updatedAt = new Date(), address_1 = "", address_2 = "", address_3 = "", address_4 = "", user_status = "") {
+    constructor(id = -1, title = "", description = "", major: Major | undefined = undefined, tutor: User | undefined = undefined, author: User | undefined = undefined, price = 0, classCreationFee = 0, classLevel: ClassLevel | undefined = undefined,  maxLearners = 0, startedAt = 0, endedAt = 0, address: Address | undefined = undefined, paid = false, author_accepted = false, admin_accepted = false, createdAt = 0, updatedAt = 0,) {
         this.id = id;
         this.title = title;
         this.description = description;
@@ -37,17 +35,14 @@ export default class Class {
         this.price = price;
         this.class_creation_fee = classCreationFee;
         this.class_level = classLevel;
-        this.type = type;
-        this.duration = duration;
         this.max_learners = maxLearners;
-        this.started_at = startedAt.getTime();
-        this.ended_at = endedAt.getTime();
-        this.created_at = createdAt.getTime();
-        this.updated_at = updatedAt.getTime();
-        this.address_1 = address_1;
-        this.address_2 = address_2;
-        this.address_3 = address_3;
-        this.address_4 = address_4;
-        this.user_status = user_status;
+        this.started_at = startedAt;
+        this.ended_at = endedAt;
+        this.address = address;
+        this.paid = paid;
+        this.author_accepted = author_accepted;
+        this.admin_accepted = admin_accepted;
+        this.created_at = createdAt;
+        this.updated_at = updatedAt;
     }
 }

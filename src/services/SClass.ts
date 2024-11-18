@@ -313,7 +313,7 @@ export default class SClass {
     const condition =
     userType === UserType.TUTOR
       ? `classes.tutor_id IS NULL AND classes.author_id != ? AND in_class_members.user_id IS NULL`
-      : `classes.author_id != ? AND classes.tutor_id != ? AND in_class_members.user_id IS NULL`;
+      : `classes.author_id != ? AND (classes.tutor_id != ? OR classes.tutor_id IS NULL) AND in_class_members.user_id IS NULL`;
 
 
     // SQL query to fetch class information, including tutor, major, and class level details

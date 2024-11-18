@@ -1,42 +1,36 @@
-import File from "./File";
+import Class from "./Class";
 import User from "./User";
 
 export default class Message {
     public id: number;
-    public from_user: User | undefined;
-    public to_user: User | undefined;
+    public sender: User | undefined;
+    public reciever: User | undefined;
     public content: string;
-    public file: File | undefined;
-    public is_image: boolean;
+    public ratio: number;
+    public class: Class | undefined;
     public created_at: number;
-    public reply_to_message: Message | undefined;
-    public from_user_status: boolean;
-    public to_user_status: boolean;
     public as_read: boolean;
+    public is_active: boolean;
 
     constructor(
-        id = -1, 
-        fromUser: User | undefined = undefined,
-        toUser: User | undefined = undefined,
-        content = "", 
-        file: File | undefined = undefined, 
-        isImage = false,
-        createdAt = new Date(),
-        replyToMessage: Message | undefined = undefined,
-        fromUserStatus = true,
-        toUserStatus = true,
-        asRead = false
+        id = 0,
+        sender: User | undefined = undefined,
+        reciever: User | undefined = undefined,
+        content = "",
+        ratio = 0,
+        classObj: Class | undefined = undefined,
+        created_at = 0,
+        as_read = false,
+        is_active = true
     ) {
         this.id = id;
+        this.sender = sender;
+        this.reciever = reciever;
         this.content = content;
-        this.is_image = isImage;
-        this.created_at = createdAt.getTime();
-        this.file = file;
-        this.from_user = fromUser;
-        this.to_user = toUser;
-        this.reply_to_message = replyToMessage;
-        this.from_user_status = fromUserStatus;
-        this.to_user_status = toUserStatus;
-        this.as_read = asRead;
+        this.ratio = ratio;
+        this.class = classObj;
+        this.created_at = created_at;
+        this.as_read = as_read;
+        this.is_active = is_active;
     }
 }

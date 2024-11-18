@@ -251,44 +251,47 @@ export default class SUser {
   }
 
   public static storeUser(user: User, onNext: (result: boolean) => void) {
-    const sql =
-      "INSERT INTO `users`(`id`, `full_name`, `email`, `phone_number`, `password`, `token`, `avatar_id`, `role_id`, `created_at`) VALUES (?,?,?,?,?,?,?,?,?)";
+   
+    // const sql =
+    //   "INSERT INTO `users`(`id`, `full_name`, `email`, `phone_number`, `password`, `token`, `avatar_id`, `role_id`, `created_at`) VALUES (?,?,?,?,?,?,?,?,?)";
 
-    SMySQL.getConnection((connection) => {
-      connection?.execute<any>(
-        sql,
-        [
-          user.id,
-          user.full_name,
-          user.email,
-          user.phone_number,
-          /*SEncrypt.encrypt(user.password, "")*/ user.password,
-          v4(),
-          user.avatar?.id ?? -1,
-          user.role?.id ?? -1,
-          new Date().getTime(),
-        ],
-        (error, result) => {
-          if (error) {
-            onNext(false);
-            SLog.log(LogType.Error, "storeUser", "failed to execute", error);
-            return;
-          }
+    // SMySQL.getConnection((connection) => {
+    //   connection?.execute<any>(
+    //     sql,
+    //     [
+    //       user.id,
+    //       user.full_name,
+    //       user.email,
+    //       user.phone_number,
+    //       /*SEncrypt.encrypt(user.password, "")*/ user.password,
+    //       v4(),
+    //       user.avatar?.id ?? -1,
+    //       user.role?.id ?? -1,
+    //       new Date().getTime(),
+    //     ],
+    //     (error, result) => {
+    //       if (error) {
+    //         onNext(false);
+    //         SLog.log(LogType.Error, "storeUser", "failed to execute", error);
+    //         return;
+    //       }
 
-          //update into firebase
-          SFirebase.push(FirebaseNode.USER, user.id, () => {
-            SLog.log(LogType.Info, "storeUser", "store user successfully");
-            onNext(true);
-          });
-        }
-      );
-    });
+    //       //update into firebase
+    //       SFirebase.push(FirebaseNode.USER, user.id, () => {
+    //         SLog.log(LogType.Info, "storeUser", "store user successfully");
+    //         onNext(true);
+    //       });
+    //     }
+    //   );
+    // });
+    
   }
 
   public static updateUserInfo(user: User, onNext: (result: boolean) => void) {
+  
     let sql = "UPDATE `users` SET ";
-    const params = [];
-
+    const params : any[] = [];
+    
     if (user.full_name) {
       sql += "`full_name` = ?,";
       params.push(user.full_name);
@@ -338,13 +341,14 @@ export default class SUser {
           }
 
           //update into firebase
-          SFirebase.push(FirebaseNode.USER, user.id, () => {
-            SLog.log(LogType.Info, "updateUser", "update user successfully");
+          // SFirebase.push(FirebaseNode.USER, user.id, () => {
+          //   SLog.log(LogType.Info, "updateUser", "update user successfully");
             onNext(true);
-          });
+          // });
         }
       );
     });
+  
   }
 
   public static softDeleteUser(id: number, onNext: (result: boolean) => void) {}
