@@ -27,7 +27,7 @@ export function setUpGenders() {
         connection?.execute(truncateSQL); // Execute the truncate command to reset the table
 
         // SQL query template for inserting a new gender record into the "genders" table 
-        const sql = "INSERT INTO `genders`(`id`, `vn_gender`, `en_gender`, `ja_gender`) VALUES (?,?,?,?)";
+        const sql = "INSERT INTO `genders`(`id`, `vn_name`, `en_name`, `ja_name`) VALUES (?,?,?,?)";
 
         // Iterate over each gender ID and execute the SQL query to insert it into the database
         genders.forEach(id => {
