@@ -20,72 +20,75 @@ export default class UserController {
     const phoneNumber = request.body.phone_number ?? "";
     const password = request.body.password ?? "";
 
-    const onNext = (user: User | undefined) => {
-      //login with parameters
-      if (
-        !username &&
-        !/^\s*(?:\+?(\d{1,3}))?[-. (]*(\d{3})[-. )]*(\d{3})[-. ]*(\d{4})(?: *x(\d+))?\s*$/.test(
-          phoneNumber
-        )
-      ) {
-        SLog.log(
-          LogType.Error,
-          "login",
-          "Login failed. Invalid Username or Phone Number"
-        );
+
+    if (
+      !username &&
+      !/^\s*(?:\+?(\d{1,3}))?[-. (]*(\d{3})[-. )]*(\d{3})[-. ]*(\d{4})(?: *x(\d+))?\s*$/.test(
+        phoneNumber
+      )
+    ) {
+      SLog.log(
+        LogType.Error,
+        "login",
+        "Login failed. Invalid Username or Phone Number"
+      );
+      SResponse.getResponse(
+        ResponseStatus.Internal_Server_Error,
+        null,
+        "Login failed. Invalid Username or Phone Number",
+        response
+      );
+      return;
+    }
+
+    if (!password) {
+      SLog.log(LogType.Error, "login", "Login failed. Invalid password");
+      SResponse.getResponse(
+        ResponseStatus.Internal_Server_Error,
+        null,
+        "Login failed. Invalid password",
+        response
+      );
+      return;
+    }
+
+    SUser.getUserByPhoneNumberOrUsername(phoneNumber, username, (user) => {
+      if (!user) {
+        SLog.log(LogType.Error, "Login", "login failed. User not found");
         SResponse.getResponse(
           ResponseStatus.Internal_Server_Error,
-          null,
-          "Login failed. Invalid Username or Phone Number",
+          user,
+          "Login with parameters failed. User not found",
           response
         );
         return;
       }
 
-      if (!password) {
-        SLog.log(LogType.Error, "login", "Login failed. Invalid password");
+      if (user.password !== password) {
+        SLog.log(LogType.Error, "Login", "login failed. Password incorrect");
         SResponse.getResponse(
           ResponseStatus.Internal_Server_Error,
           null,
-          "Login failed. Invalid password",
+          "Login with parameters failed. Password is incorrect",
           response
         );
         return;
       }
 
-      SUser.getUserByPhoneNumberOrUsername(phoneNumber, username, (user) => {
-        if (!user) {
-          SLog.log(LogType.Error, "Login", "login failed. User not found");
-          SResponse.getResponse(
-            ResponseStatus.Internal_Server_Error,
-            user,
-            "Login with parameters failed. User not found",
-            response
-          );
-          return;
-        }
-
-        if (user.password !== password) {
-          SLog.log(LogType.Error, "Login", "login failed. Password incorrect");
-          SResponse.getResponse(
-            ResponseStatus.Internal_Server_Error,
-            null,
-            "Login with parameters failed. Password is incorrect",
-            response
-          );
-          return;
-        }
-
+      SRole.getRolesByUserId(user.id, roles => {
         SLog.log(LogType.Info, "Login", "login successfully");
+
         user.password = user.password.replace(/^.$/, "*");
+        user.roles = roles;
+
         SResponse.getResponse(
           ResponseStatus.OK,
           user,
           "Login with parameters successfully.",
           response
         );
-      })
-    }
+      });
+    });
   }
 
   public static implicitLogin(request
@@ -167,7 +170,7 @@ export default class UserController {
                  express.Response
   ) {
     const user: User = request?.body?.user;
-    const requestCode : number = request.body.code ?? 0;
+    const requestCode: number = request.body.code ?? 0;
 
     if (!user || !user.id || !user.password || !user.phone_number || !user.full_name || !requestCode) {
       SLog.log(LogType.Error, "registerUser", "Invalid user");
@@ -175,7 +178,7 @@ export default class UserController {
       return;
     }
 
-    //check request code 
+    //check request code
 
     SUser.storeUser(user, (result) => {
       if (!result) {
@@ -274,7 +277,7 @@ export default class UserController {
   ) {
     const user: User = request?.body?.user;
 
-    if (!user || !user.id || !(user.full_name || user.email || user.phone_number || user.password ||  user.avatar || user.roles)) {
+    if (!user || !user.id || !(user.full_name || user.email || user.phone_number || user.password || user.avatar || user.roles)) {
       SLog.log(LogType.Error, "updateUserInfo", "Invalid user");
       SResponse.getResponse(ResponseStatus.Internal_Server_Error, {}, "Invalid user", response);
       return;
