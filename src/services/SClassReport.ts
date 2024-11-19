@@ -189,42 +189,5 @@ GROUP BY class_reports.id;`; // Thêm điều kiện WHERE để lọc theo repo
 // SET status = 1
 // WHERE id = ?
 // LIMIT 1;
-public static LockClassReport(report_id: string, onNext: (result: boolean) => void) {
-    // Câu truy vấn SQL để khóa báo cáo lớp học
-    const sql = `
-        UPDATE class_reports
-        SET status = 1
-        WHERE id = ?
-        LIMIT 1;
-    `;
-  
-    // Lấy kết nối và thực thi truy vấn
-    SMySQL.getConnection((connection) => {
-        connection?.execute(
-            sql,
-            [report_id], // Truyền vào report_id làm tham số
-            (error, result) => {
-                // Nếu có lỗi, ghi log lỗi và gọi callback với false
-                if (error) {
-                    onNext(false);
-                    SLog.log(
-                        LogType.Error,
-                        "LockClassReport",
-                        "Cannot lock class report",
-                        error
-                    );
-                    return;
-                }
-  
-                // Nếu thành công, ghi log và gọi callback với true
-                SLog.log(
-                    LogType.Info,
-                    "LockClassReport",
-                    "Locked class report successfully"
-                );
-                onNext(true);
-            }
-        );
-    });
-  }
+
 }
