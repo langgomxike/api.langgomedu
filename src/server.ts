@@ -232,9 +232,9 @@ app.listen(port, () => {
 });
 
 SMySQL.connect();
-// setUpPermissions();
-// setUpRoles();
-// setUpGenders();
-// setUpUsers();
+setUpPermissions();
+setUpRoles();
+setUpGenders();
+setUpUsers();
 
 export default app;

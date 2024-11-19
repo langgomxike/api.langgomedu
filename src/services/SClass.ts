@@ -6,6 +6,7 @@ import User from "../models/User";
 import Major from "../models/Major";
 import Lesson from "../models/Lesson";
 import { UserType } from "../configs/UserType";
+import SFirebase, { FirebaseNode } from "./SFirebase";
 
 export default class SClass {
   /**
@@ -345,8 +346,8 @@ export default class SClass {
     // Xác định điều kiện WHERE theo userType
     const condition =
       userType === UserType.TUTOR
-        ? `classes.tutor_id IS NULL AND classes.author_id != ? AND in_class_members.user_id IS NULL`
-        : `classes.author_id != ? AND (classes.tutor_id != ? OR classes.tutor_id IS NULL ) AND in_class_members.user_id IS NULL`;
+        ? `classes.tutor_id IS NULL AND classes.author_id != ? AND class_members.user_id IS NULL`
+        : `classes.author_id != ? AND (classes.tutor_id != ? OR classes.tutor_id IS NULL ) AND class_members.user_id IS NULL`;
 
     // SQL query to fetch class information, including tutor, major, and class level details
     const sql = `SELECT 
@@ -361,32 +362,33 @@ export default class SClass {
                           'ended_at', classes.ended_at,
                           'created_at', classes.created_at,
                           'updated_at', classes.updated_at,
-                          'address_1', classes.address_1,
-                          'address_2', classes.address_2,
-                          'address_3', classes.address_3,
-                          'address_4', classes.address_4,
+                          'address', JSON_OBJECT (
+                              "id", addresses.id,
+                              "province", addresses.province,
+                              "district", addresses.district,
+                              "ward", addresses.ward,
+                              "detail", addresses.detail
+                          ),
                           'tutor', JSON_OBJECT(
-                          'id', users.id,
-                          'name', users.full_name,
-                          'email', users.email,
-                          'phone_number', users.phone_number,
-                          'avatar', JSON_OBJECT(
-                                      'id', files_tutor.id,
-                                      'name', files_tutor.name,
-                                      'path', files_tutor.path
-                                    )
-                            ),
-                            'major', JSON_OBJECT(
+                            'id', tutor.id,
+                            'full_name', tutor.full_name,
+                            'email', tutor.email,
+                            'phone_number', tutor.phone_number,
+                            'avatar', tutor.avatar
+                          ),
+                          'author', JSON_OBJECT(
+                              'id', author.id,
+                              'full_name', author.full_name,
+                              'email', author.email,
+                              'phone_number', author.phone_number,
+                              'avatar', author.avatar
+                          ),
+                          'major', JSON_OBJECT(
                           'id', majors.id,
                           'vn_name', majors.vn_name,
                           'en_name', majors.en_name,
                           'ja_name', majors.ja_name,
-                          'icon', JSON_OBJECT(
-                                      'id', files_major.id,
-                                      'name', files_major.name,
-                                      'path', files_major.path
-                                  )
-                            ),
+                          'icon', majors.icon ),
                         'class_level', JSON_OBJECT(
                           'id', class_levels.id,
                           'vn_name', class_levels.vn_name,
@@ -395,12 +397,12 @@ export default class SClass {
                         )
                       ) AS class
                   FROM classes
-                  LEFT JOIN users ON users.id = classes.tutor_id
+                  LEFT JOIN users tutor ON tutor.id = classes.tutor_id
+                  LEFT JOIN users author ON author.id = classes.author_id
                   LEFT JOIN majors ON majors.id = classes.major_id
                   LEFT JOIN class_levels ON class_levels.id = classes.class_level_id
-                  LEFT JOIN files AS files_tutor ON files_tutor.id = users.avatar_id
-                  LEFT JOIN files AS files_major ON files_major.id = majors.icon_id
-                  LEFT JOIN in_class_members ON in_class_members.class_id = classes.id AND in_class_members.user_id = ?
+                  LEFT JOIN addresses ON addresses.id = classes.address_id
+                  LEFT JOIN class_members ON class_members.class_id = classes.id AND class_members.user_id = ?
                   WHERE ${condition};`;
 
     // Thay thế các giá trị điều kiện theo userType
@@ -1229,7 +1231,9 @@ export default class SClass {
             false
           );
         }
-        onNext(`Join in class id: ${classId} successful!`, true);
+        SFirebase.push(FirebaseNode.Classes, [{key: FirebaseNode.ClassId, value: classId}], ()=> {
+          onNext(`Join in class id: ${classId} successful!`, true);
+        })
       });
     });
   }
