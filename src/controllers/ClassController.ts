@@ -150,16 +150,24 @@ export default class ClassController {
     SClass.getClassDetailWithUser(
       classId,
       userId,
-      (_class, related_classes) => {
+      (_class, conflictingLessons) => {
         SResponse.getResponse(
           ResponseStatus.OK,
-          { class: _class, related_classes: related_classes },
+          { class: _class, conflictingLessons},
           "get class by id",
           response
         );
         return;
       }
     );
+  }
+
+  public static getconflictingLessonsWithClassUsers(request: express.Request, response: express.Response) {
+    SClass.getconflictingLessonsWithClassUsers(1, [], (data) => {
+      SResponse.getResponse(ResponseStatus.OK, data , "get conflicting lessons with class users", response
+      );
+      return;
+    })
   }
 
   public static createClass(
@@ -320,11 +328,10 @@ export default class ClassController {
     request: express.Request,
     response: express.Response
   ) {
-    const userId = request.body.user_id;
+    const userIds = request.body.user_ids;
     const classId = Number(request.params.class_id) ?? -1;
-    const studentIds = request.body.student_ids;
 
-    SClass.joinClass(classId, userId, studentIds, (message, result) => {
+    SClass.joinClass(classId, userIds, (message, result) => {
       // Trả về phản hồi thành công khi lớp học đã được tham gia
       SResponse.getResponse(
         ResponseStatus.OK,

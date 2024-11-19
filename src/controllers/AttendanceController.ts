@@ -1,12 +1,6 @@
 import express, { Request } from "express";
 import SAttendance from "../services/SAttendance";
-import Attendance from "../models/Attendance";
 import SResponse, { ResponseStatus } from "../services/SResponse";
-import Class from "../models/Class";
-import Student from "../models/Student";
-import { uploadPayment } from "../configs/MulterConfig";
-import e from "express";
-
 export default class AttendanceController {
   public static getAttendanceHistories(
     request: express.Request,
@@ -69,7 +63,7 @@ export default class AttendanceController {
     request: express.Request,
     response: express.Response
   ) {
-    let { attendance_ids, paid, type, deferred } = request.body;
+    let { lesson_id, user_ids, paid, type, deferred } = request.body;
 
     console.log("data:", request.body);
 
@@ -81,21 +75,13 @@ export default class AttendanceController {
     paid = paid === "true";
     deferred = deferred === "true";
 
-    const attendanceIds = typeof attendance_ids === 'string' ? JSON.parse(attendance_ids) : attendance_ids;
+     // Chuyển đổi `user_ids` từ chuỗi sang mảng nếu là chuỗi
+  const userIds = typeof user_ids === 'string' ? JSON.parse(user_ids) : user_ids;
 
     SAttendance.updatePaymentOfLearner(
-      attendanceIds,
-      paid,
-      filePath,
-      type,
-      deferred,
+      lesson_id, userIds, paid, filePath,  type, deferred,
       (message, result) => {
-        SResponse.getResponse(
-          ResponseStatus.OK,
-          { message, result },
-          "update payment of leaner",
-          response
-        );
+        SResponse.getResponse(ResponseStatus.OK, { message, result }, "update payment of leaner", response);
       }
     );
   }
@@ -104,15 +90,22 @@ export default class AttendanceController {
     request: express.Request,
     response: express.Response
   ) {
-    const { attendance_ids, confirmed_by_tutor } = request.body;
-
-    console.log(request.body);
-
-
+    const { lesson_id, user_ids, confirm_paid } = request.body;
+  
+    console.log("Request body:", request.body);
+  
+    // Cập nhật thanh toán xác nhận từ tutor
     SAttendance.confirmPaymentByTutor(
-      attendance_ids, confirmed_by_tutor,
+      lesson_id,
+      user_ids,
+      confirm_paid,
       (message, result) => {
-        SResponse.getResponse(ResponseStatus.OK, { message, result }, "confirm payment by tutor", response);
+        SResponse.getResponse(
+          ResponseStatus.OK,
+          { message, result },
+          "Confirm payment by tutor",
+          response
+        );
       }
     );
   }
