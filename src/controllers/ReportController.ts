@@ -41,10 +41,35 @@ export default class ReportController {
     });
   }
 
-  public static createClassReport(
-    request: express.Request,
-    response: express.Response
-  ) {}
+ public static createUserReport(
+  request: express.Request,
+  response: express.Response
+) {
+  // Lấy dữ liệu từ body của request
+  const { reporter, reportee, class_id, content } = request?.body?.report || {};
+
+  // Kiểm tra các tham số cần thiết
+  if (!reporter || !reportee || !content) {
+    return response
+      .status(400)
+      .json({ success: false, message: "Missing required fields." });
+  }
+
+  // Gọi phương thức CreatedReport để tạo báo cáo
+  SUserReport.CreatedReport(reporter, reportee, class_id, content, (result) => {
+    if (result) {
+      // Nếu thành công, trả về phản hồi JSON
+      response
+        .status(201)
+        .json({ success: true, message: "Report created successfully." });
+    } else {
+      // Nếu thất bại, trả về lỗi
+      response
+        .status(500)
+        .json({ success: false, message: "Failed to create report." });
+    }
+  });
+}
 
   public static approveClassReport(
     request: express.Request,
@@ -89,33 +114,63 @@ export default class ReportController {
     });
   }
 
-  public static createUserReport(
+  public static createReport(
     request: express.Request,
     response: express.Response
-  ) {}
+  ) {
+    // Lấy dữ liệu từ body của request
+    const { reporter, reportee, class_id, content } = request?.body?.report || {};
+  
+    // Kiểm tra các tham số cần thiết
+    if (!reporter || !reportee || !content) {
+      return response
+        .status(400)
+        .json({ success: false, message: "Missing required fields." });
+    }
+  
+    // Gọi phương thức CreatedReport để tạo báo cáo
+    SUserReport.CreatedReport(reporter, reportee, class_id, content, (result) => {
+      if (result) {
+        // Nếu thành công, trả về phản hồi JSON
+        response
+          .status(201)
+          .json({ success: true, message: "Report created successfully." });
+      } else {
+        // Nếu thất bại, trả về lỗi
+        response
+          .status(500)
+          .json({ success: false, message: "Failed to create report." });
+      }
+    });
+  }
+  
 
   public static approveUserReport(
     request: express.Request,
     response: express.Response
   ) {}
-  // Khóa báo cáo người dùng
-  public static LockUserReport(
+
+  // Khóa báo cáo
+  public static LockReport(
     request: express.Request,
     response: express.Response
   ) {
-    const reportId = request?.body?.reportId; // sửa lại để lấy trực tiếp `reportId`
+    const report = request?.body?.report;
+    const id = report?.id;
+    const reason = report?.reason;
+    // sửa lại để lấy trực tiếp `reportId`
     console.log("request: " + JSON.stringify(request.body));
-    console.log("reportId: " + reportId);
+    console.log("reportId: " + id);
 
     // Kiểm tra nếu `reportId` không tồn tại
-    if (!reportId) {
+    if (!id) {
       return response
         .status(400)
         .json({ success: false, message: "Report ID is required." });
     }
 
     // Gọi phương thức LockUserReport của SUser
-    SUserReport.LockUserReport(reportId, (result) => {
+    SUserReport.LockReport(id, reason, (result) => {
       if (result) {
         // Nếu thành công, gửi phản hồi JSON
         response
@@ -126,36 +181,6 @@ export default class ReportController {
         response
           .status(500)
           .json({ success: false, message: "Failed to lock user report." });
-      }
-    });
-  }
-  public static LockClassReport(
-    request: express.Request,
-    response: express.Response
-  ) {
-    const reportId = request.body.reportId;  // Thay vì `request?.body?.report?.id`
-    console.log("request: " + JSON.stringify(request.body));
-    console.log("reportId: " + reportId);
-  
-    // Kiểm tra nếu `reportId` không tồn tại
-    if (!reportId) {
-      return response
-        .status(400)
-        .json({ success: false, message: "Report ID is required." });
-    }
-  
-    // Gọi phương thức LockClassReport của SClassReport
-    SClassReport.LockClassReport(reportId, (result) => {
-      if (result) {
-        // Nếu thành công, gửi phản hồi JSON
-        response
-          .status(200)
-          .json({ success: true, message: "Class report locked successfully." });
-      } else {
-        // Nếu thất bại, gửi phản hồi lỗi
-        response
-          .status(500)
-          .json({ success: false, message: "Failed to lock class report." });
       }
     });
   }

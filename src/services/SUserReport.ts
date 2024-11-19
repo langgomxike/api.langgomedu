@@ -75,8 +75,11 @@ GROUP BY user_reports.id;
       });
     });
   }
-  public static geUserReportsById(id: string,onNext: (userReport: UserReport[]) => void) {
-const sql = `SELECT   
+  public static geUserReportsById(
+    id: string,
+    onNext: (userReport: UserReport[]) => void
+  ) {
+    const sql = `SELECT   
   JSON_OBJECT(
       'report_id', user_reports.id,
        'created_at', user_reports.created_at,
@@ -137,8 +140,8 @@ LEFT JOIN user_reports AS ur ON ur.to_user_id = to_user.id AND ur.id < user_repo
 WHERE user_reports.id = ?
 GROUP BY user_reports.id, from_user.id, from_user.full_name, ifu.point, to_user.id, to_user.full_name, itu.point;
  `;
-SMySQL.getConnection((connection) => {
-      connection?.execute<any[]>(sql,[id], (err, results) => {
+    SMySQL.getConnection((connection) => {
+      connection?.execute<any[]>(sql, [id], (err, results) => {
         if (err) {
           SLog.log(LogType.Error, "get user", "failed to execute", err);
           onNext([]);
@@ -154,46 +157,114 @@ SMySQL.getConnection((connection) => {
     });
   }
   //khoá user reports
-//   UPDATE user_reports
-// SET status = 1
-// WHERE id = ?
-// LIMIT 1;
-public static LockUserReport(report_id: string, onNext: (result: boolean) => void) {
-  // Câu truy vấn SQL để khóa báo cáo người dùng
-  const sql = `
-      UPDATE user_reports
-      SET status = 1
+  //   UPDATE user_reports
+  // SET status = 1
+  // WHERE id = ?
+  // LIMIT 1;
+  public static LockReport(
+    report_id: string,
+    reason: string,
+    onNext: (result: boolean) => void
+  ) {
+    // Câu truy vấn SQL để khóa báo cáo người dùng
+    const sql = `
+      UPDATE reports
+      SET status_id = 2,
+       reason = ?
       WHERE id = ?
       LIMIT 1;
   `;
 
-  // Lấy kết nối và thực thi truy vấn
-  SMySQL.getConnection((connection) => {
+    // Lấy kết nối và thực thi truy vấn
+    SMySQL.getConnection((connection) => {
       connection?.execute(
-          sql,
-          [report_id], // Truyền vào `report_id` làm tham số
-          (error, result) => {
-              // Nếu có lỗi, ghi log lỗi và gọi callback với `false`
-              if (error) {
-                  onNext(false);
-                  SLog.log(
-                      LogType.Error,
-                      "LockUserReport",
-                      "Cannot lock user report",
-                      error
-                  );
-                  return;
-              }
-
-              // Nếu thành công, ghi log và gọi callback với `true`
-              SLog.log(
-                  LogType.Info,
-                  "LockUserReport",
-                  "Locked user report successfully"
-              );
-              onNext(true);
+        sql,
+        [reason, report_id], // Truyền vào `report_id` làm tham số
+        (error, result) => {
+          // Nếu có lỗi, ghi log lỗi và gọi callback với `false`
+          if (error) {
+            onNext(false);
+            SLog.log(
+              LogType.Error,
+              "LockUserReport",
+              "Cannot lock user report",
+              error
+            );
+            return;
           }
+
+          // Nếu thành công, ghi log và gọi callback với `true`
+          SLog.log(
+            LogType.Info,
+            "LockUserReport",
+            "Locked user report successfully"
+          );
+          onNext(true);
+        }
       );
-  });
-}
+    });
+  }
+  //tạo report
+  public static CreatedReport(
+    reporter: string,
+    reportee: string,
+    class_id: string,
+    content: string,
+    onNext: (result: boolean) => void
+  ) {
+    let reason = "";
+    let level_id=0;
+    let desc_point=0;
+    let status_id=0;
+    let updated_at=0;
+    // Câu truy vấn SQL để thêm báo cáo mới
+    const sql = `
+      INSERT INTO reports (reporter_id, reportee_id, class_id, content, created_at,reason,level_id, desc_point, status_id, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+    `;
+
+    // Thời điểm hiện tại tính bằng mili giây
+    const createdAt = Date.now();
+
+    // Lấy kết nối và thực thi truy vấn
+    SMySQL.getConnection((connection) => {
+      connection?.execute(
+        sql,
+        [
+          reporter,
+          reportee,
+          class_id ? class_id : 0,
+          content,
+          createdAt,
+          reason,
+          level_id,
+          desc_point,
+          status_id,
+          updated_at
+
+        ], // Truyền các tham số vào truy vấn
+        (error, result) => {
+          // Nếu có lỗi, ghi log lỗi và gọi callback với `false`
+          if (error) {
+            onNext(false);
+            SLog.log(
+              LogType.Error,
+              "CreatedReport",
+              "Cannot create report",
+              error
+            );
+            return;
+          }
+
+          // Nếu thành công, ghi log và gọi callback với `true`
+          SLog.log(
+            LogType.Info,
+            "CreatedReport",
+            "Report created successfully"
+          );
+          onNext(true);
+        }
+      );
+    });
+  }
 }

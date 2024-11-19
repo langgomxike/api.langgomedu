@@ -1288,19 +1288,19 @@ export default class SClass {
       });
     });
   }
-  //khoá lớp học
-  //  UPDATE classes
-  // SET status = 1
-  // WHERE class_id = your_class_id
-  // LIMIT 1;
-  public static LockClass(class_id: string, onNext: (result: boolean) => void) {
-    // Câu truy vấn SQL để khóa lớp học
-    const sql = `
-      UPDATE classes
-      SET status = 1
-      WHERE id = ?
-      LIMIT 1;
-  `;
+   //khoá lớp học
+//  UPDATE classes
+// SET status = 1
+// WHERE class_id = your_class_id
+// LIMIT 1;
+public static LockClass(class_id: string, onNext: (result: boolean) => void) {
+  // Câu truy vấn SQL để khóa lớp học
+  const sql = `
+  UPDATE classes
+  SET ended_at = (UNIX_TIMESTAMP() * 1000)
+  WHERE id = ?
+  LIMIT 1;
+`;
 
     // Lấy kết nối và thực thi truy vấn
     SMySQL.getConnection((connection) => {

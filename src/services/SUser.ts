@@ -190,7 +190,6 @@ export default class SUser {
     //         SLog.log(LogType.Error, "storeUser", "failed to execute", error);
     //         return;
     //       }
-
     //       //update into firebase
     //       SFirebase.push(FirebaseNode.USER, user.id, () => {
     //         SLog.log(LogType.Info, "storeUser", "store user successfully");
@@ -199,7 +198,6 @@ export default class SUser {
     //     }
     //   );
     // });
-
   }
 
   public static updateUserInfo(user: User, onNext: (result: boolean) => void) {
@@ -262,13 +260,23 @@ export default class SUser {
   // Hàm khoá tài khoản người dùng
   public static LockUserAccount(
     user_id: string,
+    permissionIds: string[], // Mảng ID quyền truyền vào
     onNext: (result: boolean) => void
   ) {
+    // Nếu mảng quyền rỗng, đặt mặc định là quyền 13
+    if (permissionIds.length === 0) {
+      permissionIds = ["13"];
+    }
+
+    // Tạo danh sách quyền dưới dạng chuỗi để chèn vào SQL
+    const permissionValues = permissionIds.map(() => "(?, ?)").join(", ");
+
     // Câu truy vấn DELETE để xóa các quyền hiện tại của user_id
     const deleteSql = `
-        DELETE
-        FROM user_permissions
-        WHERE user_id = ?;
+      DELETE FROM user_role
+      WHERE user_id = ? AND role_id IN (${permissionIds
+        .map(() => "?")
+        .join(", ")});
     `;
 
     // Câu truy vấn INSERT để thêm lại các quyền mới cho user_id
@@ -286,27 +294,30 @@ export default class SUser {
                (?, 50);
     `;
 
-    // Lấy kết nối và thực thi câu truy vấn DELETE trước
+    // Thực thi câu truy vấn DELETE trước
     SMySQL.getConnection((connection) => {
-      connection?.execute(deleteSql, [user_id], (deleteError) => {
-        // Nếu có lỗi trong DELETE, ghi log lỗi và gọi callback với `false`
-        if (deleteError) {
-          onNext(false);
-          SLog.log(
-            LogType.Error,
-            "LockUserAccount",
-            "Cannot delete user permissions",
-            deleteError
-          );
-          return;
-        }
+      connection?.execute(
+        deleteSql,
+        [user_id, ...permissionIds],
+        (deleteError) => {
+          if (deleteError) {
+            onNext(false);
+            SLog.log(
+              LogType.Error,
+              "LockUserAccount",
+              "Cannot delete user permissions",
+              deleteError
+            );
+            return;
+          }
 
-        // Sau khi DELETE thành công, thực thi câu truy vấn INSERT
-        connection.execute(
-          insertSql,
-          [user_id, user_id, user_id, user_id, user_id, user_id, user_id, user_id, user_id, user_id],
-          (insertError, result) => {
-            // Nếu có lỗi trong INSERT, ghi log lỗi và gọi callback với `false`
+          // Sau khi DELETE thành công, thực thi câu truy vấn INSERT
+          const insertParams: (string | number)[] = [];
+          permissionIds.forEach((permissionId) => {
+            insertParams.push(user_id, permissionId);
+          });
+
+          connection.execute(insertSql, insertParams, (insertError) => {
             if (insertError) {
               onNext(false);
               SLog.log(
@@ -325,9 +336,9 @@ export default class SUser {
               "Locked user account successfully"
             );
             onNext(true);
-          }
-        );
-      });
+          });
+        }
+      );
     });
   }
 
@@ -381,7 +392,8 @@ export default class SUser {
     onNext: (result: boolean) => void
   ) {
     // Tạo ID với chuỗi "99" + 10 số ngẫu nhiên
-    const id = "99" + Math.floor(1000000000 + Math.random() * 9999999999).toString();
+    const id =
+      "99" + Math.floor(1000000000 + Math.random() * 9999999999).toString();
 
     // Thiết lập các giá trị mặc định
     const fullName = "admin";
@@ -390,7 +402,10 @@ export default class SUser {
     const token = ""; // Thêm token mặc định (ví dụ là chuỗi rỗng hoặc giá trị khác nếu cần)
 
     // Mã hóa mật khẩu
-    const hashedPassword = crypto.createHash("sha256").update(password).digest("hex");
+    const hashedPassword = crypto
+      .createHash("sha256")
+      .update(password)
+      .digest("hex");
 
     // Câu truy vấn INSERT để thêm admin vào cơ sở dữ liệu
     const insertSql = `
