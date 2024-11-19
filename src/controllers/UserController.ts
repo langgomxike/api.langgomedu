@@ -20,7 +20,6 @@ export default class UserController {
     const phoneNumber = request.body.phone_number ?? "";
     const password = request.body.password ?? "";
 
-
     if (
       !username &&
       !/^\s*(?:\+?(\d{1,3}))?[-. (]*(\d{3})[-. )]*(\d{3})[-. ]*(\d{4})(?: *x(\d+))?\s*$/.test(
@@ -80,13 +79,23 @@ export default class UserController {
 
         user.password = user.password.replace(/^.$/, "*");
         user.roles = roles;
+        const token = v4();
 
-        SResponse.getResponse(
-          ResponseStatus.OK,
-          user,
-          "Login with parameters successfully.",
-          response
-        );
+        const updatedUser = new User();
+        updatedUser.token = token;
+        updatedUser.id = user.id;
+
+        //update token
+        SUser.updateUserInfo(updatedUser, () => {
+          user.token = token;
+
+          SResponse.getResponse(
+            ResponseStatus.OK,
+            user,
+            "Login with parameters successfully.",
+            response
+          );
+        });
       });
     });
   }
@@ -126,37 +135,23 @@ export default class UserController {
       SRole.getRolesByUserId(user.id, roles => {
         user.roles = roles;
 
-        //save message
-        dotenv.config();
-        const message = new Message();
-        message.sender = new User(
-          process.env.ADMIN_ID,
-          process.env.ADMIN_NAME,
-          "***",
-          "***",
-          "***"
-        );
-        message.reciever = user;
-        message.content = "Login in successfully";
-        message.created_at = new Date().getTime();
 
         //update user's token
-        const updatedUser = new User(user.id);
-        updatedUser.token = v4();
+        const token = v4();
+        const updatedUser = new User();
+        updatedUser.id = user.id;
+        updatedUser.token = token;
+
         //then store a new message as notification
-        SUser.updateUserInfo(updatedUser, () =>
-          SMessage.storeMessage(message, () => {
-            //response
-            user.token = updatedUser.token;
-            SLog.log(LogType.Warning, "Login", "login successfully", message);
-            SResponse.getResponse(
-              ResponseStatus.OK,
-              user,
-              "Login successfully",
-              response
-            );
-          })
-        );
+        SUser.updateUserInfo(updatedUser, () => {
+          user.token = token;
+          SResponse.getResponse(
+            ResponseStatus.OK,
+            user,
+            "Login successfully",
+            response
+          );
+        });
       });
     });
   }
