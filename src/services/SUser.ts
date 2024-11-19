@@ -73,36 +73,7 @@ export default class SUser {
     id: string,
     onNext: (user: User | undefined) => void
   ) {
-    const sql = `SELECT users.*,
-                            JSON_OBJECT(
-                                    'id', roles.id,
-                                    'role', roles.name
-                            ) AS role,
-                            JSON_OBJECT(
-                                    'id', files.id,
-                                    'path', files.path,
-                                    'image_width', files.image_with,
-                                    'image_height', files.image_height
-                            ) AS avatar,
-                            JSON_OBJECT(
-                                    'hometown', informations.hometown,
-                                    'address_1', informations.address_1,
-                                    'address_2', informations.address_2,
-                                    'address_3', informations.address_3,
-                                    'address_4', informations.address_4,
-                                    'birthday', informations.birthday,
-                                    'gender', JSON_OBJECT(
-                                            'vn_gender', genders.vn_gender,
-                                            'ja_gender', genders.ja_gender,
-                                            'en_gender', genders.en_gender
-                                              )
-                            ) AS information
-                     FROM users
-                              INNER JOIN roles ON roles.id = users.role_id
-                              INNER JOIN files ON files.id = users.avatar_id
-                              INNER JOIN informations ON informations.user_id = users.id
-                              INNER JOIN genders ON genders.id = informations.gender_id
-                     WHERE users.id = ?`;
+    const sql = `SELECT users FROM users WHERE users.id = ?`;
 
     SMySQL.getConnection((connection) => {
       connection?.execute<any>(sql, [id], (error, result) => {
@@ -120,61 +91,11 @@ export default class SUser {
     });
   }
 
-  public static getUserByEmail(
-    email: string,
-    onNext: (user: User | undefined) => void
-  ) {
-    const sql = `SELECT users.*,
-                            JSON_OBJECT(
-                                    'id', roles.id,
-                                    'role', roles.name
-                            ) AS role,
-                            JSON_OBJECT(
-                                    'id', files.id,
-                                    'path', files.path,
-                                    'image_width', files.image_with,
-                                    'image_height', files.image_height
-                            ) AS avatar
-                     FROM users
-                              INNER JOIN roles ON roles.id = users.role_id
-                              INNER JOIN files ON files.id = users.avatar_id
-                     WHERE email = ?`;
-
-    SMySQL.getConnection((connection) => {
-      connection?.execute<any>(sql, [email], (error, result) => {
-        if (error) {
-          onNext(undefined);
-          SLog.log(LogType.Error, "getUserByEmail", "", error);
-          return;
-        } else {
-          const user: User | undefined = (result && result[0]) || undefined;
-
-          SLog.log(LogType.Info, "getUserByEmail", "", user);
-          onNext(user);
-        }
-      });
-    });
-  }
-
   public static getUserByToken(
     token: string,
     onNext: (user: User | undefined) => void
   ) {
-    const sql = `SELECT users.*,
-                            JSON_OBJECT(
-                                    'id', roles.id,
-                                    'role', roles.name
-                            ) AS role,
-                            JSON_OBJECT(
-                                    'id', files.id,
-                                    'path', files.path,
-                                    'image_width', files.image_with,
-                                    'image_height', files.image_height
-                            ) AS avatar
-                     FROM users
-                              INNER JOIN roles ON roles.id = users.role_id
-                              INNER JOIN files ON files.id = users.avatar_id
-                     WHERE token = ?`;
+    const sql = `SELECT * FROM users WHERE token = ?`;
 
     SMySQL.getConnection((connection) => {
       connection?.execute<any>(sql, [token], (error, result) => {
@@ -191,35 +112,22 @@ export default class SUser {
     });
   }
 
-  public static getUserByPhoneNumber(
+  public static getUserByPhoneNumberOrUsername(
     phoneNumber: string,
+    username: string,
     onNext: (user: User | undefined) => void
   ) {
-    const sql = `SELECT users.*,
-                            JSON_OBJECT(
-                                    'id', roles.id,
-                                    'role', roles.name
-                            ) AS role,
-                            JSON_OBJECT(
-                                    'id', files.id,
-                                    'path', files.path,
-                                    'image_width', files.image_with,
-                                    'image_height', files.image_height
-                            ) AS avatar
-                     FROM users
-                              INNER JOIN roles ON roles.id = users.role_id
-                              INNER JOIN files ON files.id = users.avatar_id
-                     WHERE phone_number = ?`;
+    const sql = `SELECT * FROM users WHERE phone_number = ? OR user_name = ?`;
 
     SMySQL.getConnection((connection) => {
-      connection?.execute<any>(sql, [phoneNumber], (error, result) => {
+      connection?.execute<any>(sql, [phoneNumber, username], (error, result) => {
         if (error) {
           onNext(undefined);
-          SLog.log(LogType.Error, "getUserByPhoneNumber", "", error);
+          SLog.log(LogType.Error, "getUserByPhoneNumberOrUsername", "", error);
           return;
         } else {
           const user: User | undefined = (result && result[0]) || undefined;
-          SLog.log(LogType.Info, "getUserByPhoneNumber", "", user);
+          SLog.log(LogType.Info, "getUserByPhoneNumberOrUsername", "", user);
           onNext(user);
         }
       });
@@ -322,9 +230,9 @@ export default class SUser {
       params.push(user.role?.id);
     }
 
-        if (user.avatar?.id) {
-            sql += "`avatar_id` = ?,";
-            params.push(user.avatar?.id);
+        if (user.avatar) {
+            sql += "`avatar` = ?,";
+            params.push(user.avatar);
         }
 
         sql += "`updated_at` = ? WHERE id = ?";

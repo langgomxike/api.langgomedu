@@ -82,7 +82,7 @@ export function setUpPermissions() {
         connection?.execute(truncateSQL); // Execute the truncate command to reset the table
 
         // SQL query template for inserting a new permission record into the "permissions" table 
-        const sql = "INSERT INTO permissions (`id`, `permission`) VALUES (?,?)";
+        const sql = "INSERT INTO permissions (`id`, `name`) VALUES (?,?)";
 
         // Iterate over each permission object and execute the SQL query to insert it into the database
         permissions.forEach(permission => {
