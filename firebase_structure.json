@@ -1,0 +1,80 @@
+{
+  "addresses": {
+    "id:123": 1700189787234
+  },
+  "attendances": {
+    "id:123": 1700189787234
+  },
+  "certificates": {
+    "id:123": 1700189787234
+  },
+  "class_levels": {
+    "id:123": 1700189787234
+  },
+  "class_members": {
+    "class_id:123|user_id:456": 1700189787234
+  },
+  "classes": {
+    "id:123": 1700189787234
+  },
+  "cvs": {
+    "user_id:123": 1700189787234
+  },
+  "educations": {
+    "id:123": 1700189787234
+  },
+  "experiences": {
+    "id:123": 1700189787234
+  },
+  "files": {
+    "id:123": 1700189787234
+  },
+  "genders": {
+    "id:123": 1700189787234
+  },
+  "interested_class_levels": {
+    "user_id:123|class_level_id:456": 1700189787234
+  },
+  "interested_majors": {
+    "user_id:123|major_id:456": 1700189787234
+  },
+  "lessons": {
+    "id:123": 1700189787234
+  },
+  "majors": {
+    "id:123": 1700189787234
+  },
+  "messages": {
+    "id:123": 1700189787234
+  },
+  "otps": {
+    "id:123": 1700189787234
+  },
+  "permissions": {
+    "id:123": 1700189787234
+  },
+  "ratings": {
+    "id:123": 1700189787234
+  },
+  "report_files": {
+    "report_id:123|file_id:456": 1700189787234
+  },
+  "reports": {
+    "id:123": 1700189787234
+  },
+  "role_permission": {
+    "role_id:123|permission_id:456": 1700189787234
+  },
+  "roles": {
+    "id:123": 1700189787234
+  },
+  "statuses": {
+    "id:123": 1700189787234
+  },
+  "user_role": {
+    "user_id:123|role_id:456": 1700189787234
+  },
+  "users": {
+    "id:123": 1700189787234
+  }
+}

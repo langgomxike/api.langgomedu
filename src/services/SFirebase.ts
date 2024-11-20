@@ -8,132 +8,137 @@ import SLog, {LogType} from "./SLog";
 import firebaseNodeProps from "../../firebase_node_props.json";
 
 export enum FirebaseNode {
-    ATTENDANCE = 0,
-    CERTIFICATE = 1,
-    CLASS = 2,
-    CLASS_REPORT = 3,
-    CV = 4,
-    LESSON = 5,
-    MAJOR = 6,
-    MESSAGE = 7,
-    OTHER_SKILL = 8,
-    OTP = 9,
-    PERMISSION = 10,
-    RATING = 11,
-    ROLE = 12,
-    STUDENT = 13,
-    USER = 14,
-    USER_REPORT = 15,
-    CLASS_LEVEL = 16,
-    CERTIFICATE_LEVEL = 17,
+  Addresses = "addresses",
+  Attendances = "attendances",
+  Certificates = "certificates",
+  ClassLevels = "class_levels",
+  ClassMembers = "class_members",
+  Classes = "classes",
+  CVs = "cvs",
+  Educations = "educations",
+  Experiences = "experiences",
+  Files = "files",
+  Genders = "genders",
+  InterestedClassLevels = "interested_class_levels",
+  InterestedMajors = "interested_majors",
+  Lessons = "lessons",
+  Majors = "majors",
+  Messages = "messages",
+  OTPs = "otps",
+  Permissions = "permissions",
+  Ratings = "ratings",
+  ReportFiles = "report_files",
+  Reports = "reports",
+  RolePermission = "role_permission",
+  Roles = "roles",
+  Statuses = "statuses",
+  UserRole = "user_role",
+  Users = "users",
+  Id = "id",
+  ClassId = "class_id",
+  LessonId = "lesson_id",
+  UserId = "user_id",
+  FromUserId = "from_user_id",
+  ToUserId = "to_user_id",
+  MessageId = "message_id",
+  ClassLevelId = "class_level_id",
+  MajorId = "major_id",
+  GenderId = "gender_id",
+  CertificateId = "certificate_id",
+  EducationId = "education_id",
+  ExperienceId = "experience_id",
+  ReportId = "report_id",
+  RoleId = "role_id",
+  PermissionId = "permission_id",
+  StatusId = "status_id",
+  ReportFileId = "report_file_id",
+  FileId = "file_id",
+  OTPId = "otp_id",
 }
 
 export default class SFirebase {
-    private static dbRef: admin.database.Database;
+  private static dbRef: admin.database.Database;
 
-    private static init() {
-        if (!this.dbRef) {
-            dotenv.config();
+  private static init() {
+    if (!this.dbRef) {
+      dotenv.config();
 
-            const dbURL = process.env.FIREBASE_DATABASE || "";
+      const dbURL = process.env.FIREBASE_DATABASE || "";
 
-            this.dbRef = admin
-                .initializeApp({
-                    credential: admin.credential.cert(
-                        firebaseAccount as admin.ServiceAccount
-                    ),
-                    databaseURL: dbURL,
-                })
-                ?.database();
+      this.dbRef = admin
+        .initializeApp({
+          credential: admin.credential.cert(
+            firebaseAccount as admin.ServiceAccount
+          ),
+          databaseURL: dbURL,
+        })
+        ?.database();
 
-            SLog.log(
-                LogType.Info,
-                "Firebase Database",
-                "Connected to firebase realtime database",
-                (this.dbRef.app.name as unknown) ?? {}
-            );
-        }
+      SLog.log(
+        LogType.Info,
+        "Firebase Database",
+        "Connected to firebase realtime database",
+        (this.dbRef.app.name as unknown) ?? {}
+      );
     }
+  }
 
-    public static push(firebaseNode: FirebaseNode, key: number | string, onNext: () => void) {
-        this.init();
+  public static push(parentNode: FirebaseNode, keyNodes: {
+    key: FirebaseNode,
+    value: string | number
+  }[], onNext: () => void) {
+    this.init();
 
-        const firebaseReference = this.dbRef.ref(`${firebaseNodeProps[firebaseNode].node}/${firebaseNodeProps[firebaseNode].key}:${key}`);
-        const currentTime = new Date().getTime();
+    let node = `${parentNode}/${keyNodes.map((keyNode) => `${keyNode.key}:${keyNode.value}`).join("|")}`;
+    const firebaseReference = this.dbRef.ref(node);
+    const currentTime = new Date().getTime();
 
-        firebaseReference.set(currentTime, (error) => {
-            if (error) {
-                SLog.log(
-                    LogType.Error,
-                    `push data into firebase`,
-                    `push data to the node ${firebaseNodeProps[firebaseNode].node} with key ${firebaseNodeProps[firebaseNode].key} = ${key} found error`,
-                    error
-                );
+    firebaseReference.set(currentTime, (error) => {
+      if (error) {
+        SLog.log(
+          LogType.Error,
+          `push data into firebase`,
+          `push data to the node ${parentNode} with key ${node} found error`,
+          error
+        );
 
-            } else {
-                SLog.log(
-                    LogType.Info,
-                    `push data into firebase`,
-                    `push data to the node ${firebaseNodeProps[firebaseNode].node} with key ${firebaseNodeProps[firebaseNode].key} = ${key} successfully`,
-                    error
-                );
+      } else {
+        SLog.log(
+          LogType.Info,
+          `push data into firebase`,
+          `push data to the node ${parentNode} with key ${node} successfully`,
+        );
+      }
+      onNext();
+    });
+  }
 
-            }
-            onNext();
-        });
-    }
+  public static delete(parentNode: FirebaseNode, keyNodes: {
+    key: FirebaseNode,
+    value: string | number
+  }[], onNext: () => void) {
+    this.init();
 
-    public static pushMessage(fromUserId: string, toUserId: string, onNext: () => void) {
-        this.init();
+    let node = `${parentNode}/${keyNodes.map((keyNode) => `${keyNode.key}:${keyNode.value}`).join("|")}`;
+    const firebaseReference = this.dbRef.ref(node);
 
-        const firebaseReference = this.dbRef.ref(`MESSAGES/FROM_USER_ID:${fromUserId}/TO_USER_ID:${toUserId}`);
-        const currentTime = new Date().getTime();
+    firebaseReference.remove((error) => {
+      if (error) {
+        SLog.log(
+          LogType.Error,
+          `remove node in firebase`,
+          `remove the node ${parentNode} with key ${node} found error`,
+          error
+        );
 
-        firebaseReference.set(currentTime, (error) => {
-            if (error) {
-                SLog.log(
-                    LogType.Error,
-                    `push data into firebase`,
-                    `push data to the node MESSAGES with keys = [${fromUserId},${toUserId}] found error`,
-                    error
-                );
-
-            } else {
-                SLog.log(
-                    LogType.Info,
-                    `push data into firebase`,
-                    `push data to the node MESSAGES with keys = [${fromUserId},${toUserId}] successfully`,
-                    error
-                );
-            }
-            onNext();
-        });
-    }
-
-    public static delete(firebaseNode: FirebaseNode, key: number | string, onNext: () => void) {
-        this.init();
-
-        const firebaseReference = this.dbRef.ref(`${firebaseNodeProps[firebaseNode].node}/${firebaseNodeProps[firebaseNode].key}:${key}`);
-
-        firebaseReference.remove((error) => {
-            if (error) {
-                SLog.log(
-                    LogType.Error,
-                    `push data into firebase`,
-                    `push data to the node ${firebaseNodeProps[firebaseNode].node} with key ${firebaseNodeProps[firebaseNode].key} = ${key} found error`,
-                    error
-                );
-
-            } else {
-                SLog.log(
-                    LogType.Info,
-                    `push data into firebase`,
-                    `push data to the node ${firebaseNodeProps[firebaseNode].node} with key ${firebaseNodeProps[firebaseNode].key} = ${key} successfully`,
-                    error
-                );
-
-                onNext();
-            }
-        });
-    }
+      } else {
+        SLog.log(
+          LogType.Info,
+          `remove node in firebase`,
+          `remove the node ${parentNode} with key ${node} successfully`,
+        );
+      }
+      onNext();
+    });
+  }
 }

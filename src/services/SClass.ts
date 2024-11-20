@@ -6,6 +6,7 @@ import User from "../models/User";
 import Major from "../models/Major";
 import Lesson from "../models/Lesson";
 import { UserType } from "../configs/UserType";
+import SFirebase, { FirebaseNode } from "./SFirebase";
 
 export default class SClass {
   /**
@@ -169,14 +170,14 @@ export default class SClass {
   public static getUnstartedClasses(onNext: (classes: Class[]) => void) {}
   public static getIncompleteClasses(onNext: (classes: Class[]) => void) {}
 
+  //Lấy chi tiết lớp học và với user id
   public static getClassDetailWithUser(
     id: number,
     userId: string,
-    onNext: (_class: Class | undefined, related_classes: Class[]) => void
+    onNext: (_class: Class, conflictingLessons: any) => void
   ) {
     //get class
-    const sql = `SELECT 
-                    JSON_OBJECT(
+    const sql = `SELECT JSON_OBJECT(
                     'id', c.id,
                     'title', c.title,
                     'description', c.description,
@@ -186,44 +187,18 @@ export default class SClass {
                         'full_name', tutor.full_name,
                         'email', tutor.email,
                         'phone_number', tutor.phone_number,
-                        'avatar', JSON_OBJECT(
-                            'id', tutor_avatar.id,
-                            'name', tutor_avatar.name,
-                            'path', tutor_avatar.path,
-                            'capacity', tutor_avatar.capacity,
-                            'image_width', tutor_avatar.image_with,
-                            'image_height', tutor_avatar.image_height,
-                            'created_at', tutor_avatar.created_at,
-                            'updated_at', tutor_avatar.updated_at
-                        )
+                        'avatar', tutor.avatar
                     ),
                     'author', JSON_OBJECT(
-                        'id', tutor.id,
-                        'full_name', tutor.full_name,
-                        'email', tutor.email,
-                        'phone_number', tutor.phone_number,
-                        'avatar', JSON_OBJECT(
-                            'id', tutor_avatar.id,
-                            'name', tutor_avatar.name,
-                            'path', tutor_avatar.path,
-                            'capacity', tutor_avatar.capacity,
-                            'image_width', tutor_avatar.image_with,
-                            'image_height', tutor_avatar.image_height,
-                            'created_at', tutor_avatar.created_at,
-                            'updated_at', tutor_avatar.updated_at
-                        )
+                        'id', author.id,
+                        'full_name', author.full_name,
+                        'email', author.email,
+                        'phone_number', author.phone_number,
+                        'avatar', author.avatar
                     ),
                     'major', JSON_OBJECT(
                         'id', majors.id,
-                        'icon', JSON_OBJECT(
-                            'id', major_icon.id,
-                            'name', major_icon.name,
-                            'path', major_icon.path,
-                            'image_width', major_icon.image_with,
-                            'image_height', major_icon.image_height,
-                            'created_at', major_icon.created_at,
-                            'updated_at', major_icon.updated_at
-                        ),
+                        'icon', majors.icon,
                         'vn_name', majors.vn_name,
                         'en_name', majors.en_name,
                         'ja_name', majors.ja_name
@@ -235,10 +210,16 @@ export default class SClass {
                         'ja_name', cl.ja_name
                     ),
                     'class_creaton_fee', c.class_creation_fee,
-                    'type', JSON_ARRAYAGG(
-                       		CASE WHEN lessons.is_online = 1 THEN 'online'
-                        		ELSE 'offline'
-                        	END
+                    'type', GROUP_CONCAT(
+                        DISTINCT CASE 
+                            WHEN lessons.is_online = 1 THEN 'online'
+                            ELSE 'offline'
+                        END
+                        ORDER BY CASE 
+                            WHEN lessons.is_online = 1 THEN 1 
+                            ELSE 2 
+                        END ASC
+                        SEPARATOR ', '
                     ),
                     'duration', lessons.duration,
                     'max_learners', c.max_learners,
@@ -246,27 +227,37 @@ export default class SClass {
                     'ended_at', c.ended_at,
                     'created_at', c.created_at,
                     'updated_at', c.updated_at,
-                    'address_1', c.address_1,
-                    'address_2', c.address_2,
-                    'address_3', c.address_3,
-                     'address_4', c.address_4,
-        'user_status', CASE 
-            WHEN c.author_id = ? THEN 'author'
-            WHEN c.tutor_id = ? THEN 'tutor'
-            WHEN in_class_members.user_id IS NOT NULL THEN 'member'
-            ELSE 'not_joined'
-        END
+                    'address', JSON_OBJECT (
+                        "id", addresses.id,
+                        "province", addresses.province,
+                        "district", addresses.district,
+                        "ward", addresses.ward,
+                        "detail", addresses.detail
+                    ),
+                    'user_status', CASE 
+                        WHEN c.author_id = ? THEN 'author'
+                        WHEN c.tutor_id = ? THEN 'tutor'
+                        WHEN class_members.user_id IS NOT NULL THEN 'member'
+                        ELSE 'not_joined'
+                    END,
+                    'lessons', JSON_ARRAYAGG(
+                    JSON_OBJECT(
+                        'id', lessons.id,
+                        'day', lessons.day,
+                        'started_at', lessons.started_at,
+                        'duration', lessons.duration,
+                        'is_online', lessons.is_online,
+                        'note', lessons.note)
+                		)
                     ) as class
                 FROM classes c
                 LEFT JOIN users tutor ON tutor.id = c.tutor_id
-                LEFT JOIN files tutor_avatar ON tutor_avatar.id = tutor.avatar_id
                 LEFT JOIN users author ON author.id = c.author_id
-                LEFT JOIN files author_avatar ON author_avatar.id = author.avatar_id
                 LEFT JOIN majors ON majors.id = c.major_id
-                LEFT JOIN files major_icon ON major_icon.id = majors.icon_id
                 LEFT JOIN class_levels cl ON cl.id = c.class_level_id
                 LEFT JOIN lessons ON lessons.class_id = c.id
-                LEFT JOIN in_class_members ON in_class_members.class_id = c.id AND in_class_members.user_id = ?
+                LEFT JOIN addresses ON addresses.id = c.address_id
+                LEFT JOIN class_members ON class_members.class_id = c.id AND class_members.user_id = ?
                 WHERE c.id = ?
                 GROUP BY c.id;`;
 
@@ -277,33 +268,76 @@ export default class SClass {
         (err, result) => {
           if (err) {
             SLog.log(
-              LogType.Error,
-              "get Class by ID",
-              "can't not get class",
-              err
-            );
-            onNext(undefined, []);
+              LogType.Error,  "get Class by ID", "can't not get class", err);
+            onNext(new Class(), err);
           }
 
           const _class: Class = result[0].class as Class;
-          const related_classes: Class[] = [];
-          const major_id = _class.major?.id;
-          SClass.getRelatedClasses(major_id, id, (related_class) => {
-            related_class.forEach((data) => {
-              related_classes.push(data);
-            });
-            onNext(_class, related_class);
-          });
+          this.getconflictingLessonsWithClassUsers(id, ["089204000001"], (data) => {
+            onNext(_class, data);
+          })
+
         }
       );
     });
   }
 
+ 
+
+  // Lây danh sách các buổi học bị trùng với lớp học người dùng đang học
+  public static getconflictingLessonsWithClassUsers(classId: number, userIds: string[], onNext: (data: any[]) => void){
+
+    const userPlaceholders = userIds.map(() => "?").join(", "); 
+    const sql = `
+        SELECT 
+        cm.user_id,
+        lessons_user.class_id AS conflicting_class_id,
+        lessons_user.day AS conflicting_day ,
+        lessons_current.started_at,
+        lessons_current.class_id AS current_class_id,
+        lessons_current.day AS current_day ,
+        CASE 
+            WHEN lessons_user.class_id IS NOT NULL THEN TRUE
+            ELSE FALSE
+        END AS is_conflicting
+        FROM class_members AS cm
+        LEFT JOIN lessons AS lessons_current ON lessons_current.class_id = ?
+        INNER JOIN lessons AS lessons_user ON lessons_user.day = lessons_current.day
+            AND lessons_user.class_id = cm.class_id
+            AND (
+                lessons_user.started_at BETWEEN lessons_current.started_at 
+                    AND (lessons_current.started_at + lessons_current.duration) OR 
+                (lessons_user.started_at + lessons_user.duration) BETWEEN lessons_current.started_at 
+                    AND (lessons_current.started_at + lessons_current.duration)
+            )
+        WHERE cm.user_id IN (${userPlaceholders}) AND lessons_user.class_id != lessons_current.class_id
+        GROUP BY cm.user_id,  lessons_user.day;
+    `;
+
+    SMySQL.getConnection((connection) => {
+      connection?.query<any>(sql, [classId, ...userIds], (err, result) => {
+        if (err) {
+          SLog.log(
+            LogType.Error,
+            "get conflicting lessons with class users",
+            "can't not get conflicting lessons",
+            err
+          );
+          onNext([]);
+        }
+
+        onNext(result);
+
+      })
+    })
+  }
+  
   public static getClassesByKey(
     key: string,
     onNext: (classes: Class[]) => void
   ) {}
 
+  // Lấy danh sách lớp học gợi ý
   public static getSuggestedClasses(
     userId: string,
     userType: number,
@@ -311,10 +345,9 @@ export default class SClass {
   ) {
     // Xác định điều kiện WHERE theo userType
     const condition =
-    userType === UserType.TUTOR
-      ? `classes.tutor_id IS NULL AND classes.author_id != ? AND in_class_members.user_id IS NULL`
-      : `classes.author_id != ? AND classes.tutor_id != ? AND in_class_members.user_id IS NULL`;
-
+      userType === UserType.TUTOR
+        ? `classes.tutor_id IS NULL AND classes.author_id != ? AND class_members.user_id IS NULL`
+        : `classes.author_id != ? AND (classes.tutor_id != ? OR classes.tutor_id IS NULL ) AND class_members.user_id IS NULL`;
 
     // SQL query to fetch class information, including tutor, major, and class level details
     const sql = `SELECT 
@@ -329,32 +362,33 @@ export default class SClass {
                           'ended_at', classes.ended_at,
                           'created_at', classes.created_at,
                           'updated_at', classes.updated_at,
-                          'address_1', classes.address_1,
-                          'address_2', classes.address_2,
-                          'address_3', classes.address_3,
-                          'address_4', classes.address_4,
+                          'address', JSON_OBJECT (
+                              "id", addresses.id,
+                              "province", addresses.province,
+                              "district", addresses.district,
+                              "ward", addresses.ward,
+                              "detail", addresses.detail
+                          ),
                           'tutor', JSON_OBJECT(
-                          'id', users.id,
-                          'name', users.full_name,
-                          'email', users.email,
-                          'phone_number', users.phone_number,
-                          'avatar', JSON_OBJECT(
-                                      'id', files_tutor.id,
-                                      'name', files_tutor.name,
-                                      'path', files_tutor.path
-                                    )
-                            ),
-                            'major', JSON_OBJECT(
+                            'id', tutor.id,
+                            'full_name', tutor.full_name,
+                            'email', tutor.email,
+                            'phone_number', tutor.phone_number,
+                            'avatar', tutor.avatar
+                          ),
+                          'author', JSON_OBJECT(
+                              'id', author.id,
+                              'full_name', author.full_name,
+                              'email', author.email,
+                              'phone_number', author.phone_number,
+                              'avatar', author.avatar
+                          ),
+                          'major', JSON_OBJECT(
                           'id', majors.id,
                           'vn_name', majors.vn_name,
                           'en_name', majors.en_name,
                           'ja_name', majors.ja_name,
-                          'icon', JSON_OBJECT(
-                                      'id', files_major.id,
-                                      'name', files_major.name,
-                                      'path', files_major.path
-                                  )
-                            ),
+                          'icon', majors.icon ),
                         'class_level', JSON_OBJECT(
                           'id', class_levels.id,
                           'vn_name', class_levels.vn_name,
@@ -363,17 +397,17 @@ export default class SClass {
                         )
                       ) AS class
                   FROM classes
-                  LEFT JOIN users ON users.id = classes.tutor_id
+                  LEFT JOIN users tutor ON tutor.id = classes.tutor_id
+                  LEFT JOIN users author ON author.id = classes.author_id
                   LEFT JOIN majors ON majors.id = classes.major_id
                   LEFT JOIN class_levels ON class_levels.id = classes.class_level_id
-                  LEFT JOIN files AS files_tutor ON files_tutor.id = users.avatar_id
-                  LEFT JOIN files AS files_major ON files_major.id = majors.icon_id
-                  LEFT JOIN in_class_members ON in_class_members.class_id = classes.id AND in_class_members.user_id = ?
+                  LEFT JOIN addresses ON addresses.id = classes.address_id
+                  LEFT JOIN class_members ON class_members.class_id = classes.id AND class_members.user_id = ?
                   WHERE ${condition};`;
 
     // Thay thế các giá trị điều kiện theo userType
     const params =
-    userType === UserType.TUTOR ? [userId, userId] : [userId, userId, userId];
+      userType === UserType.TUTOR ? [userId, userId] : [userId, userId, userId];
 
     // Get a database connection
     SMySQL.getConnection((connection) => {
@@ -403,6 +437,7 @@ export default class SClass {
     });
   }
 
+  // Lấy danh sách  lớp học liên quan
   public static getRelatedClasses(
     major_id: number | undefined,
     class_id: number,
@@ -528,6 +563,7 @@ export default class SClass {
     });
   }
 
+  // Lấy danh sách lớp học đang tham gia
   public static getAttendingClasses(
     user_id: string,
     onNext: (classes: Class[]) => void
@@ -545,54 +581,56 @@ export default class SClass {
                           'ended_at', classes.ended_at,
                           'created_at', classes.created_at,
                           'updated_at', classes.updated_at,
-                          'address_1', classes.address_1,
-                          'address_2', classes.address_2,
-                          'address_3', classes.address_3,
-                          'address_4', classes.address_4
-                      ) AS class,
-                      JSON_OBJECT(
-                          'id', users.id,
-                          'name', users.full_name,
-                          'email', users.email,
-                          'phone_number', users.phone_number,
-                          'avatar', JSON_OBJECT(
-                                      'id', files_tutor.id,
-                                      'name', files_tutor.name,
-                                      'path', files_tutor.path
-                                  )
-                      ) AS tutor,
-                      JSON_OBJECT(
-                          'id', majors.id,
-                          'vn_name', majors.vn_name,
-                          'en_name', majors.en_name,
-                          'ja_name', majors.ja_name,
-                          'icon', JSON_OBJECT(
-                                      'id', files_major.id,
-                                      'name', files_major.name,
-                                      'path', files_major.path
-                                  )
-                      ) AS major,
-                      JSON_OBJECT(
-                          'id', class_levels.id,
-                          'vn_name', class_levels.vn_name,
-                          'en_name', class_levels.en_name,
-                          'ja_name', class_levels.ja_name
-                      ) AS class_level
+                          'address', JSON_OBJECT (
+                              "id", addresses.id,
+                              "province", addresses.province,
+                              "district", addresses.district,
+                              "ward", addresses.ward,
+                              "detail", addresses.detail
+                          ),
+                          'tutor', JSON_OBJECT(
+                            'id', tutor.id,
+                            'full_name', tutor.full_name,
+                            'email', tutor.email,
+                            'phone_number', tutor.phone_number,
+                            'avatar', tutor.avatar
+                          ),
+                          'author', JSON_OBJECT(
+                              'id', author.id,
+                              'full_name', author.full_name,
+                              'email', author.email,
+                              'phone_number', author.phone_number,
+                              'avatar', author.avatar
+                          ),
+                          'major', JSON_OBJECT(
+                              'id', majors.id,
+                              'icon', majors.icon,
+                              'vn_name', majors.vn_name,
+                              'en_name', majors.en_name,
+                              'ja_name', majors.ja_name
+                          ),
+                          'class_level', JSON_OBJECT(
+                            'id', cl.id,
+                              'vn_name', cl.vn_name,
+                              'en_name', cl.en_name,
+                              'ja_name', cl.ja_name
+                          )
+                      ) AS class 
                   FROM classes
-                  INNER JOIN users ON users.id = classes.tutor_id
+                  LEFT JOIN users tutor ON tutor.id = classes.tutor_id
+                  LEFT JOIN users author ON author.id = classes.author_id
                   LEFT JOIN majors ON majors.id = classes.major_id
-                  LEFT JOIN class_levels ON class_levels.id = classes.class_level_id
-                  LEFT JOIN files AS files_tutor ON files_tutor.id = users.avatar_id
-                  LEFT JOIN files AS files_major ON files_major.id = majors.icon_id
-                  LEFT JOIN in_class_members ON in_class_members.class_id = classes.id
-                  WHERE in_class_members.user_id = ?;`;
+                  LEFT JOIN class_levels cl ON cl.id = classes.class_level_id
+                  LEFT JOIN addresses ON addresses.id = classes.address_id
+                  LEFT JOIN class_members ON class_members.class_id = classes.id
+                  WHERE class_members.user_id = ?;`;
 
     // Get a database connection
     SMySQL.getConnection((connection) => {
       // Execute the SQL query with the provided user_id as a parameter
       connection?.execute<any[]>(sql, [user_id], (err, rows) => {
+        // If an error occurs, return an empty array to the callback
         if (err) {
-          // If an error occurs, return an empty array to the callback
           onNext([]);
           return;
         }
@@ -601,98 +639,75 @@ export default class SClass {
 
         // Iterate through each row from the query result
         rows.forEach((row) => {
-          const tutor = row.tutor;
-          const major = row.major;
-          const class_level = row.class_level;
-
-          const _class = new Class(
-            row.class.id,
-            row.class.title,
-            row.class.description,
-            major, // Major details
-            tutor, // Tutor details
-            undefined, // Optional undefined parameter (author)
-            row.class.price,
-            row.class.class_creation_fee,
-            class_level, // Class level details
-            [],
-            0,
-            row.class.max_learners,
-            new Date(row.class.started_at),
-            new Date(row.class.ended_at),
-            new Date(row.class.created_at),
-            new Date(row.class.updated_at),
-            row.class.address_1,
-            row.class.address_2,
-            row.class.address_3,
-            row.class.address_4
-          );
-
-          // Add the created Class instance to the classes array
-          classes.push(_class);
+          const classData = row.class;
+          classes.push(classData);
         });
 
-        // SLog.log(LogType.Info, "getAttendingClasses","get Attending Classes",rows );
-
-        // Return the list of classes via the callback function
         return onNext(classes);
       });
     });
   }
 
+  // Lấy danh sách lớp học đang dạy
   public static getTeachingClasses(
     user_id: string,
     onNext: (classes: Class[]) => void
   ) {
     // SQL query to fetch class information, including tutor, major, and class level details
     const sql = `SELECT 
-                  JSON_OBJECT(
-                        'id', classes.id ,
-                        'title', classes.title ,
-                        'description', classes.description,
-                        'price', classes.price,
-                        'class_creation_fee', classes.class_creation_fee,
-                        'max_learners', classes.max_learners,
-                        'started_at', classes.started_at,
-                        'ended_at', classes.ended_at,
-                        'created_at', classes.created_at,
-                        'updated_at', classes.updated_at,
-                        'address_1', classes.address_1,
-                        'address_2', classes.address_2,
-                        'address_3', classes.address_3,
-                        'address_4', classes.address_4
-                    ) AS class,
                     JSON_OBJECT(
-                        'id', users.id,
-                        'name', users.full_name,
-                        'email', users.email,
-                        'phone_number', users.phone_number,
-                        'avatar', JSON_OBJECT(
-                                    'path', files_tutor.path
-                                )
-                    ) AS tutor,
-                    JSON_OBJECT(
-                        'id', majors.id,
-                        'vn_name', majors.vn_name,
-                        'en_name', majors.en_name,
-                        'ja_name', majors.ja_name,
-                        'icon', JSON_OBJECT(
-                                    'path', files_major.path
-                                )
-                    ) AS major,
-                    JSON_OBJECT(
-                        'id', class_levels.id,
-                        'vn_name', class_levels.vn_name,
-                        'en_name', class_levels.en_name,
-                        'ja_name', class_levels.ja_name
-                    ) AS class_level
-                FROM classes
-                INNER JOIN users ON users.id = classes.tutor_id
-                LEFT JOIN majors ON majors.id = classes.major_id
-                LEFT JOIN class_levels ON class_levels.id = classes.class_level_id
-                LEFT JOIN files AS files_tutor ON files_tutor.id = users.avatar_id
-                LEFT JOIN files AS files_major ON files_major.id = majors.icon_id
-                WHERE classes.tutor_id = ?;`;
+                          'id', classes.id ,
+                          'title', classes.title ,
+                          'description', classes.description,
+                          'price', classes.price,
+                          'class_creation_fee', classes.class_creation_fee,
+                          'max_learners', classes.max_learners,
+                          'started_at', classes.started_at,
+                          'ended_at', classes.ended_at,
+                          'created_at', classes.created_at,
+                          'updated_at', classes.updated_at,
+                          'address', JSON_OBJECT (
+                              "id", addresses.id,
+                              "province", addresses.province,
+                              "district", addresses.district,
+                              "ward", addresses.ward,
+                              "detail", addresses.detail
+                          ),
+                          'tutor', JSON_OBJECT(
+                            'id', tutor.id,
+                            'full_name', tutor.full_name,
+                            'email', tutor.email,
+                            'phone_number', tutor.phone_number,
+                            'avatar', tutor.avatar
+                          ),
+                          'author', JSON_OBJECT(
+                              'id', author.id,
+                              'full_name', author.full_name,
+                              'email', author.email,
+                              'phone_number', author.phone_number,
+                              'avatar', author.avatar
+                          ),
+                          'major', JSON_OBJECT(
+                              'id', majors.id,
+                              'icon', majors.icon,
+                              'vn_name', majors.vn_name,
+                              'en_name', majors.en_name,
+                              'ja_name', majors.ja_name
+                          ),
+                          'class_level', JSON_OBJECT(
+                            'id', cl.id,
+                              'vn_name', cl.vn_name,
+                              'en_name', cl.en_name,
+                              'ja_name', cl.ja_name
+                          )
+                      ) AS class 
+                  FROM classes
+                  LEFT JOIN users tutor ON tutor.id = classes.tutor_id
+                  LEFT JOIN users author ON author.id = classes.author_id
+                  LEFT JOIN majors ON majors.id = classes.major_id
+                  LEFT JOIN class_levels cl ON cl.id = classes.class_level_id
+                  LEFT JOIN addresses ON addresses.id = classes.address_id
+                  WHERE classes.tutor_id = ?;`;
 
     // Get a database connection
     SMySQL.getConnection((connection) => {
@@ -706,47 +721,17 @@ export default class SClass {
 
         const classes: Class[] = [];
 
-        // Iterate through each row from the query result
         rows.forEach((row) => {
-          const tutor = row.tutor;
-          const major = row.major;
-          const class_level = row.class_level;
-
-          const _class = new Class(
-            row.class.id,
-            row.class.title,
-            row.class.description,
-            major, // Major details
-            tutor, // Tutor details
-            undefined, // Optional undefined parameter (author)
-            row.class.price,
-            row.class.class_creation_fee,
-            class_level, // Class level details
-            [],
-            0,
-            row.class.max_learners,
-            new Date(row.class.started_at),
-            new Date(row.class.ended_at),
-            new Date(row.class.created_at),
-            new Date(row.class.updated_at),
-            row.class.address_1,
-            row.class.address_2,
-            row.class.address_3,
-            row.class.address_4
-          );
-
-          // Add the created Class instance to the classes array
-          classes.push(_class);
+          const classData = row.class;
+          classes.push(classData);
         });
 
-        // SLog.log(LogType.Info, "getAttendingClasses","get Attending Classes",rows );
-
-        // Return the list of classes via the callback function
         return onNext(classes);
       });
     });
   }
 
+  // Lấy danh sách lớp học đã được tạo
   public static getCreatedClasses(
     user_id: string,
     onNext: (classes: Class[]) => void
@@ -764,41 +749,47 @@ export default class SClass {
                           'ended_at', classes.ended_at,
                           'created_at', classes.created_at,
                           'updated_at', classes.updated_at,
-                          'address_1', classes.address_1,
-                          'address_2', classes.address_2,
-                          'address_3', classes.address_3,
-                          'address_4', classes.address_4
-                      ) AS class,
-                      JSON_OBJECT(
-                          'id', users.id,
-                          'name', users.full_name,
-                          'email', users.email,
-                          'phone_number', users.phone_number,
-                          'avatar', JSON_OBJECT(
-                                      'path', files_tutor.path
-                                  )
-                      ) AS tutor,
-                      JSON_OBJECT(
-                          'id', majors.id,
-                          'vn_name', majors.vn_name,
-                          'en_name', majors.en_name,
-                          'ja_name', majors.ja_name,
-                          'icon', JSON_OBJECT(
-                                      'path', files_major.path
-                                  )
-                      ) AS major,
-                      JSON_OBJECT(
-                          'id', class_levels.id,
-                          'vn_name', class_levels.vn_name,
-                          'en_name', class_levels.en_name,
-                          'ja_name', class_levels.ja_name
-                      ) AS class_level
+                          'address', JSON_OBJECT (
+                              "id", addresses.id,
+                              "province", addresses.province,
+                              "district", addresses.district,
+                              "ward", addresses.ward,
+                              "detail", addresses.detail
+                          ),
+                          'tutor', JSON_OBJECT(
+                            'id', tutor.id,
+                            'full_name', tutor.full_name,
+                            'email', tutor.email,
+                            'phone_number', tutor.phone_number,
+                            'avatar', tutor.avatar
+                          ),
+                          'author', JSON_OBJECT(
+                              'id', author.id,
+                              'full_name', author.full_name,
+                              'email', author.email,
+                              'phone_number', author.phone_number,
+                              'avatar', author.avatar
+                          ),
+                          'major', JSON_OBJECT(
+                              'id', majors.id,
+                              'icon', majors.icon,
+                              'vn_name', majors.vn_name,
+                              'en_name', majors.en_name,
+                              'ja_name', majors.ja_name
+                          ),
+                          'class_level', JSON_OBJECT(
+                            'id', cl.id,
+                              'vn_name', cl.vn_name,
+                              'en_name', cl.en_name,
+                              'ja_name', cl.ja_name
+                          )
+                      ) AS class 
                   FROM classes
-                  LEFT JOIN users ON users.id = classes.tutor_id
+                  LEFT JOIN users tutor ON tutor.id = classes.tutor_id
+                  LEFT JOIN users author ON author.id = classes.author_id
                   LEFT JOIN majors ON majors.id = classes.major_id
-                  LEFT JOIN class_levels ON class_levels.id = classes.class_level_id
-                  LEFT JOIN files AS files_tutor ON files_tutor.id = users.avatar_id
-                  LEFT JOIN files AS files_major ON files_major.id = majors.icon_id
+                  LEFT JOIN class_levels cl ON cl.id = classes.class_level_id
+                  LEFT JOIN addresses ON addresses.id = classes.address_id
                   WHERE classes.author_id = ?;`;
 
     // Get a database connection
@@ -813,42 +804,11 @@ export default class SClass {
 
         const classes: Class[] = [];
 
-        // Iterate through each row from the query result
         rows.forEach((row) => {
-          const tutor = row.tutor;
-          const major = row.major;
-          const class_level = row.class_level;
-
-          const _class = new Class(
-            row.class.id,
-            row.class.title,
-            row.class.description,
-            major, // Major details
-            tutor, // Tutor details
-            undefined, // Optional undefined parameter (author)
-            row.class.price,
-            row.class.class_creation_fee,
-            class_level, // Class level details
-            [],
-            0,
-            row.class.max_learners,
-            new Date(row.class.started_at),
-            new Date(row.class.ended_at),
-            new Date(row.class.created_at),
-            new Date(row.class.updated_at),
-            row.class.address_1,
-            row.class.address_2,
-            row.class.address_3,
-            row.class.address_4
-          );
-
-          // Add the created Class instance to the classes array
-          classes.push(_class);
+          const classData = row.class;
+          classes.push(classData);
         });
 
-        // SLog.log(LogType.Info, "getAttendingClasses","get Attending Classes",rows );
-
-        // Return the list of classes via the callback function
         return onNext(classes);
       });
     });
@@ -873,128 +833,111 @@ export default class SClass {
     updatedClass: Class,
     onNext: (result: boolean) => void
   ) {
-    // Initialize the SQL statement for updating the 'classes' table
-    let sql = "UPDATE `classes` SET ";
-    const updateCols: string[] = []; // Array to hold the columns to be updated
-    const updateValues: Array<string | number> = []; // Array to hold the values corresponding to the columns
-
-    // Conditionally add the 'title' column if the title length is within the valid range
-    if (
-      updatedClass.title &&
-      updatedClass.title.length >= 3 &&
-      updatedClass.title.length <= 255
-    ) {
-      updateCols.push("`title`=?");
-      updateValues.push(updatedClass.title);
-    }
-
-    // Conditionally add the 'description' column if it is provided
-    if (updatedClass.description) {
-      updateCols.push("`description`=?");
-      updateValues.push(updatedClass.description);
-    }
-
-    // Conditionally add the 'major_id' column if a valid major ID is provided
-    if (updatedClass.major?.id) {
-      updateCols.push("`major_id`=?");
-      updateValues.push(updatedClass.major.id);
-    }
-
-    // Conditionally add the 'tutor_id' column if a valid tutor ID is provided
-    if (updatedClass.tutor?.id) {
-      updateCols.push("`tutor_id`=?");
-      updateValues.push(updatedClass.tutor.id);
-    }
-
-    // Conditionally add the 'price' column if a price is provided
-    if (updatedClass.price) {
-      updateCols.push("`price`=?");
-      updateValues.push(updatedClass.price);
-    }
-
-    // Conditionally add the 'class_creation_fee' column if it is provided
-    if (updatedClass.class_creation_fee) {
-      updateCols.push("`class_creation_fee`=?");
-      updateValues.push(updatedClass.class_creation_fee);
-    }
-
-    // Conditionally add the 'class_level_id' column if a valid class level ID is provided
-    if (updatedClass.class_level?.id) {
-      updateCols.push("`class_level_id`=?");
-      updateValues.push(updatedClass.class_level.id);
-    }
-
-    // Conditionally add the 'max_learners' column if the maximum number of learners is provided
-    if (updatedClass.max_learners) {
-      updateCols.push("`max_learners`=?");
-      updateValues.push(updatedClass.max_learners);
-    }
-
-    // Conditionally add the 'started_at' column if the start date is provided
-    if (updatedClass.started_at) {
-      updateCols.push("`started_at`=?");
-      updateValues.push(updatedClass.started_at);
-    }
-
-    // Conditionally add the 'ended_at' column if the end date is provided
-    if (updatedClass.ended_at) {
-      updateCols.push("`ended_at`=?");
-      updateValues.push(updatedClass.ended_at);
-    }
-
-    // Conditionally add address columns if they are provided
-    if (updatedClass.address_1) {
-      updateCols.push("`address_1`=?");
-      updateValues.push(updatedClass.address_1);
-    }
-
-    // Conditionally add the 'address_2' column if the second address line is provided
-    if (updatedClass.address_2) {
-      updateCols.push("`address_2`=?"); // Add the 'address_2' column to the list of columns to update
-      updateValues.push(updatedClass.address_2); // Add the corresponding value for 'address_2'
-    }
-
-    // Conditionally add the 'address_3' column if the third address line is provided
-    if (updatedClass.address_3) {
-      updateCols.push("`address_3`=?"); // Add the 'address_3' column to the list of columns to update
-      updateValues.push(updatedClass.address_3); // Add the corresponding value for 'address_3'
-    }
-
-    // Conditionally add the 'address_4' column if the fourth address line is provided
-    if (updatedClass.address_4) {
-      updateCols.push("`address_4`=?"); // Add the 'address_4' column to the list of columns to update
-      updateValues.push(updatedClass.address_4); // Add the corresponding value for 'address_4'
-    }
-
-    // Build the final SQL statement by appending updated columns and setting the updated timestamp
-    sql += updateCols.map((col) => col + ", ").join(" ");
-    sql += " `updated_at`=? WHERE id = ?";
-
-    // Execute the SQL statement using a MySQL connection
-    SMySQL.getConnection((connection) => {
-      connection?.execute(
-        sql,
-        [...updateValues, new Date().getTime(), updatedClass.id],
-        (error) => {
-          // If an error occurs, log the error and invoke the callback with 'false'
-          if (error) {
-            onNext(false);
-            SLog.log(
-              LogType.Error,
-              "updateClass",
-              "Cannot update class",
-              error
-            );
-            return;
-          }
-
-          // If the update is successful, log success and invoke the callback with 'true'
-          onNext(true);
-          SLog.log(LogType.Error, "updateClass", "Update class successfully");
-          return;
-        }
-      );
-    });
+    // // Initialize the SQL statement for updating the 'classes' table
+    // let sql = "UPDATE `classes` SET ";
+    // const updateCols: string[] = []; // Array to hold the columns to be updated
+    // const updateValues: Array<string | number> = []; // Array to hold the values corresponding to the columns
+    // // Conditionally add the 'title' column if the title length is within the valid range
+    // if (
+    //   updatedClass.title &&
+    //   updatedClass.title.length >= 3 &&
+    //   updatedClass.title.length <= 255
+    // ) {
+    //   updateCols.push("`title`=?");
+    //   updateValues.push(updatedClass.title);
+    // }
+    // // Conditionally add the 'description' column if it is provided
+    // if (updatedClass.description) {
+    //   updateCols.push("`description`=?");
+    //   updateValues.push(updatedClass.description);
+    // }
+    // // Conditionally add the 'major_id' column if a valid major ID is provided
+    // if (updatedClass.major?.id) {
+    //   updateCols.push("`major_id`=?");
+    //   updateValues.push(updatedClass.major.id);
+    // }
+    // // Conditionally add the 'tutor_id' column if a valid tutor ID is provided
+    // if (updatedClass.tutor?.id) {
+    //   updateCols.push("`tutor_id`=?");
+    //   updateValues.push(updatedClass.tutor.id);
+    // }
+    // // Conditionally add the 'price' column if a price is provided
+    // if (updatedClass.price) {
+    //   updateCols.push("`price`=?");
+    //   updateValues.push(updatedClass.price);
+    // }
+    // // Conditionally add the 'class_creation_fee' column if it is provided
+    // if (updatedClass.class_creation_fee) {
+    //   updateCols.push("`class_creation_fee`=?");
+    //   updateValues.push(updatedClass.class_creation_fee);
+    // }
+    // // Conditionally add the 'class_level_id' column if a valid class level ID is provided
+    // if (updatedClass.class_level?.id) {
+    //   updateCols.push("`class_level_id`=?");
+    //   updateValues.push(updatedClass.class_level.id);
+    // }
+    // // Conditionally add the 'max_learners' column if the maximum number of learners is provided
+    // if (updatedClass.max_learners) {
+    //   updateCols.push("`max_learners`=?");
+    //   updateValues.push(updatedClass.max_learners);
+    // }
+    // // Conditionally add the 'started_at' column if the start date is provided
+    // if (updatedClass.started_at) {
+    //   updateCols.push("`started_at`=?");
+    //   updateValues.push(updatedClass.started_at);
+    // }
+    // // Conditionally add the 'ended_at' column if the end date is provided
+    // if (updatedClass.ended_at) {
+    //   updateCols.push("`ended_at`=?");
+    //   updateValues.push(updatedClass.ended_at);
+    // }
+    // // Conditionally add address columns if they are provided
+    // if (updatedClass.address_1) {
+    //   updateCols.push("`address_1`=?");
+    //   updateValues.push(updatedClass.address_1);
+    // }
+    // // Conditionally add the 'address_2' column if the second address line is provided
+    // if (updatedClass.address_2) {
+    //   updateCols.push("`address_2`=?"); // Add the 'address_2' column to the list of columns to update
+    //   updateValues.push(updatedClass.address_2); // Add the corresponding value for 'address_2'
+    // }
+    // // Conditionally add the 'address_3' column if the third address line is provided
+    // if (updatedClass.address_3) {
+    //   updateCols.push("`address_3`=?"); // Add the 'address_3' column to the list of columns to update
+    //   updateValues.push(updatedClass.address_3); // Add the corresponding value for 'address_3'
+    // }
+    // // Conditionally add the 'address_4' column if the fourth address line is provided
+    // if (updatedClass.address_4) {
+    //   updateCols.push("`address_4`=?"); // Add the 'address_4' column to the list of columns to update
+    //   updateValues.push(updatedClass.address_4); // Add the corresponding value for 'address_4'
+    // }
+    // // Build the final SQL statement by appending updated columns and setting the updated timestamp
+    // sql += updateCols.map((col) => col + ", ").join(" ");
+    // sql += " `updated_at`=? WHERE id = ?";
+    // // Execute the SQL statement using a MySQL connection
+    // SMySQL.getConnection((connection) => {
+    //   connection?.execute(
+    //     sql,
+    //     [...updateValues, new Date().getTime(), updatedClass.id],
+    //     (error) => {
+    //       // If an error occurs, log the error and invoke the callback with 'false'
+    //       if (error) {
+    //         onNext(false);
+    //         SLog.log(
+    //           LogType.Error,
+    //           "updateClass",
+    //           "Cannot update class",
+    //           error
+    //         );
+    //         return;
+    //       }
+    //       // If the update is successful, log success and invoke the callback with 'true'
+    //       onNext(true);
+    //       SLog.log(LogType.Error, "updateClass", "Update class successfully");
+    //       return;
+    //     }
+    //   );
+    // });
   }
 
   /**
@@ -1004,32 +947,30 @@ export default class SClass {
    * @param onNext - Callback function to handle the result of the deletion operation.
    */
   public static softDeleteClass(id: number, onNext: (result: boolean) => void) {
-    // SQL statement for performing a soft delete by updating the 'ended_at' and 'updated_at' fields
-    const sql = "UPDATE classes SET ended_at = ?, updated_at = ? WHERE id = ?";
-    const endedAt = new Date().getTime() - 1000; // Set the ended time to the current time minus one second
-    const updatedAt = new Date().getTime(); // Set the updated time to the current time
-
-    // Execute the SQL statement using a MySQL connection
-    SMySQL.getConnection((connection) => {
-      connection?.execute(sql, [endedAt, updatedAt, id], (error) => {
-        // If an error occurs, log the error and invoke the callback with 'false'
-        if (error) {
-          onNext(false);
-          SLog.log(
-            LogType.Error,
-            "softDeleteClass",
-            "Cannot delete class",
-            error
-          );
-          return;
-        }
-
-        // If the deletion is successful, log success and invoke the callback with 'true'
-        onNext(true);
-        SLog.log(LogType.Error, "softDeleteClass", "Delete class successfully");
-        return;
-      });
-    });
+    // // SQL statement for performing a soft delete by updating the 'ended_at' and 'updated_at' fields
+    // const sql = "UPDATE classes SET ended_at = ?, updated_at = ? WHERE id = ?";
+    // const endedAt = new Date().getTime() - 1000; // Set the ended time to the current time minus one second
+    // const updatedAt = new Date().getTime(); // Set the updated time to the current time
+    // // Execute the SQL statement using a MySQL connection
+    // SMySQL.getConnection((connection) => {
+    //   connection?.execute(sql, [endedAt, updatedAt, id], (error) => {
+    //     // If an error occurs, log the error and invoke the callback with 'false'
+    //     if (error) {
+    //       onNext(false);
+    //       SLog.log(
+    //         LogType.Error,
+    //         "softDeleteClass",
+    //         "Cannot delete class",
+    //         error
+    //       );
+    //       return;
+    //     }
+    //     // If the deletion is successful, log success and invoke the callback with 'true'
+    //     onNext(true);
+    //     SLog.log(LogType.Error, "softDeleteClass", "Delete class successfully");
+    //     return;
+    //   });
+    // });
   }
 
   /**
@@ -1130,13 +1071,13 @@ export default class SClass {
   //             );
   //           });
   //           console.log("values: " + values);
-            
+
   //           // Xây dựng câu truy vấn `INSERT` với nhiều giá trị
   //           const placeholders = lessons.map(() => "(?,?,?,?,?)").join(",");
   //           const sqlLesson = `INSERT INTO lessons (class_id, day, started_at, duration, is_online) VALUES ${placeholders}`;
 
   //           console.log("sql lesson: ", sqlLesson);
-            
+
   //           connection.execute(sqlLesson, values, (lessonErr) => {
   //             if (lessonErr) {
   //               SLog.log(
@@ -1159,7 +1100,7 @@ export default class SClass {
   // }
 
   // Join class by leaner
-  
+
   public static createClass(
     title: string,
     description: string,
@@ -1173,19 +1114,19 @@ export default class SClass {
   ) {
     const sql =
       "INSERT INTO classes (title, description, major_id, price, class_level_id, started_at, ended_at) VALUES (?,?,?,?,?,?,?)";
-  
+
     SMySQL.getConnection((connection) => {
       if (!connection) {
         onNext(false);
         return;
       }
-  
+
       connection.beginTransaction((transactionErr) => {
         if (transactionErr) {
           onNext(false);
           return;
         }
-  
+
         connection.execute(
           sql,
           [
@@ -1202,13 +1143,13 @@ export default class SClass {
               connection.rollback(() => onNext(false));
               return;
             }
-  
+
             const classId = (result as any).insertId || undefined;
             if (!classId) {
               onNext(false);
               return;
             }
-  
+
             // Kiểm tra nếu không có bài học để thêm, commit ngay
             if (lessons.length === 0) {
               connection.commit((commitErr) => {
@@ -1220,7 +1161,7 @@ export default class SClass {
               });
               return;
             }
-  
+
             // Thêm các bài học vào bảng lessons
             const values: any[] = [];
             lessons.forEach((lesson) => {
@@ -1232,16 +1173,16 @@ export default class SClass {
                 lesson.is_online
               );
             });
-  
+
             const placeholders = lessons.map(() => "(?,?,?,?,?)").join(",");
             const sqlLesson = `INSERT INTO lessons (class_id, day, started_at, duration, is_online) VALUES ${placeholders}`;
-  
+
             connection.execute(sqlLesson, values, (lessonErr) => {
               if (lessonErr) {
                 connection.rollback(() => onNext(false));
                 return;
               }
-  
+
               connection.commit((commitErr) => {
                 if (commitErr) {
                   onNext(false);
@@ -1258,82 +1199,41 @@ export default class SClass {
 
   public static joinClass(
     classId: number,
-    userId: string,
-    studentIds: number[],
-    onNext: (message, result) => void,
+    userIds: string[],
+    onNext: (message, result) => void
   ) {
-    console.log(">>> user id", userId);
+    console.log(">>> user ids", userIds);
     console.log(">>> class id", classId);
-    console.log(">>> student ids", studentIds);
 
+    // Khởi tạo mảng tham số và chuỗi giá trị
+    let values = "";
+    const params: any[] = [];
+
+    userIds.forEach((userId, index) => {
+      values += `(?, ?)`;
+      if (index < userIds.length - 1) values += ", ";
+
+      // Thêm classId và userId vào params
+      params.push(classId, userId);
+    });
+    
     const sql = `
-          INSERT INTO in_class_members (class_id, user_id)
-          VALUES (?, ?)
+          INSERT INTO class_members (class_id, user_id)
+          VALUES ${values}
           `;
 
-    // Câu SQL cho bảng in_class_students
-    const studentSql = `
-      INSERT INTO in_class_students (class_id, student_id)
-      VALUES (?, ?)
-      `;
-
     SMySQL.getConnection((connection) => {
-      // Bắt đầu giao dịch
-      connection?.beginTransaction((err) => {
+      // Thực thi câu lệnh SQL
+      connection?.execute(sql, params, (err, result) => {
         if (err) {
-          // Gọi hàm lỗi nếu không thể bắt đầu giao dịch
-          return onNext(`Error starting transaction: ${err.message}`, false); 
+          return onNext(
+            `Error inserting users into class: ${err.message}`,
+            false
+          );
         }
-
-        //Bước 1: Chèn người dùng hiện tại (học sinh chính)
-        connection.execute(sql, [classId, userId], (err) => {
-          if (err) {
-            connection.rollback(() => {
-              return onNext(`Error inserting main user: ${err.message}`, false);
-            });
-          }
-        });
-
-        //Bước 2:Kiểm tra xem danh sách học sinh có rỗng không
-        if (studentIds.length === 0) {
-          // Nếu danh sách rỗng, commit và gọi onSuccess
-          connection.commit((err) => {
-            if (err) {
-              return onNext(`Error committing transaction: ${err.message}`, false);
-            }
-            onNext(`Join in class id: ${classId} successful!`, true);
-          });
-          return;
-        }
-
-        //Bước 3: Chèn danh sách học sinh nếu không rỗng
-        const inserPromises = studentIds.map((studentId) => {
-          return new Promise((resolve, reject) => {
-            connection.execute(studentSql, [classId, studentId], (err) => {
-              if (err) {
-                reject(new Error(`Error inserting student ${studentId}: ${err.message}`));
-              } else {
-                resolve(true);
-              }
-            });
-          });
-        });
-
-        //Bước 4: Chờ tất cả các phép chèn học sinh hoàn thành
-        Promise.all(inserPromises)
-          .then(() => {
-            connection.commit((err) => {
-              if (err) {
-                return onNext(`Error committing transaction after student insertions: ${err.message}`, false);
-              }
-              onNext(`Join in class id: ${classId} successful!`, true);
-            });
-          })
-          .catch((err) => {
-            connection.rollback(() => {
-              return onNext(`Error during student insertions: ${err.message}`, false);
-            });
-          });
+        SFirebase.push(FirebaseNode.Classes, [{key: FirebaseNode.ClassId, value: classId}], ()=> {
+          onNext(`Join in class id: ${classId} successful!`, true);
+        })
       });
     });
   }
@@ -1342,7 +1242,7 @@ export default class SClass {
   public static acceptClassToTeach(
     classId: number,
     tutorId: string,
-    onNext: (message, result) => void,
+    onNext: (message, result) => void
   ) {
     // Truy vấn để kiểm tra xem lớp học đã có gia sư hoặc người tham gia hay chưa
     const checkSql = `SELECT classes.tutor_id FROM classes WHERE classes.id = ?; `;
@@ -1375,7 +1275,7 @@ export default class SClass {
             }
 
             if (updateResults && updateResults.affectedRows > 0) {
-              onNext("Class accepted by tutor successfully", true)
+              onNext("Class accepted by tutor successfully", true);
               console.log(">>> Class accepted by tutor successfully");
             } else {
               const errorMessage =
@@ -1402,35 +1302,24 @@ public static LockClass(class_id: string, onNext: (result: boolean) => void) {
   LIMIT 1;
 `;
 
-  // Lấy kết nối và thực thi truy vấn
-  SMySQL.getConnection((connection) => {
+    // Lấy kết nối và thực thi truy vấn
+    SMySQL.getConnection((connection) => {
       connection?.execute(
-          sql,
-          [class_id], // Truyền vào `class_id` làm tham số
-          (error, result) => {
-              // Nếu có lỗi, ghi log lỗi và gọi callback với `false`
-              if (error) {
-                  onNext(false);
-                  SLog.log(
-                      LogType.Error,
-                      "LockClass",
-                      "Cannot lock class",
-                      error
-                  );
-                  return;
-              }
-
-              // Nếu thành công, ghi log và gọi callback với `true`
-              SLog.log(
-                  LogType.Info,
-                  "LockClass",
-                  "Locked class successfully"
-              );
-              onNext(true);
+        sql,
+        [class_id], // Truyền vào `class_id` làm tham số
+        (error, result) => {
+          // Nếu có lỗi, ghi log lỗi và gọi callback với `false`
+          if (error) {
+            onNext(false);
+            SLog.log(LogType.Error, "LockClass", "Cannot lock class", error);
+            return;
           }
+
+          // Nếu thành công, ghi log và gọi callback với `true`
+          SLog.log(LogType.Info, "LockClass", "Locked class successfully");
+          onNext(true);
+        }
       );
-  });
-}
-
-
+    });
+  }
 }

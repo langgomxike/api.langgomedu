@@ -44,6 +44,7 @@ export default class SPermission {
     public static addPermissionsToUser(id: string, permissions: Permission[], onNext: (result: boolean) => void) {
         const sql = `INSERT INTO user_permissions (user_id, permission_id) VALUES ${permissions.map(_ => "(?,?)").join(",")}`;
         const values = [];
+
         permissions.forEach((permission) => {
             values.push(id);
             values.push(permission.id);
