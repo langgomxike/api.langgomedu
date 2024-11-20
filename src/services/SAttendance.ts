@@ -1,7 +1,6 @@
 import Class from "../models/Class";
 import LearnerAtendance from "../models/LearnerAtendance";
 import Lesson from "../models/Lesson";
-import Student from "../models/Student";
 import User from "../models/User";
 import Attendance from "./../models/Attendance";
 import SFirebase, { FirebaseNode } from "./SFirebase";
@@ -74,34 +73,20 @@ export default class SAttendance {
                         'full_name', tutor.full_name,
                         'email', tutor.email,
                         'phone_number', tutor.phone_number,
-                        'avatar', JSON_OBJECT(
-                            'id', tutor_avatar.id,
-                            'name', tutor_avatar.name,
-                            'path', tutor_avatar.path
-                        ), 
-                        'information', JSON_OBJECT(
-                            'banking_number', tutor_info.banking_number,
-                            'banking_code', tutor_info.banking_code
-                        )
+                        'avatar', tutor.avatar, 
+                        'banking_number', tutor.banking_number,
+                        'banking_code', tutor.banking_code
                     ),
                     'author', JSON_OBJECT(
                         'id', author.id,
                         'full_name', author.full_name,
                         'email', author.email,
                         'phone_number', author.phone_number,
-                        'avatar', JSON_OBJECT(
-                            'id', author_avatar.id,
-                            'name', author_avatar.name,
-                            'path', author_avatar.path
-                        )
+                        'avatar', author.avatar
                     ),
                     'major', JSON_OBJECT(
                         'id', majors.id,
-                        'icon', JSON_OBJECT(
-                            'id', major_icon.id,
-                            'name', major_icon.name,
-                            'path', major_icon.path
-                        ),
+                        'icon', majors.icon,
                         'vn_name', majors.vn_name,
                         'en_name', majors.en_name,
                         'ja_name', majors.ja_name
@@ -118,10 +103,13 @@ export default class SAttendance {
                     'ended_at', c.ended_at,
                     'created_at', c.created_at,
                     'updated_at', c.updated_at,
-                    'address_1', c.address_1,
-                    'address_2', c.address_2,
-                    'address_3', c.address_3,
-                    'address_4', c.address_4
+                    'address', JSON_OBJECT (
+                        "id", addresses.id,
+                        "province", addresses.province,
+                        "district", addresses.district,
+                        "ward", addresses.ward,
+                        "detail", addresses.detail
+                    )
                 )
             ) AS lesson
         FROM lessons
@@ -129,59 +117,55 @@ export default class SAttendance {
         -- Các thông tin user
         LEFT JOIN users tutor ON tutor.id = c.tutor_id
         LEFT JOIN users author ON author.id = c.author_id
-        -- Lấy avatar của user
-        LEFT JOIN files tutor_avatar ON tutor_avatar.id = tutor.avatar_id
-        LEFT JOIN informations tutor_info ON tutor_info.user_id = tutor.id
-        LEFT JOIN files author_avatar ON author_avatar.id = author.avatar_id
         -- Lấy tên môn học và hình ảnh môn học
         LEFT JOIN majors ON majors.id = c.major_id
-        LEFT JOIN files major_icon ON major_icon.id = majors.icon_id
         -- Cấp cấp độ của lớp học
         LEFT JOIN class_levels cl ON cl.id = c.class_level_id
-        WHERE c.id = ? AND lessons.id = ?;
+        LEFT JOIN addresses ON addresses.id = c.address_id
+        WHERE lessons.id = ?;
     `;
 
-    const sqlStudentAttendance = `
-    SELECT
-	JSON_OBJECT(
-        "id", a.id,
-        "lesson_id", a.lesson_id,
-        "user", JSON_OBJECT (
-            "id", users.id,
-            "full_name", users.full_name
-        ),
-        "student", JSON_OBJECT (
-             "id", s.id,
-            "full_name", s.full_name
-        ),
-        "attended", a.attended,
-        "confirm_attendance", a.confirm_attendance,
-       	"attended_at", a.attended_at,
-        "attendance_payment", JSON_OBJECT(
-            "id", ap.id,
-            "paid", ap.paid,
-            "confirmed_by_tutor", ap.confirmed_by_tutor,
-            "payment_path", ap.payment_path,
-            "paid_at", ap.paid_at,
-            "confirmed_at", ap.confirmed_at,
-            "type", ap.type,
-            "deferred", ap.deferred
-        )    
-    ) as attendance
+  //   const sqlStudentAttendance = `
+  //   SELECT
+	// JSON_OBJECT(
+  //       "id", a.id,
+  //       "lesson_id", a.lesson_id,
+  //       "user", JSON_OBJECT (
+  //           "id", users.id,
+  //           "full_name", users.full_name
+  //       ),
+  //       "student", JSON_OBJECT (
+  //            "id", s.id,
+  //           "full_name", s.full_name
+  //       ),
+  //       "attended", a.attended,
+  //       "confirm_attendance", a.confirm_attendance,
+  //      	"attended_at", a.attended_at,
+  //       "attendance_payment", JSON_OBJECT(
+  //           "id", ap.id,
+  //           "paid", ap.paid,
+  //           "confirmed_by_tutor", ap.confirmed_by_tutor,
+  //           "payment_path", ap.payment_path,
+  //           "paid_at", ap.paid_at,
+  //           "confirmed_at", ap.confirmed_at,
+  //           "type", ap.type,
+  //           "deferred", ap.deferred
+  //       )    
+  //   ) as attendance
 
-      FROM attendances a
-      LEFT JOIN students s ON s.id = a.student_id
-      LEFT JOIN users ON users.id = a.user_id
-      LEFT JOIN attendance_payments ap ON ap.attendance_id = a.id
+  //     FROM attendances a
+  //     LEFT JOIN students s ON s.id = a.student_id
+  //     LEFT JOIN users ON users.id = a.user_id
+  //     LEFT JOIN attendance_payments ap ON ap.attendance_id = a.id
       
-    WHERE a.lesson_id = ? 
-    AND a.user_id = ? 
-    AND DATE(FROM_UNIXTIME(a.attended_at / 1000)) = DATE(FROM_UNIXTIME(? / 1000));
-  `;
+  //   WHERE a.lesson_id = ? 
+  //   AND a.user_id = ? 
+  //   AND DATE(FROM_UNIXTIME(a.attended_at / 1000)) = DATE(FROM_UNIXTIME(? / 1000));
+  // `;
   
 
     SMySQL.getConnection((connection) => {
-      connection?.execute<any[]>(sqlClassDetails, [classId, lessonId], (error, resultClass) => {
+      connection?.execute<any[]>(sqlClassDetails, [lessonId], (error, resultClass) => {
         if (error) {
           // SLog.log(LogType.Error, "getAttendance", "get attendance error", error);
           console.log(">>> get student Attendance: ", error);
@@ -191,30 +175,32 @@ export default class SAttendance {
 
         const lessonDetail = resultClass[0].lesson;
         
-        connection.execute<any>(sqlStudentAttendance, [lessonId, userId, attendedAt], (err, resultAttendances) => {
-          if (error) {
-            console.log(">>> Error fetching student attendance:", error);
-            onError("Error read student attendance!")
-            return;
-          }
+        onNext(lessonDetail, []);
+
+        // connection.execute<any>(sqlStudentAttendance, [lessonId, userId, attendedAt], (err, resultAttendances) => {
+        //   if (error) {
+        //     console.log(">>> Error fetching student attendance:", error);
+        //     onError("Error read student attendance!")
+        //     return;
+        //   }
           
-          const attendances: Attendance[] = resultAttendances.map((result) => ({
-            ...result.attendance,
-            attended: Boolean(result.attendance.attended),
-            confirm_attendance: Boolean(result.attendance.confirm_attendance),
-            attendance_payment: {
-              ...result.attendance.attendance_payment,
-              paid: Boolean(result.attendance.attendance_payment?.paid),
-              deferred: Boolean(result.attendance.attendance_payment?.deferred),
-              confirmed_by_tutor: Boolean(result.attendance.attendance_payment?.confirmed_by_tutor),
-            }
-          }));
+        //   const attendances: Attendance[] = resultAttendances.map((result) => ({
+        //     ...result.attendance,
+        //     attended: Boolean(result.attendance.attended),
+        //     confirm_attendance: Boolean(result.attendance.confirm_attendance),
+        //     attendance_payment: {
+        //       ...result.attendance.attendance_payment,
+        //       paid: Boolean(result.attendance.attendance_payment?.paid),
+        //       deferred: Boolean(result.attendance.attendance_payment?.deferred),
+        //       confirmed_by_tutor: Boolean(result.attendance.attendance_payment?.confirmed_by_tutor),
+        //     }
+        //   }));
 
-          // Trả kết quả với cấu trúc gồm chi tiết lớp học và danh sách học sinh
-          onNext(lessonDetail, attendances);
+        //   // Trả kết quả với cấu trúc gồm chi tiết lớp học và danh sách học sinh
+        //   onNext(lessonDetail, attendances);
 
 
-        })
+        // })
       });
     });
   }
@@ -226,6 +212,7 @@ export default class SAttendance {
     onError: (message) => void
   ) {
 
+    // Câu truy vấn lấy chi tiết lesson của lớp họcs
     const sqlLessonDetail =  `
          SELECT
             JSON_OBJECT(
@@ -245,30 +232,20 @@ export default class SAttendance {
                         'full_name', tutor.full_name,
                         'email', tutor.email,
                         'phone_number', tutor.phone_number,
-                        'avatar', JSON_OBJECT(
-                            'id', tutor_avatar.id,
-                            'name', tutor_avatar.name,
-                            'path', tutor_avatar.path
-                        )
+                        'avatar', tutor.avatar, 
+                        'banking_number', tutor.banking_number,
+                        'banking_code', tutor.banking_code
                     ),
                     'author', JSON_OBJECT(
                         'id', author.id,
                         'full_name', author.full_name,
                         'email', author.email,
                         'phone_number', author.phone_number,
-                        'avatar', JSON_OBJECT(
-                            'id', author_avatar.id,
-                            'name', author_avatar.name,
-                            'path', author_avatar.path
-                        )
+                        'avatar', author.avatar
                     ),
                     'major', JSON_OBJECT(
                         'id', majors.id,
-                        'icon', JSON_OBJECT(
-                            'id', major_icon.id,
-                            'name', major_icon.name,
-                            'path', major_icon.path
-                        ),
+                        'icon', majors.icon,
                         'vn_name', majors.vn_name,
                         'en_name', majors.en_name,
                         'ja_name', majors.ja_name
@@ -285,10 +262,13 @@ export default class SAttendance {
                     'ended_at', c.ended_at,
                     'created_at', c.created_at,
                     'updated_at', c.updated_at,
-                    'address_1', c.address_1,
-                    'address_2', c.address_2,
-                    'address_3', c.address_3,
-                    'address_4', c.address_4
+                    'address', JSON_OBJECT (
+                        "id", addresses.id,
+                        "province", addresses.province,
+                        "district", addresses.district,
+                        "ward", addresses.ward,
+                        "detail", addresses.detail
+                    )
                 )
             ) AS lesson
         FROM lessons
@@ -296,122 +276,77 @@ export default class SAttendance {
         -- Các thông tin user
         LEFT JOIN users tutor ON tutor.id = c.tutor_id
         LEFT JOIN users author ON author.id = c.author_id
-        -- Lấy avatar của user
-        LEFT JOIN files tutor_avatar ON tutor_avatar.id = tutor.avatar_id
-        LEFT JOIN files author_avatar ON author_avatar.id = author.avatar_id
         -- Lấy tên môn học và hình ảnh môn học
         LEFT JOIN majors ON majors.id = c.major_id
-        LEFT JOIN files major_icon ON major_icon.id = majors.icon_id
         -- Cấp cấp độ của lớp học
         LEFT JOIN class_levels cl ON cl.id = c.class_level_id
-        WHERE c.id = ? AND lessons.id = ?;
-
+        LEFT JOIN addresses ON addresses.id = c.address_id
+        WHERE lessons.id = ? AND  c.id = ?;
     `;
 
+    // Lấy danh sách học sinh đã được điểm danh trong lớp đó nếu có
   const sqlStudentAttendance = `
   SELECT
 	JSON_OBJECT(
-        "id", a.id,
         "lesson_id", a.lesson_id,
         "user", JSON_OBJECT (
             "id", users.id,
-            "full_name", users.full_name
-        ),
-        "student", JSON_OBJECT (
-             "id", s.id,
-            "full_name", s.full_name
+            "full_name", users.full_name,
+            "avatar", users.avatar
         ),
         "attended", a.attended,
-        "confirm_attendance", a.confirm_attendance,
        	"attended_at", a.attended_at,
-        "attendance_payment", JSON_OBJECT(
-            "id", ap.id,
-            "paid", ap.paid,
-            "confirmed_by_tutor", ap.confirmed_by_tutor,
-            "payment_path", ap.payment_path,
-            "paid_at", ap.paid_at,
-            "confirmed_at", ap.confirmed_at,
-            "type", ap.type,
-            "deferred", ap.deferred
-        )    
+        "paid", a.paid,
+        "paid_at", a.paid_at,
+        "confirm_paid", a.confirm_paid,
+        "confirmed_at", a.confirm_paid_at,
+        "payment_path", a.payment_path,
+        "type", a.type,
+        "deferred", a.deferred
     ) as attendance
 
       FROM attendances a
-      LEFT JOIN students s ON s.id = a.student_id
       LEFT JOIN users ON users.id = a.user_id
-      LEFT JOIN attendance_payments ap ON ap.attendance_id = a.id
-      
       WHERE a.lesson_id = ?;
   `;
 
+  // Lấy danh sách học sinh trong lớp này
   const sqlLearner = `
     SELECT 
-    JSON_ARRAYAGG(
-        JSON_OBJECT(
-                'id', learner.id,
-                'full_name', learner.full_name,
-                'email', learner.email,
-                'phone_number', learner.phone_number,
-                'avatar', JSON_OBJECT(
-                                    'path', lf.path
-                          ),
-                'students', (
-                SELECT JSON_ARRAYAGG(
+    JSON_OBJECT(
+        "id", IFNULL(parent.id, learner.id),
+        "full_name", IFNULL(parent.full_name, learner.full_name),
+        "email", IFNULL(parent.email, learner.email),
+        "phone_number", IFNULL(parent.phone_number, learner.phone_number),
+        "avatar", IFNULL(parent.avatar, learner.avatar),
+        "children", JSON_ARRAYAGG(
+            CASE 
+                WHEN learner.id IS NOT NULL AND learner.parent_id = parent.id THEN 
                     JSON_OBJECT(
-                        'id', students.id,
-                        'full_name', students.full_name
+                        'id', learner.id,
+                        'full_name', learner.full_name,
+                        'email', learner.email,
+                        'phone_number', learner.phone_number,
+                        'avatar', learner.avatar
                     )
-                )
-                FROM in_class_students ics
-                JOIN students ON students.id = ics.student_id
-                WHERE ics.class_id = c.id AND students.user_id = learner.id
-              ) 
-        ) 
-    ) AS learners
-    FROM lessons
-    LEFT JOIN classes c ON c.id = lessons.class_id
-    LEFT JOIN in_class_members icm ON icm.class_id = c.id
-    LEFT JOIN users learner ON learner.id = icm.user_id
-    LEFT JOIN files lf ON lf.id = learner.avatar_id
-    WHERE c.id = ? AND lessons.id = ?
+                ELSE NULL
+            END
+        )
+    ) AS learner
+    FROM classes c
+    LEFT JOIN class_members cm ON cm.class_id = c.id
+    LEFT JOIN users learner ON learner.id = cm.user_id -- Lấy danh sách tất cả học viên
+    LEFT JOIN users parent ON parent.id = learner.parent_id -- Liên kết cha mẹ nếu có
+    WHERE c.id = ? -- Lọc theo lớp
+    GROUP BY IFNULL(parent.id, learner.id);
+
   `
 
+
     SMySQL.getConnection(async (connection) => {
-      // connection?.execute<any[]>(sqlLessonDetail, [classId, lessonId], (error, resultLesson) => {
-      //   if (error) {
-      //     // SLog.log(LogType.Error, "getAttendance", "get attendance error", error);
-      //     console.log(">>> get student Attendance: ", error);
-      //     onError("Error get detail class!");
-      //     return;
-      //   }
-
-      //   const lessonDetail = resultLesson[0].lesson;
-      //   lessonDetail.is_online = lessonDetail.is_online === 1;
-        
-      //   connection.execute<any>(sqlStudentAttendance, [lessonId], (err, resultAttendances) => {
-      //     if (error) {
-      //       console.log(">>> Error fetching student attendance:", error);
-      //       onError("Error read student attendance!")
-      //       return;
-      //     }
-
-      //     const attendances:Attendance[] = []
-      //     resultAttendances.forEach((resultAttendance) => {
-      //       const attendance = resultAttendance.attendance;
-      //       attendances.push(attendance);
-
-      //     })
-
-      //     // Trả kết quả với cấu trúc gồm chi tiết lớp học và danh sách học sinh
-      //     onNext(lessonDetail, attendances);
-
-
-      //   })
-      // });
-    
       try {
         const resultLesson = await new Promise<any>((resolve, reject) =>{
-          connection?.execute<any>(sqlLessonDetail, [classId, lessonId], (error, result) => {
+          connection?.execute<any>(sqlLessonDetail, [lessonId, classId], (error, result) => {
             if (error) {
               reject(error);
             } else {
@@ -436,16 +371,15 @@ export default class SAttendance {
         const attendances: Attendance[] = resultAttendances.map((result) => ({
           ...result.attendance,
           attended: Boolean(result.attendance.attended),
-          confirm_attendance: Boolean(result.attendance.confirm_attendance),
-          attendance_payment: {
-            ...result.attendance.attendance_payment,
-            paid: Boolean(result.attendance.attendance_payment?.paid),
-            confirmed_by_tutor: Boolean(result.attendance.attendance_payment?.confirmed_by_tutor),
-          }
+          attended_at: Number(result.attendance.attended_at),
+          paid: Boolean(result.attendance.paid) ?? false,
+          confirm_paid: Boolean(result.attendance.confirm_paid) ?? false,
         }));
 
+        // // console.log(">>> attendancce", attendances);
+
         const resultLearners = await new Promise<any[]>((resolve, reject) => {
-          connection?.execute<any[]>(sqlLearner, [classId, lessonId], (err, result) => {
+          connection?.execute<any[]>(sqlLearner, [classId], (err, result) => {
             if (err) {
               reject(err);
             } else {
@@ -454,21 +388,16 @@ export default class SAttendance {
           });
         });
 
-        const learners = resultLearners[0].learners
+        const learners = resultLearners
         // console.log(">>> learner: ", JSON.stringify(resultLearners[0].learners, null, 2));
-
-        
-
 
          // Trả kết quả với cấu trúc gồm chi tiết lớp học và danh sách học sinh
         onNext(lessonDetail, attendances, learners);
-
-
+        
       } catch (error) {
+        console.log("Error: ", error);
         
       }
-     
-
     
     });
   }
@@ -480,35 +409,25 @@ export default class SAttendance {
   ) {
      // Tạo mảng giá trị để chèn vào bảng attendances 
      const attendanceValues = learnerAttendance.map((attendance) =>{
-
-      // Kiểm tra nếu parent_id là null, nếu có thì dùng user_id, còn không thì dùng parent_id làm user_id
-     const userId = attendance.parent_id === null ? attendance.id : attendance.parent_id;
-     const studentId = attendance.parent_id === null ? null : Number(attendance.id);
-
      return  [
        attendance.lesson_id,
-       userId,
-       studentId,
+       attendance.id,
        attendance.attended,
-       attendance.confirm_attendance,
        new Date().getTime() // attended_at
      ]
    });
 
-   const numberOfRecords = learnerAttendance.length;  // Số lượng bản ghi cần chèn
+   const numberOfRecords = learnerAttendance.length;
 
-  const allPlaceholders = new Array(numberOfRecords).fill(`(?, ?, ?, ?, ?, ?)`).join(', ');
-  const allPaymentPlaceholders = new Array(numberOfRecords).fill(`(?, ?, ?, ?)`).join(', ');
+  const allPlaceholders = new Array(numberOfRecords).fill(`(?, ?, ?, ?)`).join(', ');
 
     const attendanceSql = `INSERT INTO attendances 
-                          (lesson_id, user_id, student_id, attended, confirm_attendance, attended_at)
+                          (lesson_id, user_id, attended, attended_at)
                           VALUES ${allPlaceholders};`;
-
-    const paymentSql = `INSERT INTO attendance_payments (attendance_id, paid, confirmed_by_tutor, payment_path)
-                        VALUES ${allPaymentPlaceholders}`;
   
 
     console.log(">>> attendanceValues", attendanceValues.flat());
+    console.log(">>> attendanceValues flat", attendanceValues);
     console.log("attendanceSql", attendanceSql);
     
     
@@ -534,43 +453,8 @@ export default class SAttendance {
               return;
             }
 
-            // Get the last insert ID for attendance
-            const attendanceIds = Array.from({ length: learnerAttendance.length }, (_, index) => result.insertId + index);
-            console.log("Attendance ID after insert: ", attendanceIds);
-
-            // Step 2: Insert into attendance_payments
-            // Tạo mảng giá trị để chèn vào bảng attendance_payments
-            const paymentValues = attendanceIds.map((attendanceId) => [
-              attendanceId,
-              false, // paid
-              false, // confirmed_by_tutor
-              null   // payment_path
-          ]);
-            connection.execute(
-              paymentSql,
-              paymentValues.flat(),
-              (paymentError) => {
-                if (paymentError) {
-                  connection.rollback(() => {
-                    onNext("Failed to insert into attendance_payments", false);
-                  });
-                  return;
-                }
-
-                 // Cam kết transaction nếu mọi thứ thành công
-                connection.commit((commitErr) => {
-                  if (commitErr) {
-                    connection.rollback(() => {
-                      onNext("Transaction commit failed", false);
-                    });
-                    return;
-                  }
-
-                  onNext("All attendance records and payments have been inserted successfully!", true);
-                });
-              }
-            );
-
+            onNext("All attendance records and payments have been inserted successfully!", true);
+          
           }
         );
       });
@@ -617,24 +501,31 @@ export default class SAttendance {
 
   // Hàm cập nhật thanh toán cho learner
   public static updatePaymentOfLearner(
-    attendanceIds: [], paid: boolean, paymentPath: string | null, type: string, deferred: boolean,
-    onNext: (messages: string, result: boolean) => void
+    lessonId: number,
+  userIds: number[], 
+  paid: boolean, 
+  paymentPath: string | null, 
+  type: string, 
+  deferred: boolean,
+  onNext: (message: string, result: boolean) => void
   ) {
 
-    console.log("attendanceIds: ", attendanceIds);
-    console.log("paid: ", paid);
-    console.log("deferred: ", deferred);
-    console.log("paymentPath: ", paymentPath);
+    console.log("lessonId: ", lessonId);
+  console.log("userIds: ", userIds);
+  console.log("paid: ", paid);
+  console.log("deferred: ", deferred);
+  console.log("paymentPath: ", paymentPath);
     
-    const placeholders = attendanceIds.map(() => '?').join(', ');
-    const sql = `
-      UPDATE attendance_payments 
-      SET paid = ?, payment_path = ?, paid_at = ?, type = ?, deferred = ?
-      WHERE attendance_id IN (${placeholders});
-    `;
+   // Tạo placeholders cho danh sách userIds
+  const userPlaceholders = userIds.map(() => '?').join(', ');
+  const sql = `
+  UPDATE attendances 
+  SET paid = ?, payment_path = ?, paid_at = ?, type = ?, deferred = ?
+  WHERE lesson_id = ? AND user_id IN (${userPlaceholders});
+`;
 
     const paidAt = new Date().getTime();
-    const values = [paid, paymentPath, paidAt, type, deferred,  ...attendanceIds];
+    const values = [paid, paymentPath, paidAt, type, deferred, lessonId, ...userIds];
     console.log("values: ", values);
     
 
@@ -661,18 +552,19 @@ export default class SAttendance {
 
    // Hàm cập nhật thanh toán cho learner
    public static confirmPaymentByTutor(
-    attendanceIds: number[], confirmedByTutor: boolean,
-    onNext: (messages: string, result: boolean) => void
+    lessonId: number, userIds: number[], confirmPaid: boolean,
+    onNext: (message: string, result: boolean) => void
   ) {
   
-    const placeholders = attendanceIds.map(() => '?').join(', ');
+   // Tạo placeholders cho danh sách userIds
+    const userPlaceholders = userIds.map(() => '?').join(', ');
     const sql = `
-      UPDATE attendance_payments SET confirmed_by_tutor = ?, confirmed_at = ?
-      WHERE attendance_id IN (${placeholders});
+      UPDATE attendances SET confirm_paid = ?, confirm_paid_at = ?
+      WHERE lesson_id = ? AND user_id IN (${userPlaceholders});
     `;
 
     const confirmedAt = new Date().getTime();
-    const values = [confirmedByTutor, confirmedAt,  ...attendanceIds];
+    const values = [confirmPaid, confirmedAt, lessonId , ...userIds];
 
     SMySQL.getConnection((connection) => {
         connection?.execute<any>(sql, values, (err, results) => {
@@ -691,20 +583,5 @@ export default class SAttendance {
 
         });
     })
-
-
   }
-
-
-
-
-  public static storeAttendance(
-    attendance: Attendance,
-    onNext: (id: number | undefined) => void
-  ) {}
-
-  public static updateAttendance(
-    id: number,
-    onNext: (result: boolean) => void
-  ) {}
 }

@@ -1,14 +1,15 @@
-import Student from "../models/Student";
 import SMySQL from "./SMySQL";
 import SLog, { LogType } from "./SLog";
+import User from "../models/User";
+import { error } from "console";
 
 export default class SStudent {
     /**
    * @param onNext
    */
 
-  public static getAllStudents(onNext: (students: Student[]) => void) {
-    const sql = "SELECT * FROM students";
+  public static getAllStudents(onNext: (students: User[]) => void) {
+    const sql = "SELECT * FROM users";
 
     SMySQL.getConnection((connection) => {
       // Xử lý khi có lỗi trong quá trình truy vấn
@@ -26,30 +27,14 @@ export default class SStudent {
           onNext([]);
         }
         // khoi tao mang moi de luu
-        const students: Student[] = result as Student[];
+        const students: User[] = result as User[];
 
         onNext(students);
       });
     });
   }
-    public static getStudentByUserId(userId: string, onNext: (students: Student[]) => void){
-        const sql = `SELECT 
-    JSON_OBJECT(
-        'id', students.id,
-        'full_name', students.full_name,
-        'learning_capacity', students.learning_capacity,
-        'note', students.note,
-        'user_id', students.user_id,
-        'gender', JSON_OBJECT(
-            'id', genders.id,
-            'vn_gender', genders.vn_gender,
-            'ja_gender', genders.ja_gender,
-            'en_gender', genders.en_gender
-        )
-    ) AS student
-    FROM students
-    LEFT JOIN genders ON students.gender_id = genders.id
-    WHERE students.user_id = ?;
+    public static getStudentByUserId(userId: string, onNext: (students: User[]) => void){
+        const sql = `SELECT * FROM users WHERE users.parent_id = ?;
 `;
 
         SMySQL.getConnection((connection) => {
@@ -58,12 +43,7 @@ export default class SStudent {
                     return;
                 }
 
-                const students:Student[] = [];
-
-                results.forEach(result => {
-                    const student = result.student;
-                    students.push(student);
-                });
+                const students:User[] = results;
 
                 onNext(students);
             })
@@ -71,40 +51,21 @@ export default class SStudent {
         })
     }
 
-    public static getStudentsInClass(classId: string, onNext: (students: Student[]) => void){
-        const sql = `SELECT 
-            JSON_OBJECT(
-                'id', students.id,
-                'full_name', students.full_name,
-                'learning_capacity', students.learning_capacity,
-                'note', students.note,
-                'user_id', students.user_id,
-                'gender', JSON_OBJECT(
-                    'id', genders.id,
-                    'vn_gender', genders.vn_gender,
-                    'ja_gender', genders.ja_gender,
-                    'en_gender', genders.en_gender
-                )
-            ) AS student
-            FROM students
-            LEFT JOIN genders ON students.gender_id = genders.id
-             LEFT JOIN in_class_students ics ON ics.student_id = students.id
-            WHERE ics.class_id = ?;
+    public static getStudentsInClass(classId: number, onNext: (students: User[]) => void){
+        const sql = `SELECT users.*
+            FROM users
+            LEFT JOIN class_members cm ON cm.user_id = users.id
+            WHERE cm.class_id = ?;
         `;
 
         SMySQL.getConnection((connection) => {
             connection?.execute<any[]>(sql, [classId] ,(err, results) => {
                 if (err) {
+                    console.log("Error getStudentsInClass", err);
                     return;
                 }
 
-                const students:Student[] = [];
-
-                results.forEach(result => {
-                    const student = result.student;
-                    students.push(student);
-                });
-
+                const students:User[] = results;
                 onNext(students);
             })
 
