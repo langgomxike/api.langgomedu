@@ -394,6 +394,17 @@ export default class SClass {
                           'vn_name', class_levels.vn_name,
                           'en_name', class_levels.en_name,
                           'ja_name', class_levels.ja_name
+                        ),
+                        'type', GROUP_CONCAT(
+                        DISTINCT CASE 
+                            WHEN lessons.is_online = 1 THEN 'online'
+                            ELSE 'offline'
+                        END
+                        ORDER BY CASE 
+                            WHEN lessons.is_online = 1 THEN 1 
+                            ELSE 2 
+                        END ASC
+                        SEPARATOR ', '
                         )
                       ) AS class
                   FROM classes
@@ -402,6 +413,7 @@ export default class SClass {
                   LEFT JOIN majors ON majors.id = classes.major_id
                   LEFT JOIN class_levels ON class_levels.id = classes.class_level_id
                   LEFT JOIN addresses ON addresses.id = classes.address_id
+                  LEFT JOIN lessons ON lessons.class_id = classes.id
                   LEFT JOIN class_members ON class_members.class_id = classes.id AND class_members.user_id = ?
                   WHERE ${condition};`;
 
