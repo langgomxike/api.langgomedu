@@ -46,3 +46,26 @@ export default class Class {
         this.updated_at = updatedAt;
     }
 }
+
+export const classJson = (asName: string): string => {
+    return `JSON_OBJECT(
+    'id', ${asName}.id,
+    'title', ${asName}.title,
+    'description', ${asName}.description,
+    'major', ${asName}.major_id,
+    'tutor', ${asName}.tutor_id,
+    'author', ${asName}.author_id,
+    'price', ${asName}.price,
+    'class_creation_fee', ${asName}.class_creation_fee,
+    'class_level', ${asName}.class_level_id,
+    'max_learners', ${asName}.max_learners,
+    'started_at', ${asName}.started_at,
+    'ended_at', ${asName}.ended_at,
+    'address', ${asName}.address_id,
+    'paid', ${asName}.paid,
+    'author_accepted', ${asName}.author_accepted,
+    'admin_accepted', ${asName}.admin_accepted,
+    'created_at', ${asName}.created_at,
+    'updated_at', ${asName}.updated_at
+)`;
+}

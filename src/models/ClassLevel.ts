@@ -12,3 +12,12 @@ export default class ClassLevel {
         this.ja_name = ja_name;
     }
 }
+
+export const classLevelJson = (asName: string): string => {
+    return `JSON_OBJECT(
+    'id', ${asName}.id,
+    'vn_name', ${asName}.vn_name,
+    'en_name', ${asName}.en_name,
+    'ja_name', ${asName}.ja_name
+)`;
+}
