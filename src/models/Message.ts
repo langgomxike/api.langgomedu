@@ -34,3 +34,17 @@ export default class Message {
         this.is_active = is_active;
     }
 }
+
+export const messageJson = (asName: string): string => {
+    return `JSON_OBJECT(
+    'id', ${asName}.id,
+    'sender', ${asName}.sender_id,
+    'receiver', ${asName}.receiver_id,
+    'content', ${asName}.content,
+    'ratio', ${asName}.ratio,
+    'class', ${asName}.class_id,
+    'created_at', ${asName}.created_at,
+    'as_read', ${asName}.as_read,
+    'is_active', ${asName}.is_active
+)`;
+}

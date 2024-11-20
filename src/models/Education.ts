@@ -1,4 +1,6 @@
-import Address from "./Address";
+import db from "../configs/knex";
+import Address, { addressJson } from "./Address";
+import { fileJson } from "./File";
 import User from "./User";
 
 export default class Education {
@@ -20,3 +22,37 @@ export default class Education {
         this.evidence = evidence
     }
 }
+
+export const educationJson =(asName: string): string => {
+    return `JSON_OBJECT(
+    'id', ${asName}.id,
+    'cv', ${asName}.cv_id,
+    'name', ${asName}.name,
+    'note', ${asName}.note,
+    'address', ${asName}.address_id,
+    'started_at', ${asName}.started_at,
+    'ended_at', ${asName}.ended_at,
+    'evidence', ${asName}.evidence_id
+)`;
+}
+
+export const educationsSubquery = db('educations as edu')
+  .select(
+    db.raw(`
+      JSON_ARRAYAGG(
+        JSON_OBJECT(
+          'id', edu.id,
+          'name', edu.name,
+          'note', edu.note,
+          'address', ${addressJson('edu_ad')},
+          'started_at', edu.started_at,
+          'ended_at', edu.ended_at,
+          'evidence', ${fileJson('edu_evi')}
+        )
+      )
+    `)
+  )
+  .leftJoin('addresses as edu_ad', 'edu_ad.id', 'edu.address_id' )
+  .leftJoin('files as edu_evi', 'edu_evi.id', 'edu.evidence_id')
+  .whereRaw('edu.cv_id = cvs.id')
+  .as('educationsSubquery');

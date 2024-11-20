@@ -19,3 +19,16 @@ export default class Experience {
         this.evidence = evidence
     }
 }
+
+export const experienceJson =(asName: string): string => {
+    return `JSON_OBJECT(
+    'id', ${asName}.id,
+    'cv', ${asName}.cv_id,
+    'name', ${asName}.name,
+    'note', ${asName}.note,
+    'address', ${asName}.address_id,
+    'started_at', ${asName}.started_at,
+    'ended_at', ${asName}.ended_at,
+    'evidence', ${asName}.evidence_id
+)`;
+}

@@ -8,3 +8,10 @@ export default class Permission {
         this.permission = permission;
     }
 }
+
+export const permissionJson = (asName: string): string => {
+    return `JSON_OBJECT(
+        'id', ${asName}.id,
+        'name', ${asName}.name,
+    )`;
+}
