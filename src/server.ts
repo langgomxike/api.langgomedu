@@ -20,30 +20,32 @@ import RatingController from "./controllers/RatingController";
 import RoleController from "./controllers/RoleController";
 import StudentController from "./controllers/StudentController";
 import LessonController from "./controllers/LessonController";
-import DatabaseSeeder from "./seeders/DatabaseSeeder";
+// import DatabaseSeeder from "./seeders/DatabaseSeeder";
 import SAuthentication, { OWNING_KEY_COLUMNS, OWNING_REF_COLUMNS, OWNING_REF_TABLES } from "./services/SAuthentication";
-import PermissionList, { setUpPermissions } from "./configs/PermissionConfig";
-import { setUpGenders } from "./configs/GenderConfig";
-import SFirebase, { FirebaseNode } from "./services/SFirebase";
+import PermissionList from "./configs/PermissionConfig";
+// import { setUpGenders } from "./configs/GenderConfig";
+// import SFirebase, { FirebaseNode } from "./services/SFirebase";
 import AdminController from "./controllers/admin/AdminController";
 import {uploadPayment} from "./configs/MulterConfig";
-import SResponse, { ResponseStatus } from "./services/SResponse";
+// import SResponse, { ResponseStatus } from "./services/SResponse";
 import { ClassLevelController } from "./controllers/ClassLevelController";
-import {setUpRoles} from "./configs/RoleConfig";
-import {setUpUsers} from "./configs/UserConfig";
+// import {setUpRoles} from "./configs/RoleConfig";
+// import {setUpUsers} from "./configs/UserConfig";
+// import knexConfig from "./configs/knex";
 
 dotenv.config();
 
 const app: Express = express();
 const port = process.env.PORT || 3000;
 
+
 app.use(express.json());
 
-app.get("/", (req: Request, res: Response) => {
+app.get("/", (res: Response) => {
     res.redirect("/api");
 });
 
-app.get("/api", (req: Request, res: Response) => {
+app.get("/api", (res: Response) => {
     res.sendFile(__dirname + "/index.html");
 });
 
@@ -118,11 +120,11 @@ app.delete(CLASS_BASE_URL + "/levels/:id", ClassController.deleteLevel);
 
 const LESSON_BASE_URL = Config.PREFIX + "/lessons";
 app.get(LESSON_BASE_URL + "/:class", LessonController.getLessonsInClass);
-app.post(LESSON_BASE_URL + "/:class", LessonController.createLesson);
+// app.post(LESSON_BASE_URL + "/:class", LessonController.createLesson);
 app.put(LESSON_BASE_URL + "/:id", LessonController.updateLesson);
 app.patch(LESSON_BASE_URL + "/:id", LessonController.updateLesson);
 app.delete(LESSON_BASE_URL + "/:id", LessonController.deleteLesson);
-app.get(LESSON_BASE_URL, LessonController.getSchedule);
+app.get(LESSON_BASE_URL, LessonController.getTutorSchedule);
 //demo
 // app.get(LESSON_BASE_URL, LessonController.demoLesson);
 
@@ -220,7 +222,7 @@ app.delete(USER_BASE_URL + "/:id", UserController.deleteAccount);
 
 // Define the base URL for user-related routes
 const ADMIN_USER_BASE_URL = Config.PREFIX + "/admin";
-app.get(ADMIN_USER_BASE_URL + "/users", AdminController.getAllUsers);
+app.get(ADMIN_USER_BASE_URL + "/users", AdminController.getUsers);
 app.get(ADMIN_USER_BASE_URL + "/users/:user_id/reports", AdminController.getAllReportUserOfUser);
 app.get(ADMIN_USER_BASE_URL + "/classes", AdminController.getAllClasses);
 app.get(ADMIN_USER_BASE_URL + "/classes/:class_id", AdminController.getDetailClass);
@@ -230,9 +232,9 @@ app.listen(port, () => {
 });
 
 SMySQL.connect();
-setUpPermissions();
-setUpRoles();
-setUpGenders();
-setUpUsers();
+// setUpPermissions();
+// setUpRoles();
+// setUpGenders();
+// setUpUsers();
 
 export default app;

@@ -1,39 +1,128 @@
-import CV from "./../models/CV";
+import CV, { cvJson } from "./../models/CV";
 import SLog, { LogType } from "./SLog";
 import SMySQL from "./SMySQL";
+import db from "../configs/knex";
+
+
 export default class SCV {
 
   //get all cvs
   public static getAllCVs(onNext: (cvs: CV[]) => void) {
     // cau truy van
-    const sql = `SELECT 
-	JSON_OBJECT(
-        'id', cvs.user_id,
-        'biography', cvs.biography,
-        'title', cvs.title,
-        'approve_at', cvs.approved_at
-    ) as cv,
-    JSON_OBJECT(
-        'full_name', u.full_name,
-        'phone_number', u.phone_number,
+    const sql = `SELECT JSON_OBJECT(
+    'id', cvs.id,
+    'user', JSON_OBJECT(
+        'id', u.id,
+        'username', u.user_name,
+        'fullname', u.full_name,
         'email', u.email,
-        'avatar', JSON_OBJECT(
-            'path', COALESCE(avatar_file.path, 'No avatar')
+        'phone_number', u.phone_number,
+        'avatar', u.avatar,
+        'hometown', u.hometown,
+        'address', JSON_OBJECT(
+            'id', ad.id,
+            'province', ad.province,
+            'district', ad.district,
+            'ward', ad.ward,
+            'detail', ad.detail
+        ),
+        'gender', JSON_OBJECT(
+            'id', g.id,
+            'vn_name', g.vn_name,
+            'en_name', g.en_name,
+            'ja_name', g.ja_name
+        ),
+        'birthday', u.birthday,
+        'point', u.point
+    ),
+    'biography', cvs.biography,
+    'title', cvs.title,
+    'approved_at', cvs.approved_at,
+    'updated_at', cvs.updated_at,
+    -- Subquery for educations
+    'educations', (
+        SELECT JSON_ARRAYAGG(JSON_OBJECT(
+            'id', edu.id,
+            'name', edu.name,
+            'note', edu.note,
+            'address', JSON_OBJECT(
+                'id', ad_edu.id,
+                'province', ad_edu.province,
+                'district', ad_edu.district,
+                'ward', ad_edu.ward,
+                'detail', ad_edu.detail
+            ),
+            'started_at', edu.started_at,
+            'ended_at', edu.ended_at,
+            'evidence', JSON_OBJECT(
+                'id', edu_evi.id,
+                'name', edu_evi.name,
+                'path', edu_evi.path,
+                'ratio', edu_evi.ratio,
+                'created_at', edu_evi.created_at,
+                'updated_at', edu_evi.updated_at
             )
-    ) as user,
-    JSON_OBJECT(
-        'birthday', i.birthday,
-        'address_1', i.address_1,
-        'address_2', i.address_2,
-        'address_3', i.address_3,
-        'address_4', i.address_4
-    ) as info
+        ))
+        FROM educations edu
+        LEFT JOIN addresses ad_edu ON ad_edu.id = edu.address_id
+        LEFT JOIN files edu_evi ON edu_evi.id = edu.evidence_id
+        WHERE edu.cv_id = cvs.id
+    ),
+    -- Subquery for experiences
+    'experiences', (
+        SELECT JSON_ARRAYAGG(JSON_OBJECT(
+            'id', exp.id,
+            'name', exp.name,
+            'note', exp.note,
+            'address', JSON_OBJECT(
+                'id', ad_exp.id,
+                'province', ad_exp.province,
+                'district', ad_exp.district,
+                'ward', ad_exp.ward,
+                'detail', ad_exp.detail
+            ),
+            'started_at', exp.started_at,
+            'ended_at', exp.ended_at,
+            'evidence', JSON_OBJECT(
+                'id', exp_evi.id,
+                'name', exp_evi.name,
+                'path', exp_evi.path,
+                'ratio', exp_evi.ratio,
+                'created_at', exp_evi.created_at,
+                'updated_at', exp_evi.updated_at
+            )
+        ))
+        FROM experiences exp
+        LEFT JOIN addresses ad_exp ON ad_exp.id = exp.address_id
+        LEFT JOIN files exp_evi ON exp_evi.id = exp.evidence_id
+        WHERE exp.cv_id = cvs.id
+    ),
+    -- Subquery for certificates
+    'certificates', (
+        SELECT JSON_ARRAYAGG(JSON_OBJECT(
+            'id', cer.id,
+            'name', cer.name,
+            'score', cer.score,
+            'valid_at', cer.valid_at,
+            'expired_at', cer.expired_at,
+            'evidence', JSON_OBJECT(
+                'id', cer_evi.id,
+                'name', cer_evi.name,
+                'path', cer_evi.path,
+                'ratio', cer_evi.ratio,
+                'created_at', cer_evi.created_at,
+                'updated_at', cer_evi.updated_at
+            )
+        ))
+        FROM certificates cer
+        LEFT JOIN files cer_evi ON cer_evi.id = cer.evidence_id
+        WHERE cer.cv_id = cvs.id
+    )
+) AS cv
 FROM cvs
-LEFT JOIN users u ON u.id = cvs.user_id
-LEFT JOIN informations i ON i.user_id = cvs.user_id
-LEFT JOIN files avatar_file ON avatar_file.id = u.avatar_id
-WHERE cvs.approved_at IS NOT NULL
-GROUP BY cvs.user_id, cvs.biography, cvs.title, cvs.approved_at, u.full_name, u.phone_number, u.email, avatar_file.path, i.birthday, i.address_1, i.address_2, i.address_3, i.address_4;`;
+LEFT JOIN users u ON u.id = cvs.id
+LEFT JOIN addresses ad ON ad.id = u.address_id
+LEFT JOIN genders g ON g.id = u.gender_id;`;
 
     SMySQL.getConnection((connection) => {
       connection?.query<any[]>(sql, [], (err, result) => {
@@ -68,136 +157,120 @@ GROUP BY cvs.user_id, cvs.biography, cvs.title, cvs.approved_at, u.full_name, u.
   //get User CV
   public static getUserCV( user_id: string ,onNext: (cv: any) => void) {
     const sql = `SELECT JSON_OBJECT(
+    'id', cvs.id,
     'user', JSON_OBJECT(
         'id', u.id,
-        'full_name', u.full_name,
+        'username', u.user_name,
+        'fullname', u.full_name,
         'email', u.email,
         'phone_number', u.phone_number,
-        'avatar', JSON_OBJECT(
-            'id', f.id,
-            'name', f.name,
-            'path', f.path,
-            'capacity', f.capacity,
-            'image_width', f.image_with,
-            'image_height', f.image_height
-        )
-    ),
-    'information', JSON_OBJECT(
-        'hometown', info.hometown,
-        'address_1', info.address_1,
-        'address_2', info.address_2,
-        'address_3', info.address_3,
-        'address_4', info.address_4,
-        'birthday', info.birthday,
-        'point', info.point,
-        'banking_number', info.banking_number,
-        'banking_code', info.banking_code
+        'avatar', u.avatar,
+        'hometown', u.hometown,
+        'address', JSON_OBJECT(
+            'id', ad.id,
+            'province', ad.province,
+            'district', ad.district,
+            'ward', ad.ward,
+            'detail', ad.detail
+        ),
+        'gender', JSON_OBJECT(
+            'id', g.id,
+            'vn_name', g.vn_name,
+            'en_name', g.en_name,
+            'ja_name', g.ja_name
+        ),
+        'birthday', u.birthday,
+        'point', u.point
     ),
     'biography', cvs.biography,
     'title', cvs.title,
     'approved_at', cvs.approved_at,
-    'skills', JSON_ARRAYAGG(JSON_OBJECT(
-        'id', osk.id,
-        'vn_name', osk.vn_name,
-        'en_name', osk.en_name,
-        'ja_name', osk.ja_name,
-        'progress_percent', osk.progress_percent,
-        'icon', JSON_OBJECT(
-            'id', i_skill.id,
-            'name', i_skill.name,
-            'path', i_skill.path,
-            'capacity', i_skill.capacity,
-            'image_width', i_skill.image_with,
-            'image_height', i_skill.image_height
-        )
-    )),
-    'educations', JSON_ARRAYAGG(JSON_OBJECT(
-        'id', edu.id,
-        'title', edu.title,
-        'description', edu.description,
-        'iconPath', edu.iconPath,
-        'started_at', edu.started_at,
-        'ended_at', edu.ended_at
-    )),
-    'experiences', JSON_ARRAYAGG(JSON_OBJECT(
-        'id', exp.id,
-        'title', exp.title,
-        'major', JSON_OBJECT(
-            'id', majors.id,
-            'icon', JSON_OBJECT(
-                'id', i_major.id,
-                'name', i_major.name,
-                'path', i_major.path,
-                'capacity', i_major.capacity,
-                'image_width', i_major.image_with,
-                'image_height', i_major.image_height
+    'updated_at', cvs.updated_at,
+    -- Subquery for educations
+    'educations', (
+        SELECT JSON_ARRAYAGG(JSON_OBJECT(
+            'id', edu.id,
+            'name', edu.name,
+            'note', edu.note,
+            'address', JSON_OBJECT(
+                'id', ad_edu.id,
+                'province', ad_edu.province,
+                'district', ad_edu.district,
+                'ward', ad_edu.ward,
+                'detail', ad_edu.detail
             ),
-            'vn_name', majors.vn_name,
-            'en_name', majors.en_name,
-            'ja_name', majors.ja_name
-        ),
-        'address', exp.address,
-        'initial', exp.initial,
-        'approved', exp.approved,
-        'started_at', exp.started_at,
-        'ended_at', exp.ended_at
-    )),
-    'interested_majors', JSON_ARRAYAGG(JSON_OBJECT(
-        'major', JSON_OBJECT(
-        	'id', ims.id,
-        	'icon', JSON_OBJECT(
-                'id', imsfile.id,
-                'name', imsfile.name,
-                'path', imsfile.path,
-                'capacity', imsfile.capacity,
-                'image_width', imsfile.image_with,
-                'image_height', imsfile.image_height,
-                'created_at', imsfile.created_at,
-                'updated_at', imsfile.updated_at
+            'started_at', edu.started_at,
+            'ended_at', edu.ended_at,
+            'evidence', JSON_OBJECT(
+                'id', edu_evi.id,
+                'name', edu_evi.name,
+                'path', edu_evi.path,
+                'ratio', edu_evi.ratio,
+                'created_at', edu_evi.created_at,
+                'updated_at', edu_evi.updated_at
+            )
+        ))
+        FROM educations edu
+        LEFT JOIN addresses ad_edu ON ad_edu.id = edu.address_id
+        LEFT JOIN files edu_evi ON edu_evi.id = edu.evidence_id
+        WHERE edu.cv_id = cvs.id
+    ),
+    -- Subquery for experiences
+    'experiences', (
+        SELECT JSON_ARRAYAGG(JSON_OBJECT(
+            'id', exp.id,
+            'name', exp.name,
+            'note', exp.note,
+            'address', JSON_OBJECT(
+                'id', ad_exp.id,
+                'province', ad_exp.province,
+                'district', ad_exp.district,
+                'ward', ad_exp.ward,
+                'detail', ad_exp.detail
             ),
-            'vn_name', ims.vn_name,
-            'en_name', ims.en_name,
-            'ja_name', ims.ja_name
-    	),
-        'priority', im.priority
-    )),
-    'certificates', JSON_ARRAYAGG(JSON_OBJECT(
-        'id', c.id,
-        'name', c.name,
-        'vn_desc', c.vn_desc,
-        'en_desc', c.en_desc,
-        'ja_desc', c.ja_desc,
-        'icon', JSON_OBJECT(
-            'id', i_cer.id,
-            'name', i_cer.name,
-            'path', i_cer.path,
-            'capacity', i_cer.capacity,
-            'image_width', i_cer.image_with,
-            'image_height', i_cer.image_height,
-            'created_at', i_cer.created_at,
-            'updated_at', i_cer.updated_at
-        )
-    ))
-) AS CV
+            'started_at', exp.started_at,
+            'ended_at', exp.ended_at,
+            'evidence', JSON_OBJECT(
+                'id', exp_evi.id,
+                'name', exp_evi.name,
+                'path', exp_evi.path,
+                'ratio', exp_evi.ratio,
+                'created_at', exp_evi.created_at,
+                'updated_at', exp_evi.updated_at
+            )
+        ))
+        FROM experiences exp
+        LEFT JOIN addresses ad_exp ON ad_exp.id = exp.address_id
+        LEFT JOIN files exp_evi ON exp_evi.id = exp.evidence_id
+        WHERE exp.cv_id = cvs.id
+    ),
+    -- Subquery for certificates
+    'certificates', (
+        SELECT JSON_ARRAYAGG(JSON_OBJECT(
+            'id', cer.id,
+            'name', cer.name,
+            'score', cer.score,
+            'valid_at', cer.valid_at,
+            'expired_at', cer.expired_at,
+            'evidence', JSON_OBJECT(
+                'id', cer_evi.id,
+                'name', cer_evi.name,
+                'path', cer_evi.path,
+                'ratio', cer_evi.ratio,
+                'created_at', cer_evi.created_at,
+                'updated_at', cer_evi.updated_at
+            )
+        ))
+        FROM certificates cer
+        LEFT JOIN files cer_evi ON cer_evi.id = cer.evidence_id
+        WHERE cer.cv_id = cvs.id
+    )
+) AS cv
 FROM cvs
-JOIN users u ON u.id = cvs.user_id
-JOIN files f ON u.avatar_id = f.id
-JOIN informations info ON info.user_id = cvs.user_id
-LEFT JOIN educations edu ON edu.user_id = cvs.user_id
-LEFT JOIN experiences exp ON exp.user_id = cvs.user_id
-LEFT JOIN in_cv_skills ics ON ics.user_id = cvs.user_id
-LEFT JOIN other_skills osk ON osk.id = ics.skill_id
-LEFT JOIN files i_skill ON i_skill.id = osk.icon_id
-LEFT JOIN majors ON majors.id = exp.major_id
-LEFT JOIN files i_major ON i_major.id = majors.icon_id
-LEFT JOIN in_cv_certificates icc ON icc.user_id = cvs.user_id
-LEFT JOIN certificates c ON c.id = icc.certificate_id
-LEFT JOIN files i_cer ON i_cer.id = c.icon_id
-LEFT JOIN interested_majors im ON im.user_id = cvs.user_id
-LEFT JOIN majors ims ON ims.id = im.major_id
-LEFT JOIN files imsfile ON imsfile.id = ims.icon_id
-WHERE cvs.user_id = 089204010903
-          GROUP BY cvs.user_id;`
+LEFT JOIN users u ON u.id = cvs.id
+LEFT JOIN addresses ad ON ad.id = u.address_id
+LEFT JOIN genders g ON g.id = u.gender_id
+WHERE cvs.id = ?;`
     SMySQL.getConnection((connection)=>{
       connection?.query<any[]>(sql, [user_id], (err, result)=>{
         if(err){
@@ -211,7 +284,22 @@ WHERE cvs.user_id = 089204010903
 
       })
     })
-
   }
+
+  //get User CV ver 2
+  public static async getUserCV2(user_id: string , onNext: (cv: any)=> void){
+    const results = await db('cvs')
+    .select(db.raw(cvJson('cvs')))
+    .leftJoin('users as user', 'user.id', 'cvs.id')
+    .leftJoin('addresses as address', 'address.id', 'user.address_id')
+    .leftJoin('genders as gender', 'gender.id', 'user.gender_id')
+    .where('cvs.id', user_id);
+    console.log(results[0]);
+    
+    onNext(results[0] as CV)
+    // return (results[0] as CV)
+  }
+
+  //end service
 }
 

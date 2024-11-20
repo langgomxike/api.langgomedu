@@ -2,6 +2,7 @@ import express from 'express';
 import SUserAdmin from '../../services/admin/SUserAdmin';
 import SResponse, { ResponseStatus } from '../../services/SResponse';
 import SClassAdmin from '../../services/admin/SClassAdmin';
+import SLog, { LogType } from '../../services/SLog';
 export default class AdminController {
    
     public static getAllUsers(request: express.Request, response: express.Response) {
@@ -29,6 +30,12 @@ export default class AdminController {
             console.log(">>> getDetailClass",   lessons, users );
             
             SResponse.getResponse(ResponseStatus.OK, {lessons, users}, "get class by id", response);
+        });
+    }
+
+    public static async getUsers(request: express.Request, response: express.Response){
+        await SUserAdmin.getAllUsers2((users)=>{
+            SResponse.getResponse(ResponseStatus.OK, {users}, 'get all users 2', response)
         });
     }
 

@@ -16,3 +16,13 @@ export default class File {
         this.updated_at = updated_at;
     }
 }
+export const fileJson = (asName: string): string => {
+    return `JSON_OBJECT(
+        'id', ${asName}.id,
+        'name', ${asName}.name,
+        'path', ${asName}.path,
+        'ratio', ${asName}.ratio,
+        'created_at', ${asName}.created_at,
+        'updated_at', ${asName}.updated_at
+    )`;
+}

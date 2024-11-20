@@ -19,3 +19,15 @@ export default class Lesson {
         this.note = note;
     }
 }
+
+export const lessonJson = (asName : string) : string => {
+    return `JSON_OBJECT(
+    'id', ${asName}.id,
+    'class', ${asName}.class_id,
+    'day', ${asName}.day,
+    'started_at', ${asName}.started_at,
+    'duration', ${asName}.duration,
+    'is_online', ${asName}.is_online,
+    'note', ${asName}.note
+    )`;
+}

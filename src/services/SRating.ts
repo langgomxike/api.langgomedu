@@ -77,7 +77,7 @@ export default class SRating {
                      VALUES (?, ?, ?, ?, ?, ?)`;
 
         SMySQL.getConnection(connection => {
-            connection?.execute<any>(sql, [rating.rater?.id ?? "", rating.ratee?.id ?? "", rating.rating_value, rating.content ?? "", rating.class?.id, new Date().getTime()], (error, result) => {
+            connection?.execute<any>(sql, [rating.rater?.id ?? "", rating.ratee?.id ?? "", rating.value, rating.content ?? "", rating.class?.id, new Date().getTime()], (error, result) => {
                 if (error) {
                     SLog.log(LogType.Error, "storeRating", "store rating unsuccessfully", error);
                     onNext(false);
