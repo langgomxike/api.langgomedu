@@ -3,15 +3,7 @@ import SMySQL from "./SMySQL";
 import SLog, {LogType} from "./SLog";
 import {v4} from "uuid";
 import SFirebase, {FirebaseNode} from "./SFirebase";
-import Inbox from "../models/Inbox";
-import Message from "../models/Message";
 import SMessage from "./SMessage";
-import SInformation from "./SInformation";
-import SFile from "./SFile";
-import SRole from "./SRole";
-import Role from "../models/Role";
-import RoleList from "../configs/RoleConfig";
-import SPermission from "./SPermission";
 import * as crypto from "crypto";
 
 export default class SUser {
@@ -167,38 +159,41 @@ export default class SUser {
 
   public static storeUser(user: User, onNext: (result: boolean) => void) {
 
-    // const sql =
-    //   "INSERT INTO `users`(`id`, `full_name`, `email`, `phone_number`, `password`, `token`, `avatar_id`, `role_id`, `created_at`) VALUES (?,?,?,?,?,?,?,?,?)";
+    const sql =
+      "INSERT INTO `users` (`id`, `email`, `user_name`, `full_name`, `phone_number`, `password`, `token`, `hometown`, `birthday`, `gender_id`, `address_id`, `created_at`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
 
-    // SMySQL.getConnection((connection) => {
-    //   connection?.execute<any>(
-    //     sql,
-    //     [
-    //       user.id,
-    //       user.full_name,
-    //       user.email,
-    //       user.phone_number,
-    //       /*SEncrypt.encrypt(user.password, "")*/ user.password,
-    //       v4(),
-    //       user.avatar?.id ?? -1,
-    //       user.role?.id ?? -1,
-    //       new Date().getTime(),
-    //     ],
-    //     (error, result) => {
-    //       if (error) {
-    //         onNext(false);
-    //         SLog.log(LogType.Error, "storeUser", "failed to execute", error);
-    //         return;
-    //       }
+    SMySQL.getConnection((connection) => {
+      connection?.execute<any>(
+        sql,
+        [
+          user.id,
+          new Date().getTime(),
+          user.username,
+          user.full_name,
+          user.phone_number,
+          user.password,
+          v4(),
+          user.hometown,
+          user.birthday,
+          user.gender?.id ?? 3,
+          -1,
+          new Date().getTime(),
+        ],
+        (error, result) => {
+          if (error) {
+            onNext(false);
+            SLog.log(LogType.Error, "storeUser", "failed to execute", error);
+            return;
+          }
 
-    //       //update into firebase
-    //       SFirebase.push(FirebaseNode.USER, user.id, () => {
-    //         SLog.log(LogType.Info, "storeUser", "store user successfully");
-    //         onNext(true);
-    //       });
-    //     }
-    //   );
-    // });
+          //update into firebase
+          SFirebase.push(FirebaseNode.Users, [{key: FirebaseNode.Id, value: user.id}], () => {
+            SLog.log(LogType.Info, "storeUser", "store user successfully");
+            onNext(true);
+          });
+        }
+      );
+    });
 
   }
 

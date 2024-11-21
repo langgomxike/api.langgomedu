@@ -3,16 +3,14 @@ import express, {Response} from "express";
 import SUser from "../services/SUser";
 import SResponse, {ResponseStatus} from "../services/SResponse";
 import User from "../models/User";
-import Message from "../models/Message";
-import * as dotenv from "dotenv";
-import SMessage from "../services/SMessage";
 import {v4} from "uuid";
 import SLog, {LogType} from "../services/SLog";
-import SInformation from "../services/SInformation";
 import PermissionList from "../configs/PermissionConfig";
 import SPermission from "../services/SPermission";
 import Permission from "../models/Permission";
 import SRole from "../services/SRole";
+import RoleList from "../configs/RoleConfig";
+import Role from "../models/Role";
 
 export default class UserController {
   public static login(request: express.Request, response: express.Response) {
@@ -135,7 +133,6 @@ export default class UserController {
       SRole.getRolesByUserId(user.id, roles => {
         user.roles = roles;
 
-
         //update user's token
         const token = v4();
         const updatedUser = new User();
@@ -167,6 +164,8 @@ export default class UserController {
     const user: User = request?.body?.user;
     const requestCode: number = request.body.code ?? 0;
 
+    SLog.log(LogType.Warning, "regiterUser", "check params", {user, requestCode});
+
     if (!user || !user.id || !user.password || !user.phone_number || !user.full_name || !requestCode) {
       SLog.log(LogType.Error, "registerUser", "Invalid user");
       SResponse.getResponse(ResponseStatus.Internal_Server_Error, {}, "Invalid user", response);
@@ -174,53 +173,28 @@ export default class UserController {
     }
 
     //check request code
-
-    SUser.storeUser(user, (result) => {
-      if (!result) {
-        SLog.log(LogType.Error, "registerUser", "Fail to store user");
-        SResponse.getResponse(ResponseStatus.Internal_Server_Error, {}, "Fail to store user", response);
-        return;
-      }
-
-      //add permissions
-      const permissions = [
-        PermissionList.DELETE_PERSONAL_CLASS,
-        PermissionList.CREATE_NEW_PERSONAL_CLASS,
-        PermissionList.CREATE_NEW_REPORT_USER,
-        PermissionList.CREATE_NEW_CV,
-        PermissionList.CREATE_NEW_REPORT_CLASS,
-        PermissionList.CREATE_NEW_USER_INFORMATION,
-        PermissionList.UPDATE_CV,
-        PermissionList.UPDATE_USER_INFORMATION,
-        PermissionList.UPDATE_PERSONAL_CLASS,
-        PermissionList.UPDATE_REPORT_CLASS,
-        PermissionList.VIEW_CV,
-        PermissionList.VIEW_CERTIFICATE_LIST,
-        PermissionList.VIEW_OTHER_USER_CLASS_LIST,
-        PermissionList.VIEW_PERSONAL_CLASS,
-        PermissionList.VIEW_OTHER_USER_CLASS,
-        PermissionList.VIEW_USER_INFORMATION,
-      ];
-      const userPermissions: Permission[] = [];
-
-      permissions.forEach(permission => {
-        if (!userPermissions.map(p => p.id).includes(permission)) {
-          userPermissions.push(new Permission(permission, PermissionList[permission]));
-        }
-      });
-
-      SPermission.addPermissionsToUser(user.id, userPermissions, result => {
+    if (requestCode === 123456) {
+      SUser.storeUser(user, (result) => {
         if (!result) {
-          SLog.log(LogType.Error, "registerUser", "Fail to add permissions to user");
-          SResponse.getResponse(ResponseStatus.Internal_Server_Error, {}, "Fail to add permissions to user", response);
+          SLog.log(LogType.Error, "registerUser", "Fail to store user");
+          SResponse.getResponse(ResponseStatus.Internal_Server_Error, {}, "Fail to store user", response);
           return;
         }
-        request.body.email = user.email;
-        request.body.password = user.password;
 
-        UserController.login(request, response);
+        SRole.addRolesToUser(user.id, [
+          new Role(RoleList.USER, RoleList[RoleList.USER]),
+          new Role(RoleList.BANNED_USER, RoleList[RoleList.BANNED_USER]),
+        ], () => {
+          request.body.username = user.username;
+          request.body.password = user.password;
+
+          UserController.login(request, response);
+        });
       });
-    });
+    } else {
+      SLog.log(LogType.Error, "registerUser", "Invalid otp");
+      SResponse.getResponse(ResponseStatus.Internal_Server_Error, {}, "Invalid otp", response);
+    }
   }
 
 
@@ -272,7 +246,7 @@ export default class UserController {
   ) {
     const user: User = request?.body?.user;
 
-    if (!user || !user.id || !(user.full_name || user.email || user.phone_number || user.password || user.avatar || user.roles)) {
+    if (!user || !user.id || !(user.full_name || user.username || user.phone_number || user.password || user.avatar || user.roles)) {
       SLog.log(LogType.Error, "updateUserInfo", "Invalid user");
       SResponse.getResponse(ResponseStatus.Internal_Server_Error, {}, "Invalid user", response);
       return;

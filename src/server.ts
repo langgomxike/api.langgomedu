@@ -1,9 +1,9 @@
 // Import necessary modules and libraries
 // @ts-ignore
-import express, { Express, Request, Response } from "express";
+import express, {Express, Request, Response} from "express";
 // @ts-ignore
 import dotenv from "dotenv";
-import SLog, { LogType } from "./services/SLog";
+import SLog, {LogType} from "./services/SLog";
 import SMySQL from "./services/SMySQL";
 import UserController from "./controllers/UserController";
 import AttendanceController from "./controllers/AttendanceController";
@@ -21,14 +21,14 @@ import RoleController from "./controllers/RoleController";
 import StudentController from "./controllers/StudentController";
 import LessonController from "./controllers/LessonController";
 import DatabaseSeeder from "./seeders/DatabaseSeeder";
-import SAuthentication, { OWNING_KEY_COLUMNS, OWNING_REF_COLUMNS, OWNING_REF_TABLES } from "./services/SAuthentication";
-import PermissionList, { setUpPermissions } from "./configs/PermissionConfig";
-import { setUpGenders } from "./configs/GenderConfig";
-import SFirebase, { FirebaseNode } from "./services/SFirebase";
+import SAuthentication, {OWNING_KEY_COLUMNS, OWNING_REF_COLUMNS, OWNING_REF_TABLES} from "./services/SAuthentication";
+import PermissionList, {setUpPermissions} from "./configs/PermissionConfig";
+import {setUpGenders} from "./configs/GenderConfig";
+import SFirebase, {FirebaseNode} from "./services/SFirebase";
 import AdminController from "./controllers/admin/AdminController";
 import {uploadPayment} from "./configs/MulterConfig";
-import SResponse, { ResponseStatus } from "./services/SResponse";
-import { ClassLevelController } from "./controllers/ClassLevelController";
+import SResponse, {ResponseStatus} from "./services/SResponse";
+import {ClassLevelController} from "./controllers/ClassLevelController";
 import {setUpRoles} from "./configs/RoleConfig";
 import {setUpUsers} from "./configs/UserConfig";
 
@@ -40,15 +40,14 @@ const port = process.env.PORT || 3000;
 app.use(express.json());
 
 app.get("/", (req: Request, res: Response) => {
-    res.redirect("/api");
+  res.redirect("/api");
 });
 
 app.get("/api", (req: Request, res: Response) => {
-    res.sendFile(__dirname + "/index.html");
+  res.sendFile(__dirname + "/index.html");
 });
 
 app.use('/', express.static('public'));
-
 
 
 // ClassLevel routes
@@ -62,8 +61,8 @@ app.post(ATTENDANCE_BASE_URL + "/request", AttendanceController.requestAttendanc
 app.put(ATTENDANCE_BASE_URL + "/accept", AttendanceController.acceptAttendance);
 app.get(ATTENDANCE_BASE_URL + "/learner/:class_id/:lesson_id/:user_id", AttendanceController.getAttendanceByLearnerClassLesson);
 app.get(ATTENDANCE_BASE_URL + "/tutor/:class_id/:lesson_id/:user_id", AttendanceController.getAttendanceByTutorClassLesson);
-app.post(ATTENDANCE_BASE_URL + "/pay", uploadPayment.single('file'),AttendanceController.updatePaymentOfLearner);
-app.post(ATTENDANCE_BASE_URL + "/confirm_paid",AttendanceController.confirmPaymentByTutor);
+app.post(ATTENDANCE_BASE_URL + "/pay", uploadPayment.single('file'), AttendanceController.updatePaymentOfLearner);
+app.post(ATTENDANCE_BASE_URL + "/confirm_paid", AttendanceController.confirmPaymentByTutor);
 
 
 // Define the base URL for certificate-related routes
@@ -91,20 +90,20 @@ app.post(CLASS_BASE_URL + "/create", ClassController.createClass);
 app.put(CLASS_BASE_URL, ClassController.updateClass);
 app.patch(CLASS_BASE_URL, ClassController.updateClass);
 app.delete(CLASS_BASE_URL,
-    (req, res, onNext) => SAuthentication.checkAuthorization(
-        req, res, onNext,
-        OWNING_REF_TABLES.PERSONAL_CLASS,
-        OWNING_REF_COLUMNS.AUTHOR_ID,
-        OWNING_KEY_COLUMNS.iD
-    ),
-    (req, res, onNext) => SAuthentication.checkAuthentication(
-        req, res, onNext,
-        [
-            PermissionList.DELETE_PERSONAL_CLASS,
-            PermissionList.DELETE_OTHER_USER_CLASS,
-        ]
-    ),
-    ClassController.deleteClass
+  (req, res, onNext) => SAuthentication.checkAuthorization(
+    req, res, onNext,
+    OWNING_REF_TABLES.PERSONAL_CLASS,
+    OWNING_REF_COLUMNS.AUTHOR_ID,
+    OWNING_KEY_COLUMNS.iD
+  ),
+  (req, res, onNext) => SAuthentication.checkAuthentication(
+    req, res, onNext,
+    [
+      PermissionList.DELETE_PERSONAL_CLASS,
+      PermissionList.DELETE_OTHER_USER_CLASS,
+    ]
+  ),
+  ClassController.deleteClass
 );
 app.post(CLASS_BASE_URL + "/:class_id/join", ClassController.requestToAttendClass);
 app.post(CLASS_BASE_URL + "/:class_id/accept_to_teach", ClassController.acceptClassToTeach);
@@ -187,6 +186,7 @@ app.delete(OTHER_SKILL_BASE_URL, OtherSkillController.deleteSkill);
 const PERMISSION_BASE_URL = Config.PREFIX + "/permissions";
 app.get(PERMISSION_BASE_URL, PermissionController.getAllPermissions);
 app.get(PERMISSION_BASE_URL + "/of-user", PermissionController.getPermissionsOfUser);
+app.get(PERMISSION_BASE_URL + "/of-role/:id", PermissionController.getPermissionsOfRole);
 
 const RATING_BASE_URL = Config.PREFIX + "/ratings";
 app.get(RATING_BASE_URL + "/:id", RatingController.getRatings);
@@ -194,6 +194,10 @@ app.post(RATING_BASE_URL, RatingController.createRating);
 
 const ROLE_BASE_URL = Config.PREFIX + "/roles";
 app.get(ROLE_BASE_URL, RoleController.getAllRoles);
+app.post(ROLE_BASE_URL, RoleController.createRole);
+app.delete(ROLE_BASE_URL + "/:id", RoleController.deleteRole);
+app.put(ROLE_BASE_URL + "/permissions", RoleController.updatePermissionsOfRole);
+app.patch(ROLE_BASE_URL + "/permissions", RoleController.updatePermissionsOfRole);
 
 const STUDENT_BASE_URL = Config.PREFIX + "/students";
 // Student routes
@@ -228,7 +232,7 @@ app.get(ADMIN_USER_BASE_URL + "/classes", AdminController.getAllClasses);
 app.get(ADMIN_USER_BASE_URL + "/classes/:class_id", AdminController.getDetailClass);
 
 app.listen(port, () => {
-    SLog.log(LogType.Info, "Listen to the port", "server is running at http://127.0.0.1", port);
+  SLog.log(LogType.Info, "Listen to the port", "server is running at http://127.0.0.1", port);
 });
 
 SMySQL.connect();
