@@ -18,37 +18,44 @@ export default class SClassAdmin {
         'ended_at', classes.ended_at,
         'created_at', classes.created_at,
         'updated_at', classes.updated_at,
-        'address_1', classes.address_1,
-        'address_2', classes.address_2,
-        'address_3', classes.address_3,
-        'address_4', classes.address_4,
+        'address', JSON_OBJECT (
+                        "id", addresses.id,
+                        "province", addresses.province,
+                        "district", addresses.district,
+                        "ward", addresses.ward,
+                        "detail", addresses.detail
+                    ),
         'major', JSON_OBJECT(
                     'id', majors.id,
                     'vn_name', majors.vn_name,
                     'en_name', majors.en_name,
                     'ja_name', majors.ja_name,
-                    'icon', JSON_OBJECT('path', files_major.path)
+                    'icon', majors.icon
                     ),
         'author', JSON_OBJECT(
                 'id', author.id,
                 'full_name', author.full_name,
                 'email', author.email,
                 'phone_number', author.phone_number,
-                'avatar', JSON_OBJECT('path', files_author.path)
+                'avatar', tutor.avatar
             ),
         'tutor', JSON_OBJECT(
-                'id', author.id,
-                'full_name', author.full_name,
-                'email', author.email,
-                'phone_number', author.phone_number,
-                'avatar', JSON_OBJECT('path', files_author.path)
+                'id', tutor.id,
+                'full_name', tutor.full_name,
+                'email', tutor.email,
+                'phone_number', tutor.phone_number,
+                'avatar', tutor.avatar
             ),
          'class_level', JSON_OBJECT(
                 'id', class_levels.id,
                 'vn_name', class_levels.vn_name,
                 'en_name', class_levels.en_name,
                 'ja_name', class_levels.ja_name
-            	)
+            	),
+        'is_reported', CASE 
+                WHEN reports.class_id IS NOT NULL THEN true 
+                ELSE false 
+            END
         ) AS class
         FROM
             classes
@@ -56,14 +63,15 @@ export default class SClassAdmin {
         LEFT JOIN users AS tutor ON tutor.id = classes.tutor_id
         LEFT JOIN majors ON majors.id = classes.major_id
         LEFT JOIN class_levels ON class_levels.id = classes.class_level_id
-        LEFT JOIN files AS files_author ON files_author.id = author.avatar_id
-        LEFT JOIN files AS files_tutor ON files_tutor.id = tutor.avatar_id
-        LEFT JOIN files AS files_major ON files_major.id = majors.icon_id;
+        LEFT JOIN addresses ON addresses.id = classes.address_id
+        LEFT JOIN reports ON reports.class_id = classes.id
         `;
 
         SMySQL.getConnection((connection) => {
            connection?.execute<any[]>(sql, (err, results) => {
                 if (err) {
+                    console.log("getAllClasses", err);
+                    
                     onNext([]);
                     return;
                 }
@@ -73,7 +81,7 @@ export default class SClassAdmin {
 
                 results.forEach((result) => {
                     const _class = result.class;
-                    // user.is_reported = result.user.is_reported === 1 ? true : false;
+                    _class.is_reported = result.class.is_reported === 1 ? true : false;
                     classes.push(_class);
                 });
                 

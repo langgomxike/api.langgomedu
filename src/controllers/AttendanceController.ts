@@ -1,12 +1,6 @@
 import express, { Request } from "express";
 import SAttendance from "../services/SAttendance";
-import Attendance from "../models/Attendance";
 import SResponse, { ResponseStatus } from "../services/SResponse";
-import Class from "../models/Class";
-import Student from "../models/Student";
-import { uploadPayment } from "../configs/MulterConfig";
-import e from "express";
-
 export default class AttendanceController {
   public static getAttendanceHistories(
     request: express.Request,
@@ -69,59 +63,47 @@ export default class AttendanceController {
     request: express.Request,
     response: express.Response
   ) {
-    const { attendance_ids, paid, type, deferred } = request.body;
+    let { lesson_id, user_ids, paid, type, deferred } = request.body;
 
     console.log("data:", request.body);
 
     // Lấy đường dẫn file đã upload
     const file = (request as any).file;
-    const filePath = file ? `uploads/payments/${file.filename}` : null;
-
-    console.log("file: ", file);
-    SResponse.getResponse(
-      ResponseStatus.OK,
-      { message: 'Check logs for details', body: request.body },
-      "update payment of leaner",
-      response
-    );
-    
+    const filePath = file ? `/uploads/payments/${file.filename}` : null;
 
     // Chuyển đổi `paid` từ chuỗi sang boolean
-    const paidBoolean = paid === "true";
+    paid = paid === "true";
+    deferred = deferred === "true";
 
-    // SAttendance.updatePaymentOfLearner(
-    //   attendance_ids,
-    //   paidBoolean,
-    //   filePath,
-    //   type,
-    //   deferred,
-    //   (message, result) => {
-    //     SResponse.getResponse(
-    //       ResponseStatus.OK,
-    //       { message, result },
-    //       "update payment of leaner",
-    //       response
-    //     );
-    //   }
-    // );
+     // Chuyển đổi `user_ids` từ chuỗi sang mảng nếu là chuỗi
+  const userIds = typeof user_ids === 'string' ? JSON.parse(user_ids) : user_ids;
+
+    SAttendance.updatePaymentOfLearner(
+      lesson_id, userIds, paid, filePath,  type, deferred,
+      (message, result) => {
+        SResponse.getResponse(ResponseStatus.OK, { message, result }, "update payment of leaner", response);
+      }
+    );
   }
 
   public static confirmPaymentByTutor(
     request: express.Request,
     response: express.Response
   ) {
-    const { lesson_id, user_id, confirmed_by_tutor } = request.body;
-    const confirmedByTutor = confirmed_by_tutor === "true";
-
+    const { lesson_id, user_ids, confirm_paid } = request.body;
+  
+    console.log("Request body:", request.body);
+  
+    // Cập nhật thanh toán xác nhận từ tutor
     SAttendance.confirmPaymentByTutor(
       lesson_id,
-      user_id,
-      confirmedByTutor,
+      user_ids,
+      confirm_paid,
       (message, result) => {
         SResponse.getResponse(
           ResponseStatus.OK,
           { message, result },
-          "confirm payment by tutor",
+          "Confirm payment by tutor",
           response
         );
       }
@@ -155,7 +137,7 @@ export default class AttendanceController {
       },
       (message) => {
         // Xử lý lỗi
-        SResponse.getResponse(ResponseStatus.Error, null, message, response);
+        SResponse.getResponse(ResponseStatus.Internal_Server_Error, null, message, response);
       }
     );
   }
@@ -185,7 +167,7 @@ export default class AttendanceController {
       },
       (message) => {
         // Xử lý lỗi
-        SResponse.getResponse(ResponseStatus.Error, null, message, response);
+        SResponse.getResponse(ResponseStatus.Internal_Server_Error, null, message, response);
       }
     );
   }

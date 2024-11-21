@@ -20,30 +20,32 @@ import RatingController from "./controllers/RatingController";
 import RoleController from "./controllers/RoleController";
 import StudentController from "./controllers/StudentController";
 import LessonController from "./controllers/LessonController";
-import DatabaseSeeder from "./seeders/DatabaseSeeder";
+// import DatabaseSeeder from "./seeders/DatabaseSeeder";
 import SAuthentication, { OWNING_KEY_COLUMNS, OWNING_REF_COLUMNS, OWNING_REF_TABLES } from "./services/SAuthentication";
-import PermissionList, { setUpPermissions } from "./configs/PermissionConfig";
-import { setUpGenders } from "./configs/GenderConfig";
-import SFirebase, { FirebaseNode } from "./services/SFirebase";
+import PermissionList from "./configs/PermissionConfig";
+// import { setUpGenders } from "./configs/GenderConfig";
+// import SFirebase, { FirebaseNode } from "./services/SFirebase";
 import AdminController from "./controllers/admin/AdminController";
 import {uploadPayment} from "./configs/MulterConfig";
-import SResponse, { ResponseStatus } from "./services/SResponse";
+// import SResponse, { ResponseStatus } from "./services/SResponse";
 import { ClassLevelController } from "./controllers/ClassLevelController";
-import {setUpRoles} from "./configs/RoleConfig";
-import {setUpUsers} from "./configs/UserConfig";
+// import {setUpRoles} from "./configs/RoleConfig";
+// import {setUpUsers} from "./configs/UserConfig";
+// import knexConfig from "./configs/knex";
 
 dotenv.config();
 
 const app: Express = express();
 const port = process.env.PORT || 3000;
 
+
 app.use(express.json());
 
-app.get("/", (req: Request, res: Response) => {
+app.get("/", (res: Response) => {
     res.redirect("/api");
 });
 
-app.get("/api", (req: Request, res: Response) => {
+app.get("/api", (res: Response) => {
     res.sendFile(__dirname + "/index.html");
 });
 
@@ -63,7 +65,7 @@ app.put(ATTENDANCE_BASE_URL + "/accept", AttendanceController.acceptAttendance);
 app.get(ATTENDANCE_BASE_URL + "/learner/:class_id/:lesson_id/:user_id", AttendanceController.getAttendanceByLearnerClassLesson);
 app.get(ATTENDANCE_BASE_URL + "/tutor/:class_id/:lesson_id/:user_id", AttendanceController.getAttendanceByTutorClassLesson);
 app.post(ATTENDANCE_BASE_URL + "/pay", uploadPayment.single('file'),AttendanceController.updatePaymentOfLearner);
-app.put(ATTENDANCE_BASE_URL + "/confirm_pay",AttendanceController.confirmPaymentByTutor);
+app.post(ATTENDANCE_BASE_URL + "/confirm_paid",AttendanceController.confirmPaymentByTutor);
 
 
 // Define the base URL for certificate-related routes
@@ -118,18 +120,18 @@ app.delete(CLASS_BASE_URL + "/levels/:id", ClassController.deleteLevel);
 
 const LESSON_BASE_URL = Config.PREFIX + "/lessons";
 app.get(LESSON_BASE_URL + "/:class", LessonController.getLessonsInClass);
-app.post(LESSON_BASE_URL + "/:class", LessonController.createLesson);
+// app.post(LESSON_BASE_URL + "/:class", LessonController.createLesson);
 app.put(LESSON_BASE_URL + "/:id", LessonController.updateLesson);
 app.patch(LESSON_BASE_URL + "/:id", LessonController.updateLesson);
 app.delete(LESSON_BASE_URL + "/:id", LessonController.deleteLesson);
-app.get(LESSON_BASE_URL, LessonController.getSchedule);
+app.get(LESSON_BASE_URL, LessonController.getTutorSchedule);
 //demo
 // app.get(LESSON_BASE_URL, LessonController.demoLesson);
 
 const REPORT_BASE_URL = Config.PREFIX + "/reports";
 app.get(REPORT_BASE_URL + "/class", ReportController.getAllClassReports);
 app.get(REPORT_BASE_URL + "/class/:id", ReportController.getClassReport);
-app.post(REPORT_BASE_URL + "/class", ReportController.createClassReport);
+
 app.post(REPORT_BASE_URL + "/class/:id", ReportController.approveClassReport);
 app.get(REPORT_BASE_URL + "/user", ReportController.getAllUserReports);
 app.get(REPORT_BASE_URL + "/user/:id", ReportController.getUserReport);
@@ -143,9 +145,9 @@ app.post(REPORT_BASE_URL + "/lockUserAccount", UserController.LockUserAccount);
 //khoá lớp học của người dùng
 app.post(REPORT_BASE_URL + "/lockClass", ClassController.LockClass);
 //khoá user reports
-app.post(REPORT_BASE_URL + "/lockUserReport", ReportController.LockUserReport);
-//khoa class reports
-app.post(REPORT_BASE_URL + "/lockClassReport", ReportController.LockClassReport);
+app.post(REPORT_BASE_URL + "/lockUserReport", ReportController.LockReport);
+//tạo report
+app.post(REPORT_BASE_URL + "/created_report", ReportController.createReport);
 
 
 const CV_BASE_URL = Config.PREFIX + "/cvs";
@@ -212,6 +214,8 @@ app.post(USER_BASE_URL + "/register", UserController.registerUser);
 app.post(USER_BASE_URL + "/register/admin", UserController.registerAdmin);
 app.post(USER_BASE_URL + "/auth", UserController.auth);
 app.post(USER_BASE_URL + "/login", UserController.login);
+app.post(USER_BASE_URL + "/change-password", UserController.changePassword);
+app.post(USER_BASE_URL + "/login/implicit", UserController.implicitLogin);
 app.post(USER_BASE_URL + "/password/reset/:id", UserController.resetPassword);
 app.post(USER_BASE_URL + "/password/change/:id", UserController.changePassword);
 app.put(USER_BASE_URL, UserController.updateUserInfo);
@@ -220,7 +224,7 @@ app.delete(USER_BASE_URL + "/:id", UserController.deleteAccount);
 
 // Define the base URL for user-related routes
 const ADMIN_USER_BASE_URL = Config.PREFIX + "/admin";
-app.get(ADMIN_USER_BASE_URL + "/users", AdminController.getAllUsers);
+app.get(ADMIN_USER_BASE_URL + "/users", AdminController.getUsers);
 app.get(ADMIN_USER_BASE_URL + "/users/:user_id/reports", AdminController.getAllReportUserOfUser);
 app.get(ADMIN_USER_BASE_URL + "/classes", AdminController.getAllClasses);
 app.get(ADMIN_USER_BASE_URL + "/classes/:class_id", AdminController.getDetailClass);

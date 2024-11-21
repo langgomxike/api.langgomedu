@@ -28,26 +28,19 @@ export default class SMajor {
   // }
 
   public static getAllMajors(onNext: (majors: Major[]) => void) {
-    const sql = "SELECT * FROM majors";
+    const sql = `SELECT * FROM majors`;
 
-        SMySQL.getConnection((connection) => {
-            connection?.query<any[]>(sql, [], (err, result) => {
-                // kiem tra xem co err khong
-                if (err) {
-                    SLog.log(
-                        LogType.Error,
-                        "get all majors",
-                        "fail to get all majors in database",
-                        err
-                    );
-                    onNext([]);
-                    return;
-                }
+    SMySQL.getConnection((connection) => {
+      connection?.execute<any[]>(sql, (err, result) => {
+        if (err) {
+          onNext([]);
+          return;
+        }
+        
+        const majors:Major[] = result;
 
-                // khoi tao mang moi de luu
-                const majors: Major[] = result;
-                onNext(majors);
-            });
-        });
+        onNext(majors);
+      });
+    });
   }
 }

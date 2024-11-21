@@ -1,14 +1,22 @@
 
 export default class Gender {
     public id: number;
-    public vnGender: string;
-    public enGender: string;
-    public jaGender: string;
+    public vn_name: string;
+    public en_name: string;
+    public ja_name: string;
 
-    constructor(id = -1, vnGender = "", enGender = "", jaGender = "") {
+    constructor(id = -1, vn_name = "", en_name = "", ja_name = "") {
         this.id = id;
-        this.vnGender = vnGender;
-        this.enGender = enGender;
-        this.jaGender = jaGender;
+        this.vn_name = vn_name;
+        this.en_name = en_name;
+        this.ja_name = ja_name;
     }
+}
+export const genderJson = (asName: string): string => {
+    return `JSON_OBJECT(
+        'id', ${asName}.id,
+        'vn_name', ${asName}.vn_name,
+        'en_name', ${asName}.en_name,
+        'ja_name', ${asName}.ja_name
+    )`;
 }

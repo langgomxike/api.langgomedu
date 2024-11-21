@@ -2,19 +2,35 @@ import Class from "./Class";
 import User from "./User";
 
 export default class Rating {
+    public id : number;
     public rater: User | undefined; //[note: "ID của người đánh giá (người học)"]
     public ratee: User | undefined; //[note: "-- ID của người được đánh giá (người dạy)"]
-    public rating_value: number;
+    public value: number;
     public content: string;
     public class: Class | undefined;
     public created_at: number;
+    public updated_at: number;
 
-    constructor(rater: User | undefined = undefined, ratee: User | undefined = undefined, ratingValue = 0, content = "", _class: Class | undefined = undefined, createdAt = new Date()) {
+    constructor(rater: User | undefined = undefined, ratee: User | undefined = undefined, value = 0, content = "", _class: Class | undefined = undefined, created_at = 0, updated_at = 0) {
         this.rater = rater;
         this.ratee = ratee;
-        this.rating_value = ratingValue;
+        this.value = value;
         this.content = content;
         this.class = _class;
-        this.created_at = createdAt.getTime();
+        this.created_at = created_at;
+        this.updated_at = updated_at;
     }
+}
+
+export const ratingJson = (asName: string):string => {
+    return `JSON_OBJECT(
+    'id', ex.id,
+    'rater', ex.rater_id,
+    'ratee', ex.ratee_id,
+    'value', ex.value,
+    'content', ex.content,
+    'class', ex.class_id,
+    'created_at', ex.created_at,
+    'updated_at', ex.updated_at
+)`;
 }

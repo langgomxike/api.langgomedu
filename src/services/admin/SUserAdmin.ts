@@ -1,6 +1,14 @@
 
-import User from '../../models/User';
+// import User from '../../entities/User';
+import User, { userJson } from '../../models/User';
 import SMySQL from '../SMySQL';
+// import {AppDataSource} from "../../configs/dataSource";
+import 'reflect-metadata';
+// import knex from "knex";
+import db from "../../configs/knex";
+
+
+
 export default class SUserAdmin {
     public static getAllUsers(onNext: (users: User[]) => void) {
         const sql = `
@@ -108,4 +116,14 @@ WHERE ur.to_user_id = 089204010902;
              });
          });
     }
+
+    public static async getAllUsers2(onNext: (users: User[])=> void) {
+        const results = await db('users')
+        .join('addresses as ad', 'ad.id', '=', 'users.address_id')
+        .join('genders', 'genders.id', '=', 'users.gender_id')
+        .select(db.raw(userJson('users', 'ad', 'genders')));
+        
+        onNext(results as User[])
+    }
 }
+
