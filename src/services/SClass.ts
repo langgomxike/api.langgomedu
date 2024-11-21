@@ -311,10 +311,9 @@ export default class SClass {
   ) {
     // Xác định điều kiện WHERE theo userType
     const condition =
-    userType === UserType.TUTOR
-      ? `classes.tutor_id IS NULL AND classes.author_id != ? AND in_class_members.user_id IS NULL`
-      : `classes.author_id != ? AND classes.tutor_id != ? AND in_class_members.user_id IS NULL`;
-
+      userType === UserType.TUTOR
+        ? `classes.tutor_id IS NULL AND classes.author_id != ? AND in_class_members.user_id IS NULL`
+        : `classes.author_id != ? AND classes.tutor_id != ? AND in_class_members.user_id IS NULL`;
 
     // SQL query to fetch class information, including tutor, major, and class level details
     const sql = `SELECT 
@@ -373,7 +372,7 @@ export default class SClass {
 
     // Thay thế các giá trị điều kiện theo userType
     const params =
-    userType === UserType.TUTOR ? [userId, userId] : [userId, userId, userId];
+      userType === UserType.TUTOR ? [userId, userId] : [userId, userId, userId];
 
     // Get a database connection
     SMySQL.getConnection((connection) => {
@@ -1072,94 +1071,6 @@ export default class SClass {
     });
   }
 
-  // public static createClass(
-  //   title: string,
-  //   description: string,
-  //   major_id: number,
-  //   class_level_id: number,
-  //   price: number,
-  //   started_at: number,
-  //   ended_at: number,
-  //   lessons: Lesson[],
-  //   onNext: (result: boolean, insertId?: number) => void
-  // ) {
-  //   const sql =
-  //     "INSERT INTO classes (title, description, major_id, price, class_level_id, started_at, ended_at) VALUES (?,?,?,?,?,?,?)";
-
-  //   //class_level_id:  lấy danh sách cấp học -> lưu lại id
-  //   // bỏ mô tả và yêu cầu trong giao diện
-
-  //   SMySQL.getConnection((connection) => {
-  //     connection?.execute(
-  //       sql,
-  //       [
-  //         title,
-  //         description,
-  //         major_id,
-  //         price,
-  //         class_level_id,
-  //         started_at,
-  //         ended_at,
-  //       ],
-  //       (err, result) => {
-  //         if (err) {
-  //           // Xử lý khi có lỗi
-  //           SLog.log(
-  //             LogType.Error,
-  //             "addNewClass",
-  //             "Failed to insert new class",
-  //             err
-  //           );
-  //           onNext(false);
-  //           return;
-  //         }
-  //         // Trả về kết quả thành công và ID của lớp học vừa thêm
-  //         const classId = (result as any).insertId || undefined;
-  //         onNext(true, classId); // tìm cách trả về ID lớp vừa tạo
-
-  //         // Chuẩn bị dữ liệu cho việc chèn nhiều dòng trong bảng lessons
-  //         if (lessons.length > 0) {
-  //           const values: any[] = [];
-  //           lessons.forEach((lesson) => {
-  //             values.push(
-  //               classId,
-  //               lesson.day,
-  //               lesson.started_at,
-  //               lesson.duration,
-  //               lesson.is_online
-  //             );
-  //           });
-  //           console.log("values: " + values);
-            
-  //           // Xây dựng câu truy vấn `INSERT` với nhiều giá trị
-  //           const placeholders = lessons.map(() => "(?,?,?,?,?)").join(",");
-  //           const sqlLesson = `INSERT INTO lessons (class_id, day, started_at, duration, is_online) VALUES ${placeholders}`;
-
-  //           console.log("sql lesson: ", sqlLesson);
-            
-  //           connection.execute(sqlLesson, values, (lessonErr) => {
-  //             if (lessonErr) {
-  //               SLog.log(
-  //                 LogType.Error,
-  //                 "addLessons",
-  //                 "Failed to insert lessons",
-  //                 lessonErr
-  //               );
-  //               onNext(false);
-  //             } else {
-  //               onNext(true, classId); // thanh cong tra ve id cho lop
-  //             }
-  //           });
-  //         } else {
-  //           onNext(true, classId);
-  //         }
-  //       }
-  //     );
-  //   });
-  // }
-
-  // Join class by leaner
-  
   public static createClass(
     title: string,
     description: string,
@@ -1173,19 +1084,19 @@ export default class SClass {
   ) {
     const sql =
       "INSERT INTO classes (title, description, major_id, price, class_level_id, started_at, ended_at) VALUES (?,?,?,?,?,?,?)";
-  
+
     SMySQL.getConnection((connection) => {
       if (!connection) {
         onNext(false);
         return;
       }
-  
+
       connection.beginTransaction((transactionErr) => {
         if (transactionErr) {
           onNext(false);
           return;
         }
-  
+
         connection.execute(
           sql,
           [
@@ -1202,13 +1113,13 @@ export default class SClass {
               connection.rollback(() => onNext(false));
               return;
             }
-  
+
             const classId = (result as any).insertId || undefined;
             if (!classId) {
               onNext(false);
               return;
             }
-  
+
             // Kiểm tra nếu không có bài học để thêm, commit ngay
             if (lessons.length === 0) {
               connection.commit((commitErr) => {
@@ -1220,7 +1131,7 @@ export default class SClass {
               });
               return;
             }
-  
+
             // Thêm các bài học vào bảng lessons
             const values: any[] = [];
             lessons.forEach((lesson) => {
@@ -1232,16 +1143,16 @@ export default class SClass {
                 lesson.is_online
               );
             });
-  
+
             const placeholders = lessons.map(() => "(?,?,?,?,?)").join(",");
             const sqlLesson = `INSERT INTO lessons (class_id, day, started_at, duration, is_online) VALUES ${placeholders}`;
-  
+
             connection.execute(sqlLesson, values, (lessonErr) => {
               if (lessonErr) {
                 connection.rollback(() => onNext(false));
                 return;
               }
-  
+
               connection.commit((commitErr) => {
                 if (commitErr) {
                   onNext(false);
@@ -1260,7 +1171,7 @@ export default class SClass {
     classId: number,
     userId: string,
     studentIds: number[],
-    onNext: (message, result) => void,
+    onNext: (message, result) => void
   ) {
     console.log(">>> user id", userId);
     console.log(">>> class id", classId);
@@ -1282,7 +1193,7 @@ export default class SClass {
       connection?.beginTransaction((err) => {
         if (err) {
           // Gọi hàm lỗi nếu không thể bắt đầu giao dịch
-          return onNext(`Error starting transaction: ${err.message}`, false); 
+          return onNext(`Error starting transaction: ${err.message}`, false);
         }
 
         //Bước 1: Chèn người dùng hiện tại (học sinh chính)
@@ -1299,7 +1210,10 @@ export default class SClass {
           // Nếu danh sách rỗng, commit và gọi onSuccess
           connection.commit((err) => {
             if (err) {
-              return onNext(`Error committing transaction: ${err.message}`, false);
+              return onNext(
+                `Error committing transaction: ${err.message}`,
+                false
+              );
             }
             onNext(`Join in class id: ${classId} successful!`, true);
           });
@@ -1311,7 +1225,11 @@ export default class SClass {
           return new Promise((resolve, reject) => {
             connection.execute(studentSql, [classId, studentId], (err) => {
               if (err) {
-                reject(new Error(`Error inserting student ${studentId}: ${err.message}`));
+                reject(
+                  new Error(
+                    `Error inserting student ${studentId}: ${err.message}`
+                  )
+                );
               } else {
                 resolve(true);
               }
@@ -1324,14 +1242,20 @@ export default class SClass {
           .then(() => {
             connection.commit((err) => {
               if (err) {
-                return onNext(`Error committing transaction after student insertions: ${err.message}`, false);
+                return onNext(
+                  `Error committing transaction after student insertions: ${err.message}`,
+                  false
+                );
               }
               onNext(`Join in class id: ${classId} successful!`, true);
             });
           })
           .catch((err) => {
             connection.rollback(() => {
-              return onNext(`Error during student insertions: ${err.message}`, false);
+              return onNext(
+                `Error during student insertions: ${err.message}`,
+                false
+              );
             });
           });
       });
@@ -1342,7 +1266,7 @@ export default class SClass {
   public static acceptClassToTeach(
     classId: number,
     tutorId: string,
-    onNext: (message, result) => void,
+    onNext: (message, result) => void
   ) {
     // Truy vấn để kiểm tra xem lớp học đã có gia sư hoặc người tham gia hay chưa
     const checkSql = `SELECT classes.tutor_id FROM classes WHERE classes.id = ?; `;
@@ -1375,7 +1299,7 @@ export default class SClass {
             }
 
             if (updateResults && updateResults.affectedRows > 0) {
-              onNext("Class accepted by tutor successfully", true)
+              onNext("Class accepted by tutor successfully", true);
               console.log(">>> Class accepted by tutor successfully");
             } else {
               const errorMessage =
@@ -1388,49 +1312,38 @@ export default class SClass {
       });
     });
   }
-   //khoá lớp học
-//  UPDATE classes
-// SET status = 1
-// WHERE class_id = your_class_id
-// LIMIT 1;
-public static LockClass(class_id: string, onNext: (result: boolean) => void) {
-  // Câu truy vấn SQL để khóa lớp học
-  const sql = `
+  //khoá lớp học
+  //  UPDATE classes
+  // SET status = 1
+  // WHERE class_id = your_class_id
+  // LIMIT 1;
+  public static LockClass(class_id: string, onNext: (result: boolean) => void) {
+    // Câu truy vấn SQL để khóa lớp học
+    const sql = `
       UPDATE classes
       SET status = 1
       WHERE id = ?
       LIMIT 1;
   `;
 
-  // Lấy kết nối và thực thi truy vấn
-  SMySQL.getConnection((connection) => {
+    // Lấy kết nối và thực thi truy vấn
+    SMySQL.getConnection((connection) => {
       connection?.execute(
-          sql,
-          [class_id], // Truyền vào `class_id` làm tham số
-          (error, result) => {
-              // Nếu có lỗi, ghi log lỗi và gọi callback với `false`
-              if (error) {
-                  onNext(false);
-                  SLog.log(
-                      LogType.Error,
-                      "LockClass",
-                      "Cannot lock class",
-                      error
-                  );
-                  return;
-              }
-
-              // Nếu thành công, ghi log và gọi callback với `true`
-              SLog.log(
-                  LogType.Info,
-                  "LockClass",
-                  "Locked class successfully"
-              );
-              onNext(true);
+        sql,
+        [class_id], // Truyền vào `class_id` làm tham số
+        (error, result) => {
+          // Nếu có lỗi, ghi log lỗi và gọi callback với `false`
+          if (error) {
+            onNext(false);
+            SLog.log(LogType.Error, "LockClass", "Cannot lock class", error);
+            return;
           }
+
+          // Nếu thành công, ghi log và gọi callback với `true`
+          SLog.log(LogType.Info, "LockClass", "Locked class successfully");
+          onNext(true);
+        }
       );
-  });
-}
-
-
+    });
+  }
 }
