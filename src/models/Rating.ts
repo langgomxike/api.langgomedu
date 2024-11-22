@@ -21,3 +21,16 @@ export default class Rating {
         this.updated_at = updated_at;
     }
 }
+
+export const ratingJson = (asName: string):string => {
+    return `JSON_OBJECT(
+    'id', ex.id,
+    'rater', ex.rater_id,
+    'ratee', ex.ratee_id,
+    'value', ex.value,
+    'content', ex.content,
+    'class', ex.class_id,
+    'created_at', ex.created_at,
+    'updated_at', ex.updated_at
+)`;
+}

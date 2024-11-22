@@ -8,3 +8,10 @@ export default class Role {
         this.name = name;
     }
 }
+
+export const roleJson = (asName: string): string => {
+    return `JSON_OBJECT(
+    'id', ${asName}.id,
+    'name', ${asName}.name
+)`;
+}

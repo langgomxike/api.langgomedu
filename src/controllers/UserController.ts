@@ -3,8 +3,12 @@ import express, {Response} from "express";
 import SUser from "../services/SUser";
 import SResponse, {ResponseStatus} from "../services/SResponse";
 import User from "../models/User";
-import {v4} from "uuid";
-import SLog, {LogType} from "../services/SLog";
+import Message from "../models/Message";
+import * as dotenv from "dotenv";
+import SMessage from "../services/SMessage";
+import { v4 } from "uuid";
+import SLog, { LogType } from "../services/SLog";
+import SInformation from "../services/SInformation";
 import PermissionList from "../configs/PermissionConfig";
 import SPermission from "../services/SPermission";
 import Permission from "../models/Permission";
@@ -132,6 +136,7 @@ export default class UserController {
 
       SRole.getRolesByUserId(user.id, roles => {
         user.roles = roles;
+
 
         //update user's token
         const token = v4();

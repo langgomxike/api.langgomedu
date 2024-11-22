@@ -14,3 +14,13 @@ export default class Major {
         this.icon = icon;
     };
 }
+
+export const majorJson = (asName: string): string => {
+    return `JSON_OBJECT(
+    'id', ${asName}.id,
+    'vn_name', ${asName}.vn_name,
+    'en_name', ${asName}.en_name,
+    'ja_name', ${asName}.ja_name,
+    'icon', ${asName}.icon
+)`;
+}

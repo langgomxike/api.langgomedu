@@ -5,7 +5,6 @@ import SResponse, {ResponseStatus} from "../services/SResponse";
 import Certificate from "../models/Certificate";
 import SLog, {LogType} from "../services/SLog";
 import SCertificateLevel from "../services/SCertificateLevel";
-import CertificateLevel from "../models/CertificateLevel";
 
 export default class CertificateController {
     public static getAllCertificates(request: express.Request, response: express.Response) {

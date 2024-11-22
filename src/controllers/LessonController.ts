@@ -16,73 +16,59 @@ export default class LessonController {
 
    }
 
-   public static getSchedule(request: express.Request, response: express.Response) {
-      const { user_id, student_id } = request.query;
-      const studentId = student_id?.toString();
+   public static getTutorSchedule(request : express.Request, response: express.Response) {
+      const { user_id } = request.query;
       const userId = user_id?.toString();
-       
-         if((user_id && student_id) || (!user_id && !student_id)){
-           SResponse.getResponse(ResponseStatus.Internal_Server_Error, [], "can't not get schedule", response)
-           return;
-         }
-
-         if(userId){
-            const promises: Promise<Lesson[]>[] = [
-               new Promise(resolve => {
-                  SLesson.getTutorSchedule(userId, (lesson)=> resolve(lesson))
-               }),
-               new Promise(resolve => {
-                  SLesson.getUserSchedule(userId, (lesson)=> resolve(lesson))
-               })
-            ]
-
-            Promise.all(promises).then((result)=>{
-               const lessons = result.flat();
-               SResponse.getResponse(ResponseStatus.OK, lessons, "get user schedule", response)
-            }).catch((err)=> {
-               SLog.log(LogType.Error, "get schedule", "failed to get schedule", err);
-            SResponse.getResponse(ResponseStatus.Internal_Server_Error, [], "can't get schedule", response);
-            })
-            // SLesson.getTutorSchedule(userId,(lessons)=>{
-            //    SResponse.getResponse(ResponseStatus.OK, lessons, "get tutor schedule", response);
-            // })
-         }
-         if(studentId){
-            SLesson.getLearnerSchedule(studentId, (lessons)=>{
-               SResponse.getResponse(ResponseStatus.OK, lessons, "get learner schedule", response);
-            })
-         }
-      // SResponse.getResponse(ResponseStatus.OK, [userId, studentId], 'get Schedule', response)
+      if(userId){
+         // SLog.log(LogType.Info, "getParam", "user_id", userId)
+         SLesson.getTutorSchedule(userId, (lessons)=>{
+             SResponse.getResponse(ResponseStatus.OK, lessons, "get tutor schedule", response);
+         })
+     }else{
+         SResponse.getResponse(ResponseStatus.Internal_Server_Error, [], "can't get User with this ID", response)
+     }
+   }
+   public static getLearnerSchedule(request :express.Request, response: express.Response) {
+      const { user_id } = request.query;
+      const userId = user_id?.toString();
+      if(userId){
+         // SLog.log(LogType.Info, "getParam", "user_id", userId)
+         SLesson.getUserSchedule(userId, (lessons)=>{
+             SResponse.getResponse(ResponseStatus.OK, lessons, "get tutor schedule", response);
+         })
+     }else{
+         SResponse.getResponse(ResponseStatus.Internal_Server_Error, [], "can't get User with this ID", response)
+     }
    }
 
-  public static createLesson(
-    request: express.Request,
-    response: express.Response
-  ) {
-    // lay cac gia tri tu request body
-    const { day, started_at, duration, is_online } = request.body;
-    console.log("data: ", request.body);
+//   public static createLesson(
+//     request: express.Request,
+//     response: express.Response
+//   ) {
+//     // lay cac gia tri tu request body
+//     const { day, started_at, duration, is_online } = request.body;
+//     console.log("data: ", request.body);
 
-    // goi ham createLesson tu SLesson
-    SLesson.createLesson(
-      day,
-      started_at,
-      duration,
-      is_online,
-      (result, insertId) => {
-        if (result) {
-          response.status(201).json({
-            message: "Tao buoi hoc thanh cong",
-            lessonId: insertId,
-          });
-        } else {
-          response.status(500).json({
-            message: "Không thể tạo lớp học",
-          });
-        }
-      }
-    );
-  }
+//     // goi ham createLesson tu SLesson
+//     SLesson.createLesson(
+//       day,
+//       started_at,
+//       duration,
+//       is_online,
+//       (result, insertId) => {
+//         if (result) {
+//           response.status(201).json({
+//             message: "Tao buoi hoc thanh cong",
+//             lessonId: insertId,
+//           });
+//         } else {
+//           response.status(500).json({
+//             message: "Không thể tạo lớp học",
+//           });
+//         }
+//       }
+//     );
+//   }
 
   public static updateLesson(
     request: express.Request,

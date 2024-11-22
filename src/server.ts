@@ -1,9 +1,9 @@
 // Import necessary modules and libraries
 // @ts-ignore
-import express, {Express, Request, Response} from "express";
+import express, { Express, Request, Response } from "express";
 // @ts-ignore
 import dotenv from "dotenv";
-import SLog, {LogType} from "./services/SLog";
+import SLog, { LogType } from "./services/SLog";
 import SMySQL from "./services/SMySQL";
 import UserController from "./controllers/UserController";
 import AttendanceController from "./controllers/AttendanceController";
@@ -40,11 +40,11 @@ const port = process.env.PORT || 3000;
 app.use(express.json());
 
 app.get("/", (req: Request, res: Response) => {
-  res.redirect("/api");
+    res.redirect("/api");
 });
 
 app.get("/api", (req: Request, res: Response) => {
-  res.sendFile(__dirname + "/index.html");
+    res.sendFile(__dirname + "/index.html");
 });
 
 app.use('/', express.static('public'));
@@ -90,20 +90,20 @@ app.post(CLASS_BASE_URL + "/create", ClassController.createClass);
 app.put(CLASS_BASE_URL, ClassController.updateClass);
 app.patch(CLASS_BASE_URL, ClassController.updateClass);
 app.delete(CLASS_BASE_URL,
-  (req, res, onNext) => SAuthentication.checkAuthorization(
-    req, res, onNext,
-    OWNING_REF_TABLES.PERSONAL_CLASS,
-    OWNING_REF_COLUMNS.AUTHOR_ID,
-    OWNING_KEY_COLUMNS.iD
-  ),
-  (req, res, onNext) => SAuthentication.checkAuthentication(
-    req, res, onNext,
-    [
-      PermissionList.DELETE_PERSONAL_CLASS,
-      PermissionList.DELETE_OTHER_USER_CLASS,
-    ]
-  ),
-  ClassController.deleteClass
+    (req, res, onNext) => SAuthentication.checkAuthorization(
+        req, res, onNext,
+        OWNING_REF_TABLES.PERSONAL_CLASS,
+        OWNING_REF_COLUMNS.AUTHOR_ID,
+        OWNING_KEY_COLUMNS.iD
+    ),
+    (req, res, onNext) => SAuthentication.checkAuthentication(
+        req, res, onNext,
+        [
+            PermissionList.DELETE_PERSONAL_CLASS,
+            PermissionList.DELETE_OTHER_USER_CLASS,
+        ]
+    ),
+    ClassController.deleteClass
 );
 app.post(CLASS_BASE_URL + "/:class_id/join", ClassController.requestToAttendClass);
 app.post(CLASS_BASE_URL + "/:class_id/accept_to_teach", ClassController.acceptClassToTeach);
@@ -117,18 +117,18 @@ app.delete(CLASS_BASE_URL + "/levels/:id", ClassController.deleteLevel);
 
 const LESSON_BASE_URL = Config.PREFIX + "/lessons";
 app.get(LESSON_BASE_URL + "/:class", LessonController.getLessonsInClass);
-app.post(LESSON_BASE_URL + "/:class", LessonController.createLesson);
+// app.post(LESSON_BASE_URL + "/:class", LessonController.createLesson);
 app.put(LESSON_BASE_URL + "/:id", LessonController.updateLesson);
 app.patch(LESSON_BASE_URL + "/:id", LessonController.updateLesson);
 app.delete(LESSON_BASE_URL + "/:id", LessonController.deleteLesson);
-app.get(LESSON_BASE_URL, LessonController.getSchedule);
+app.get(LESSON_BASE_URL, LessonController.getTutorSchedule);
 //demo
 // app.get(LESSON_BASE_URL, LessonController.demoLesson);
 
 const REPORT_BASE_URL = Config.PREFIX + "/reports";
 app.get(REPORT_BASE_URL + "/class", ReportController.getAllClassReports);
 app.get(REPORT_BASE_URL + "/class/:id", ReportController.getClassReport);
-app.post(REPORT_BASE_URL + "/class", ReportController.createClassReport);
+
 app.post(REPORT_BASE_URL + "/class/:id", ReportController.approveClassReport);
 app.get(REPORT_BASE_URL + "/user", ReportController.getAllUserReports);
 app.get(REPORT_BASE_URL + "/user/:id", ReportController.getUserReport);
@@ -142,9 +142,9 @@ app.post(REPORT_BASE_URL + "/lockUserAccount", UserController.LockUserAccount);
 //khoá lớp học của người dùng
 app.post(REPORT_BASE_URL + "/lockClass", ClassController.LockClass);
 //khoá user reports
-app.post(REPORT_BASE_URL + "/lockUserReport", ReportController.LockUserReport);
-//khoa class reports
-app.post(REPORT_BASE_URL + "/lockClassReport", ReportController.LockClassReport);
+app.post(REPORT_BASE_URL + "/lockUserReport", ReportController.LockReport);
+//tạo report
+app.post(REPORT_BASE_URL + "/created_report", ReportController.createReport);
 
 
 const CV_BASE_URL = Config.PREFIX + "/cvs";
@@ -226,13 +226,13 @@ app.delete(USER_BASE_URL + "/:id", UserController.deleteAccount);
 
 // Define the base URL for user-related routes
 const ADMIN_USER_BASE_URL = Config.PREFIX + "/admin";
-app.get(ADMIN_USER_BASE_URL + "/users", AdminController.getAllUsers);
+app.get(ADMIN_USER_BASE_URL + "/users", AdminController.getUsers);
 app.get(ADMIN_USER_BASE_URL + "/users/:user_id/reports", AdminController.getAllReportUserOfUser);
 app.get(ADMIN_USER_BASE_URL + "/classes", AdminController.getAllClasses);
 app.get(ADMIN_USER_BASE_URL + "/classes/:class_id", AdminController.getDetailClass);
 
 app.listen(port, () => {
-  SLog.log(LogType.Info, "Listen to the port", "server is running at http://127.0.0.1", port);
+    SLog.log(LogType.Info, "Listen to the port", "server is running at http://127.0.0.1", port);
 });
 
 SMySQL.connect();

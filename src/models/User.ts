@@ -1,7 +1,7 @@
 import File from "./File";
 import Role from "./Role";
-import Address from "./Address";
-import Gender from "./Gender";
+import Address, { addressJson } from "./Address";
+import Gender, { genderJson } from "./Gender";
 
 export default class User {
     public id: string;
@@ -62,4 +62,48 @@ export default class User {
         this.updated_at = updated_at;
         this.roles = roles;
     }
+}
+
+export const userJson = (asName: string, asAddressName: string, asGendername: string): string => {
+    return `JSON_OBJECT(
+    'id', ${asName}.id,
+    'full_name', ${asName}.full_name,
+    'user_name',${asName}.user_name,
+    'email', ${asName}.email,
+    'phone_number', ${asName}.phone_number,
+    'password', ${asName}.password,
+    'token', ${asName}.token,
+    'avatar', ${asName}.avatar,
+    'birthday', ${asName}.birthday,
+    'point', ${asName}.point,
+    'banking_number', ${asName}.banking_number,
+    'banking_code', ${asName}.banking_code,
+    'hometown', ${asName}.hometown,
+    'gender', ${genderJson(asGendername)},
+    'address', ${addressJson(asAddressName)},
+    'created_at', ${asName}.created_at,
+    'updated_at', ${asName}.updated_at
+) as user`;
+}
+
+export const userJsonwithoutName = (asName: string, asAddressName: string, asGendername: string): string => {
+    return `JSON_OBJECT(
+    'id', ${asName}.id,
+    'full_name', ${asName}.full_name,
+    'user_name',${asName}.user_name,
+    'email', ${asName}.email,
+    'phone_number', ${asName}.phone_number,
+    'password', ${asName}.password,
+    'token', ${asName}.token,
+    'avatar', ${asName}.avatar,
+    'birthday', ${asName}.birthday,
+    'point', ${asName}.point,
+    'banking_number', ${asName}.banking_number,
+    'banking_code', ${asName}.banking_code,
+    'hometown', ${asName}.hometown,
+    'gender', ${genderJson(asGendername)},
+    'address', ${addressJson(asAddressName)},
+    'created_at', ${asName}.created_at,
+    'updated_at', ${asName}.updated_at
+)`;
 }
