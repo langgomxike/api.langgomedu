@@ -16,7 +16,7 @@ export function setUpRoles() {
     .map(([key, value]) => ({name: key, id: value}));
 
   SMySQL.getConnection(connection => {
-    const truncateSQL = "TRUNCATE TABLE roles"; // SQL command to clear all data from the "roles" table
+    const truncateSQL = `DELETE FROM roles WHERE id IN (${roles.map(r => r.id).join(",")})`; // SQL command to clear all data from the "roles" table
     connection?.execute(truncateSQL); // Execute the truncate command to reset the table
 
     const sql = "INSERT INTO roles (`id`, `name`) VALUES (?,?)";
