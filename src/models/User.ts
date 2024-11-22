@@ -18,8 +18,8 @@ export default class User {
     public birthday: number;
     public gender: Gender | undefined;
     public point: number;
-    public bankingNumber: string;
-    public bankingCode: string;
+    public banking_number: string;
+    public banking_code: string;
     public parent: User | undefined;
     public created_at: number;
     public updated_at: number;
@@ -59,8 +59,8 @@ export default class User {
         this.birthday = birthday;
         this.gender = gender;
         this.point = point;
-        this.bankingNumber = bankingNumber;
-        this.bankingCode = bankingCode;
+        this.banking_number = bankingNumber;
+        this.banking_code = bankingCode;
         this.parent = parent;
         this.created_at = created_at;
         this.updated_at = updated_at;
