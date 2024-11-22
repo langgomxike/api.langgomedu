@@ -1,13 +1,13 @@
 import File from "./File";
-import Role from "./Role";
+import Role, { arrayRoleJson } from "./Role";
 import Address, { addressJson } from "./Address";
 import Gender, { genderJson } from "./Gender";
+import db from "../configs/knex";
 
 export default class User {
     public id: string;
     public full_name: string;
-    public user_name: string;
-    public email: string;
+    public username: string;
     public phone_number: string;
     public password: string;
     public token: string;
@@ -20,6 +20,7 @@ export default class User {
     public point: number;
     public bankingNumber: string;
     public bankingCode: string;
+    public parent: User | undefined;
     public created_at: number;
     public updated_at: number;
     public roles: Role[];
@@ -27,8 +28,7 @@ export default class User {
     constructor(
         id = "",
         full_name = "",
-        user_name = "",
-        email = "",
+        username = "",
         phone_number = "",
         password = "",
         token = "",
@@ -41,14 +41,14 @@ export default class User {
         point: number = 0,
         bankingNumber: string = "",
         bankingCode: string = "",
+        parent: User |  undefined = undefined,
         created_at = 0,
         updated_at = 0,
         roles = []
     ) {
         this.id = id;
         this.full_name = full_name;
-        this.user_name = user_name;
-        this.email = email;
+        this.username = username;
         this.phone_number = phone_number;
         this.password = password;
         this.token = token;
@@ -61,6 +61,7 @@ export default class User {
         this.point = point;
         this.bankingNumber = bankingNumber;
         this.bankingCode = bankingCode;
+        this.parent = parent;
         this.created_at = created_at;
         this.updated_at = updated_at;
         this.roles = roles;
@@ -71,8 +72,7 @@ export const userJson = (asName: string, asAddressName: string, asGendername: st
     return `JSON_OBJECT(
     'id', ${asName}.id,
     'full_name', ${asName}.full_name,
-    'user_name',${asName}.user_name,
-    'email', ${asName}.email,
+    'username',${asName}.user_name,
     'phone_number', ${asName}.phone_number,
     'password', ${asName}.password,
     'token', ${asName}.token,
@@ -93,8 +93,7 @@ export const userJsonwithoutName = (asName: string, asAddressName: string, asGen
     return `JSON_OBJECT(
     'id', ${asName}.id,
     'full_name', ${asName}.full_name,
-    'user_name',${asName}.user_name,
-    'email', ${asName}.email,
+    'username',${asName}.user_name,
     'phone_number', ${asName}.phone_number,
     'password', ${asName}.password,
     'token', ${asName}.token,
@@ -109,4 +108,23 @@ export const userJsonwithoutName = (asName: string, asAddressName: string, asGen
     'created_at', ${asName}.created_at,
     'updated_at', ${asName}.updated_at
 )`;
+}
+
+export const subqueryUser = (alias: string) => {
+    return db('users')
+    .select(db.raw(userJsonwithoutName('users', 'address', 'gender')))
+    .leftJoin('addresses as address', 'address.id', `users.address_id`)
+    .leftJoin('genders as gender', 'gender.id', 'users.gender_id')
+    .where('users.id', 'c.tutor_id')
+}
+
+export const simpleUserJson = (asName: string, roleAlias: string): string => {
+    return `JSON_OBJECT(
+        'id', ${asName}.id,
+        'full_name', ${asName}.full_name,
+        'avatar', ${asName}.avatar,
+        'point', ${asName}.point,
+        'parent', ${asName}.parent_id,
+        'roles', ${arrayRoleJson(roleAlias)}
+    ) as user`;
 }

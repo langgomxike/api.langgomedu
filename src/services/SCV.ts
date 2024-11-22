@@ -294,10 +294,8 @@ WHERE cvs.id = ?;`
     .leftJoin('addresses as address', 'address.id', 'user.address_id')
     .leftJoin('genders as gender', 'gender.id', 'user.gender_id')
     .where('cvs.id', user_id);
-    console.log(results[0]);
     
     onNext(results[0] as CV)
-    // return (results[0] as CV)
   }
 
   //end service

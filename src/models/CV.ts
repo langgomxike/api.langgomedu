@@ -1,7 +1,7 @@
 import { createSubquery } from "../configs/knex";
 import Certificate, { certificatesSubquery } from "./Certificate";
 import Education, { educationsSubquery } from "./Education";
-import Experience from "./Experience";
+import Experience, { experiencesSubquery } from "./Experience";
 import User, { userJson, userJsonwithoutName } from "./User";
 
 export default class CV {
@@ -42,6 +42,7 @@ export const cvJson = (asName: string): string => {
     'title', ${asName}.title,
     'certificates', (${certificatesSubquery}), 
     'educations', (${educationsSubquery}),
+    'experiences', (${experiencesSubquery}),
     'approve_at', ${asName}.approved_at,
     'updated_at', ${asName}.updated_at 
 ) as cv `;

@@ -1,4 +1,4 @@
-import User from "./../models/User";
+import User, { userJson } from "./../models/User";
 import SMySQL from "./SMySQL";
 import SLog, {LogType} from "./SLog";
 import {v4} from "uuid";
@@ -13,6 +13,7 @@ import Role from "../models/Role";
 import RoleList from "../configs/RoleConfig";
 import SPermission from "./SPermission";
 import * as crypto from "crypto";
+import db from "../configs/knex";
 
 export default class SUser {
   public static getAllUsers(onNext: (users: User[]) => void) {
@@ -452,4 +453,6 @@ export default class SUser {
       );
     });
   }
+
+  
 }

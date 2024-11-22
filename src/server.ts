@@ -119,12 +119,15 @@ app.patch(CLASS_BASE_URL + "/levels/:id", ClassController.updateLevel);
 app.delete(CLASS_BASE_URL + "/levels/:id", ClassController.deleteLevel);
 
 const LESSON_BASE_URL = Config.PREFIX + "/lessons";
+app.get(LESSON_BASE_URL+ "/tutor/:id", LessonController.getTutorSchedule);
+app.get(LESSON_BASE_URL + "/learner/:id", LessonController.getLearnerSchedule);
+app.get(LESSON_BASE_URL +"/user/:id", LessonController.getUserParentAndChildren);
 app.get(LESSON_BASE_URL + "/:class", LessonController.getLessonsInClass);
 // app.post(LESSON_BASE_URL + "/:class", LessonController.createLesson);
 app.put(LESSON_BASE_URL + "/:id", LessonController.updateLesson);
 app.patch(LESSON_BASE_URL + "/:id", LessonController.updateLesson);
 app.delete(LESSON_BASE_URL + "/:id", LessonController.deleteLesson);
-app.get(LESSON_BASE_URL, LessonController.getTutorSchedule);
+
 //demo
 // app.get(LESSON_BASE_URL, LessonController.demoLesson);
 
