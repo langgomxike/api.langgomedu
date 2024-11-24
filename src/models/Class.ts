@@ -61,7 +61,7 @@ export const classJson = (asName: string): string => {
     'max_learners', ${asName}.max_learners,
     'started_at', ${asName}.started_at,
     'ended_at', ${asName}.ended_at,
-    'address', ${asName}.address_id,
+    'address', ${asName},
     'paid', ${asName}.paid,
     'author_accepted', ${asName}.author_accepted,
     'admin_accepted', ${asName}.admin_accepted,
@@ -69,3 +69,31 @@ export const classJson = (asName: string): string => {
     'updated_at', ${asName}.updated_at
 )`;
 }
+
+export const classJs = (tableAlias: string) => `
+JSON_OBJECT(
+    'id', ${tableAlias}.id,
+    'title', ${tableAlias}.title,
+    'description', ${tableAlias}.description,
+    'major', ${tableAlias}.major_id,
+    'tutor', ${tableAlias}.tutor_id,
+    'author', ${tableAlias}.author_id,
+    'price', ${tableAlias}.price,
+    'class_creation_fee', ${tableAlias}.class_creation_fee,
+    'class_level', ${tableAlias}.class_level_id,
+    'max_learners', ${tableAlias}.max_learners,
+    'started_at', ${tableAlias}.started_at,
+    'ended_at', ${tableAlias}.ended_at,
+    'address', JSON_OBJECT(
+        'province', addresses.province,
+        'district', addresses.district,
+        'ward', addresses.ward,
+        'detail', addresses.detail
+    ),
+    'paid', ${tableAlias}.paid,
+    'author_accepted', ${tableAlias}.author_accepted,
+    'admin_accepted', ${tableAlias}.admin_accepted,
+    'created_at', ${tableAlias}.created_at,
+    'updated_at', ${tableAlias}.updated_at
+)
+`;
