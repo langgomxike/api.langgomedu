@@ -66,7 +66,7 @@ export default class SUser {
     id: string,
     onNext: (user: User | undefined) => void
   ) {
-    const sql = `SELECT users
+    const sql = `SELECT *
                  FROM users
                  WHERE users.id = ?`;
 
