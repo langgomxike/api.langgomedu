@@ -22,7 +22,9 @@ export default class RatingController {
     public static createRating(request: express.Request, response: express.Response) {
         const rating: Rating = request?.body?.rating;
 
-        if (!rating || !rating.rater || !rating.ratee || !rating.class || !rating.rating_value) {
+        SLog.log(LogType.Warning, "createRating", "check params", rating);
+
+        if (!rating || !rating.rater || !rating.ratee || !rating.class || !rating.value) {
             SLog.log(LogType.Error, "createRating", "Invalid rating");
             SResponse.getResponse(ResponseStatus.Internal_Server_Error,{}, "Invalid rating", response);
             return;
