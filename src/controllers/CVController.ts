@@ -21,7 +21,7 @@ export default class CVController {
         // console.log(user_id);
         
         if(userId){
-            SCV.getUserCV2(userId, (cv)=>{
+            SCV.getUserCV3(userId, (cv)=>{
                 SResponse.getResponse(ResponseStatus.OK, cv, "get User CV", response);
             })
         }else{

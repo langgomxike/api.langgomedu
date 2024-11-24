@@ -2,7 +2,10 @@ import File from "./File";
 import Role, { arrayRoleJson } from "./Role";
 import Address, { addressJson } from "./Address";
 import Gender, { genderJson } from "./Gender";
+import ClassLevel, { classLevelSubquery } from "./ClassLevel";
+import Major, { majorsSubquery } from "./Major";
 import db from "../configs/knex";
+import {Knex } from "knex";
 
 export default class User {
     public id: string;
@@ -24,6 +27,8 @@ export default class User {
     public created_at: number;
     public updated_at: number;
     public roles: Role[];
+    public interested_class_levels: ClassLevel[];
+    public interested_majors: Major[];
 
     constructor(
         id = "",
@@ -127,4 +132,36 @@ export const simpleUserJson = (asName: string, roleAlias: string): string => {
         'parent', ${asName}.parent_id,
         'roles', ${arrayRoleJson(roleAlias)}
     ) as user`;
+}
+
+export const userForCVJSON = (alias: string, addressAlias: string, genderAlias: string): string => {
+    return `JSON_OBJECT(
+    'id', ${alias}.id,
+    'full_name', ${alias}.full_name,
+    'username',${alias}.user_name,
+    'phone_number', ${alias}.phone_number,
+    'password', ${alias}.password,
+    'token', ${alias}.token,
+    'avatar', ${alias}.avatar,
+    'birthday', ${alias}.birthday,
+    'point', ${alias}.point,
+    'banking_number', ${alias}.banking_number,
+    'banking_code', ${alias}.banking_code,
+    'hometown', ${alias}.hometown,
+    'gender', ${genderJson(genderAlias)},
+    'address', ${addressJson(addressAlias)},
+    'created_at', ${alias}.created_at,
+    'updated_at', ${alias}.updated_at,
+    'interested_class_levels', (${classLevelSubquery(alias)}),
+    'interested_majors', (${majorsSubquery(alias)})
+    )`
+}
+
+export const cvJoin = (reference: string, alias: string, addressAlias: string, genderAlias: string, classLevelAlias:string, majorsAlias: string, query : Knex.QueryBuilder): Knex.QueryBuilder => {
+    return query
+    .leftJoin(`users as ${alias}`, `${alias}.id`, `${reference}.id`)
+    .leftJoin(`addresses as ${addressAlias}`, `${addressAlias}.id`, `${alias}.address_id`)
+    .leftJoin(`genders as ${genderAlias}`, `${genderAlias}.id`, `${alias}.gender_id`)
+    .leftJoin(`interested_class_levels as ${classLevelAlias}`, `${classLevelAlias}.user_id`, `${alias}.id`)
+    .leftJoin(`interested_majors as ${majorsAlias}`, `${majorsAlias}.user_id`, `${alias}.id`)
 }

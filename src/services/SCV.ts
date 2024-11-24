@@ -1,7 +1,8 @@
-import CV, { cvJson } from "./../models/CV";
+import CV, { cvJson, cvJson2 } from "./../models/CV";
 import SLog, { LogType } from "./SLog";
 import SMySQL from "./SMySQL";
 import db from "../configs/knex";
+import { cvJoin } from "../models/User";
 
 
 export default class SCV {
@@ -296,6 +297,23 @@ WHERE cvs.id = ?;`
     .where('cvs.id', user_id);
     
     onNext(results[0] as CV)
+  }
+
+  public static async getUserCV3(user_id: string, onNext: (cv: any)=> void) {
+    await cvJoin('cvs', 'user', 'address', 'gender', 'icl', 'im', 
+        db('cvs').
+        select(db.raw(cvJson2('cvs', 'user', 'address', 'gender', 'icl', 'im')))
+        .where('cvs.id', user_id)
+        .groupBy('user.id')
+    )
+    .then((results)=>{
+        onNext(results[0])
+    })
+    .catch((err)=>{
+        SLog.log(LogType.Error, "getUserCV3", "ERR", err);
+    })
+
+    
   }
 
   //end service

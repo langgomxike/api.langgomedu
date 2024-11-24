@@ -240,8 +240,8 @@ app.listen(port, () => {
 
 SMySQL.connect();
 setUpPermissions();
-setUpRoles();
-setUpGenders();
-setUpUsers();
+// setUpRoles();
+// setUpGenders();
+// setUpUsers();
 
 export default app;
