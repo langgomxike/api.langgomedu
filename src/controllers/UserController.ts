@@ -375,72 +375,58 @@ export default class UserController {
       :
       express.Response
   ) {
-    const userId = request?.body?.user_id;
-    const point = request?.body?.point || 30; // Mặc định là 30 nếu không truyền
-
-    console.log("request: " + JSON.stringify(request.body));
-    console.log("userId: " + userId);
-    console.log("point: " + point);
-
-    // Kiểm tra nếu `point` hoặc `userId` không tồn tại
-    if (!userId || point == null) {
+    const { user_id, point, report_id } = request.body; // Thêm report_id vào body request
+    const pointsToDeduct = point ?? 30; // Mặc định trừ 30 nếu không truyền
+    
+    if (!user_id || pointsToDeduct == null || !report_id) {
       return response
         .status(400)
-        .json({success: false, message: "User ID and point are required."});
+        .json({ success: false, message: "User ID, point, and report ID are required." });
     }
-
-    // Trừ điểm uy tín của người dùng
-    SUser.MinusUserPoints(userId, point, (result) => {
+  
+    // Thực hiện trừ điểm và cập nhật bảng reports
+    SUser.MinusUserPoints(user_id, pointsToDeduct, report_id, (result) => {
       if (result) {
-        // Khóa tài khoản người dùng sau khi trừ điểm thành công nếu cần thiết
-        SUser.LockUserAccount(userId, (lockResult) => {
-          if (lockResult) {
-            response
-              .status(200)
-              .json({
-                success: true,
-                message:
-                  "Points subtracted and user account locked successfully.",
-              });
-          } else {
-            response
-              .status(500)
-              .json({
-                success: false,
-                message: "Points subtracted but failed to lock user account.",
-              });
-          }
-        });
+        response.status(200).json({ success: true, message: "Points subtracted and report updated successfully." });
       } else {
-        response
-          .status(500)
-          .json({success: false, message: "Failed to subtract points."});
+        response.status(500).json({ success: false, message: "Failed to subtract points or update report." });
       }
     });
   }
 
-  //khoá user
-  public static
-
-  LockUserAccount(
-    request
-      :
-      express.Request,
-    response
-      :
-      express.Response
+  public static LockUserAccount(
+    request: express.Request,
+    response: express.Response
   ) {
-    const userId = request.body.user_id;  // Đổi từ `request.body.user.id` thành `request.body.user_id`
-    console.log("request: " + JSON.stringify(request.body));
-    console.log("userId: " + userId);
-
+    const userId = request.body.user_id; // Lấy `user_id` từ request
+    const reportId = request.body.report_id; // Lấy `report_id` từ request
+    let permissionIds: string[] = request.body.permission_ids || []; // Lấy danh sách `permission_ids` hoặc mảng rỗng
+    
+    console.log("Request body: " + JSON.stringify(request.body));
+    console.log("UserId: " + userId);
+    console.log("ReportId: " + reportId);
+    console.log("PermissionIds: " + JSON.stringify(permissionIds));
+    
+    // Kiểm tra `userId` và `reportId` có tồn tại không
     if (!userId) {
       return response
         .status(400)
         .json({success: false, message: "User ID is required."});
     }
-
-    SUser.LockUserAccount(userId, (result) => {
+    
+    if (!reportId) {
+      return response
+        .status(400)
+        .json({ success: false, message: "Report ID is required." });
+    }
+    
+    // Nếu danh sách quyền rỗng, đặt mặc định là quyền `13`
+    if (permissionIds.length === 0) {
+      permissionIds = ["13"];
+    }
+    
+    // Gọi hàm LockUserAccount với `userId`, `reportId`, và `permissionIds`
+    SUser.LockUserAccount(userId, reportId, permissionIds, (result) => {
       if (result) {
         response.status(200).json({
           success: true,

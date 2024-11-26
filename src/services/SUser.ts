@@ -257,130 +257,202 @@ export default class SUser {
   // Hàm khoá tài khoản người dùng
   public static LockUserAccount(
     user_id: string,
+    report_id: string,
     permissionIds: string[], // Mảng ID quyền truyền vào
     onNext: (result: boolean) => void
   ) {
-    // Nếu mảng quyền rỗng, đặt mặc định là quyền 13
-    if (permissionIds.length === 0) {
-      permissionIds = ["13"];
-    }
-
     // Tạo danh sách quyền dưới dạng chuỗi để chèn vào SQL
     const permissionValues = permissionIds.map(() => "(?, ?)").join(", ");
-
+  
     // Câu truy vấn DELETE để xóa các quyền hiện tại của user_id
     const deleteSql = `
       DELETE FROM user_role
-      WHERE user_id = ? AND role_id IN (${permissionIds
-        .map(() => "?")
-        .join(", ")});
+      WHERE user_id = ?;
     `;
-
-    // Câu truy vấn INSERT để thêm lại các quyền mới cho user_id
+  
+    // Câu truy vấn INSERT để thêm quyền mới (bao gồm quyền mặc định 13 nếu cần)
     const insertSql = `
-        INSERT INTO user_permissions (user_id, permission_id)
-        VALUES (?, 16),
-               (?, 20),
-               (?, 37),
-               (?, 38),
-               (?, 42),
-               (?, 43),
-               (?, 47),
-               (?, 48),
-               (?, 49),
-               (?, 50);
+      INSERT INTO user_role (user_id, role_id)
+      VALUES (?, ?);
     `;
-
+  
+    // Câu truy vấn UPDATE để khóa các lớp có author_id bằng user_id
+    const updateClassesSql = `
+      UPDATE classes
+      SET ended_at = (UNIX_TIMESTAMP() * 1000)
+      WHERE author_id = ?;
+    `;
+  
+    // Câu truy vấn UPDATE để cài lại điểm về 0 cho user_id
+    const updatePointsSql = `
+      UPDATE users
+      SET point = 0
+      WHERE id = ?;
+    `;
+  
+    // Câu truy vấn để lấy điểm hiện tại của user_id
+    const getUserPointsSql = `
+      SELECT point FROM users WHERE id = ?;
+    `;
+  
+    // Câu truy vấn UPDATE để cập nhật desc_point trong bảng reports
+    const updateReportDescPointSql = `
+      UPDATE reports
+      SET desc_point = ?
+      WHERE id = ?;
+    `;
+  
     // Thực thi câu truy vấn DELETE trước
     SMySQL.getConnection((connection) => {
-      connection?.execute(
-        deleteSql,
-        [user_id, ...permissionIds],
-        (deleteError) => {
-          if (deleteError) {
+      connection?.execute(getUserPointsSql, [user_id], (pointsError, pointsResult) => {
+        if (pointsError) {
+          onNext(false);
+          SLog.log(
+            LogType.Error,
+            "LockUserAccount",
+            "Cannot get user points",
+            pointsError
+          );
+          return;
+        }
+  
+        // Lấy điểm của user trước khi cập nhật thành 0
+        const currentPoint = pointsResult[0]?.point || 0;
+  
+        // Cập nhật bảng reports với desc_point = currentPoint
+        connection.execute(updateReportDescPointSql, [currentPoint, report_id], (reportError) => {
+          if (reportError) {
             onNext(false);
             SLog.log(
               LogType.Error,
               "LockUserAccount",
-              "Cannot delete user permissions",
-              deleteError
+              "Cannot update desc_point in reports",
+              reportError
             );
             return;
           }
-
-          // Sau khi DELETE thành công, thực thi câu truy vấn INSERT
-          const insertParams: (string | number)[] = [];
-          permissionIds.forEach((permissionId) => {
-            insertParams.push(user_id, permissionId);
-          });
-
-          connection.execute(insertSql, insertParams, (insertError) => {
-            if (insertError) {
+  
+          // Thực hiện các truy vấn còn lại (DELETE, INSERT, UPDATE các bảng khác)
+          connection.execute(deleteSql, [user_id], (deleteError) => {
+            if (deleteError) {
               onNext(false);
               SLog.log(
                 LogType.Error,
                 "LockUserAccount",
-                "Cannot insert new permissions",
-                insertError
+                "Cannot delete user permissions",
+                deleteError
               );
               return;
             }
-
-            // Nếu thành công, ghi log và gọi callback với `true`
-            SLog.log(
-              LogType.Info,
-              "LockUserAccount",
-              "Locked user account successfully"
-            );
-            onNext(true);
+  
+            // Sau khi DELETE thành công, thêm quyền mặc định 13
+            connection.execute(insertSql, [user_id, "13"], (insertError) => {
+              if (insertError) {
+                onNext(false);
+                SLog.log(
+                  LogType.Error,
+                  "LockUserAccount",
+                  "Cannot insert default permission",
+                  insertError
+                );
+                return;
+              }
+  
+              // Cập nhật điểm về 0 cho người dùng
+              connection.execute(updatePointsSql, [user_id], (pointsUpdateError) => {
+                if (pointsUpdateError) {
+                  onNext(false);
+                  SLog.log(
+                    LogType.Error,
+                    "LockUserAccount",
+                    "Cannot update user points to 0",
+                    pointsUpdateError
+                  );
+                  return;
+                }
+  
+                // Nếu quyền 7 có trong permissionIds, thực hiện câu truy vấn cập nhật cho các lớp
+                if (permissionIds.includes("7")) {
+                  connection.execute(updateClassesSql, [user_id], (updateError) => {
+                    if (updateError) {
+                      onNext(false);
+                      SLog.log(
+                        LogType.Error,
+                        "LockUserAccount",
+                        "Cannot update classes with author_id",
+                        updateError
+                      );
+                      return;
+                    }
+  
+                    // Nếu cập nhật lớp thành công, ghi log và gọi callback với `true`
+                    SLog.log(
+                      LogType.Info,
+                      "LockUserAccount",
+                      "Locked user account successfully and updated classes"
+                    );
+                    onNext(true);
+                  });
+                } else {
+                  // Nếu không có quyền 7, chỉ ghi log và gọi callback với `true`
+                  SLog.log(
+                    LogType.Info,
+                    "LockUserAccount",
+                    "Locked user account successfully with default permission"
+                  );
+                  onNext(true);
+                }
+              });
+            });
           });
-        }
-      );
+        });
+      });
     });
   }
-
+  
+  
+  
   //trừ điểm uy tín của người dùng
   public static MinusUserPoints(
     user_id: string,
     point: number,
+    report_id: string,  // Thêm tham số report_id
     onNext: (result: boolean) => void
   ) {
-    // Câu truy vấn cập nhật điểm của người dùng
-    let sql = `
-        UPDATE informations
-        SET point = point - ?
-        WHERE user_id = ? LIMIT 1;
-    `;
-
+    const updateUserPointsSql = `UPDATE users SET point = point - ? WHERE id = ? LIMIT 1;`;
+  
+    // Câu truy vấn cập nhật desc_point trong bảng reports
+    const updateReportDescPointSql = `UPDATE reports SET desc_point = ? WHERE id = ? LIMIT 1;`;
+  
     SMySQL.getConnection((connection) => {
-      connection?.execute(
-        sql,
-        [point, user_id], // Truyền vào `point` và `user.user_id` làm tham số
-        (error, result) => {
-          // Nếu có lỗi, ghi lại lỗi và gọi callback với `false`
-          if (error) {
+      // Thực hiện trừ điểm cho người dùng
+      connection?.execute(updateUserPointsSql, [point, user_id], (error, result) => {
+        if (error) {
+          console.error("Error subtracting points in database:", error);
+          onNext(false);
+          return;
+        }
+  
+        console.log("Subtracted points successfully for user", user_id);
+  
+        // Sau khi trừ điểm thành công, cập nhật desc_point trong bảng reports
+        connection.execute(updateReportDescPointSql, [point, report_id], (reportError, reportResult) => {
+          if (reportError) {
+            console.error("Error updating desc_point in reports:", reportError);
             onNext(false);
-            SLog.log(
-              LogType.Error,
-              "MinusUserPoints",
-              "Cannot subtract points for user",
-              error
-            );
             return;
           }
-
-          // Nếu cập nhật thành công, gọi callback với `true` và ghi log thành công
-          SLog.log(
-            LogType.Info,
-            "MinusUserPoints",
-            "Subtracted points successfully for user"
-          );
+  
+          console.log("Updated desc_point in reports for report_id", report_id);
+  
+          // Cuối cùng, gọi callback với kết quả thành công
           onNext(true);
-        }
-      );
+        });
+      });
     });
   }
-
+  
+  
   //tạo admin
   public static CreateAdminUser(
     phone: string,

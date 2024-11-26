@@ -26,7 +26,7 @@ export default class SUserReport {
                     'point', itu.point
                 )
             ),
-        'report_content', user_reports.content,
+        'content', user_reports.content,
           'status', user_reports.status,
         'reports_before', 
             CONCAT('[', GROUP_CONCAT(
@@ -79,67 +79,90 @@ GROUP BY user_reports.id;
     id: string,
     onNext: (userReport: UserReport[]) => void
   ) {
-    const sql = `SELECT   
-  JSON_OBJECT(
-      'report_id', user_reports.id,
-       'created_at', user_reports.created_at,
-      'from_user',
-          JSON_OBJECT(
-              'id', from_user.id,
-              'full_name', from_user.full_name,
-              'information',
-              JSON_OBJECT(
-                  'point', ifu.point
-              ),
-              'avatar_of_fromUser',
-              JSON_OBJECT(
-                  'from_user_avatar', from_user_avatar.path
-              )
-          ),
-      'to_user',
-          JSON_OBJECT(
-              'id', to_user.id,
-              'full_name', to_user.full_name,
-              'information',
-              JSON_OBJECT(
-                  'point', itu.point
-              ),
-              'avatar_of_toUser',
-              JSON_OBJECT(
-                  'to_user_avatar', to_user_avatar.path
-              )
-          ),
-      'report_content', user_reports.content,
-        'status', user_reports.status,
-      'reports_before', 
-          JSON_ARRAYAGG(
-              JSON_OBJECT(
-                  'report_id', ur.id,
-                  'content', ur.content,
-                  'created_at', ur.created_at
-              )
-          ),
-      'files',
-          JSON_ARRAYAGG(
-              JSON_OBJECT(
-                  'id', files.id,
-                  'path', files.path
-              )
-          )
-  ) AS report
-FROM user_reports
-LEFT JOIN users AS from_user ON from_user.id = user_reports.from_user_id
-LEFT JOIN users AS to_user ON to_user.id = user_reports.to_user_id
-LEFT JOIN user_report_files AS urf ON urf.report_id = user_reports.id
-LEFT JOIN informations AS ifu ON ifu.user_id = user_reports.from_user_id
-LEFT JOIN informations AS itu ON itu.user_id = user_reports.to_user_id
-LEFT JOIN files AS from_user_avatar ON from_user_avatar.id = from_user.avatar_id
-LEFT JOIN files AS to_user_avatar ON to_user_avatar.id = to_user.avatar_id
+    const sql = `SELECT JSON_OBJECT(
+    'report_id', reports.id,
+    'created_at', reports.created_at,
+    'reporter',
+        JSON_OBJECT(
+            'id', from_user.id,
+            'full_name', from_user.full_name,
+            'point', from_user.point,
+            'avatar', from_user.avatar
+        ),
+    'reportee',
+        JSON_OBJECT(
+            'id', to_user.id,
+            'full_name', to_user.full_name,
+            'point', to_user.point,
+            'avatar', to_user.avatar,
+            'roles', 
+                IFNULL(
+                    JSON_ARRAYAGG(
+                        JSON_OBJECT(
+                            'role_id', roles.id,
+                            'role_name', roles.name
+                        )
+                    ), JSON_ARRAY()
+                )
+        ),
+    'content', reports.content,
+    'status', reports.status_id,
+    'class',
+        JSON_OBJECT(
+            'id', classes.id,
+            'title', classes.title,
+            'tutor_id', classes.tutor_id,
+            'author_id', classes.author_id
+        ),
+    'reports_before',
+        IFNULL(
+            JSON_ARRAYAGG(
+                JSON_OBJECT(
+                    'report_id', ur.id,
+                    'content', ur.content,
+                    'created_at', ur.created_at
+                )
+            ), JSON_ARRAY()
+        ),
+    'files',
+        IFNULL(
+            JSON_ARRAYAGG(
+                JSON_OBJECT(
+                    'id', files.id,
+                    'path', files.path
+                )
+            ), JSON_ARRAY()
+        )
+) AS report
+FROM reports
+LEFT JOIN users AS from_user ON from_user.id = reports.reporter_id
+LEFT JOIN users AS to_user ON to_user.id = reports.reportee_id
+LEFT JOIN classes ON classes.id = reports.class_id
+LEFT JOIN report_files AS urf ON urf.report_id = reports.id
 LEFT JOIN files ON files.id = urf.file_id
-LEFT JOIN user_reports AS ur ON ur.to_user_id = to_user.id AND ur.id < user_reports.id
-WHERE user_reports.id = ?
-GROUP BY user_reports.id, from_user.id, from_user.full_name, ifu.point, to_user.id, to_user.full_name, itu.point;
- `;
+LEFT JOIN reports AS ur ON ur.reportee_id = reports.reportee_id AND ur.id < reports.id
+-- JOIN bảng user_role và roles để lấy thông tin quyền của reportee
+LEFT JOIN user_role ON user_role.user_id = to_user.id
+LEFT JOIN roles ON roles.id = user_role.role_id
+WHERE reports.id = ?
+GROUP BY
+    reports.id,
+    reports.created_at,
+    reports.content,
+    reports.status_id,  
+    from_user.id,
+    from_user.full_name,
+    from_user.point,
+    from_user.avatar,
+    to_user.id,
+    to_user.full_name,
+    to_user.point,
+    to_user.avatar,
+    classes.id,        
+    classes.title,
+    classes.tutor_id,
+    classes.author_id;
+`;
     SMySQL.getConnection((connection) => {
       connection?.execute<any[]>(sql, [id], (err, results) => {
         if (err) {
@@ -166,34 +189,28 @@ GROUP BY user_reports.id, from_user.id, from_user.full_name, ifu.point, to_user.
     reason: string,
     onNext: (result: boolean) => void
   ) {
-    // Câu truy vấn SQL để khóa báo cáo người dùng
     const sql = `
       UPDATE reports
-      SET status_id = 2,
-       reason = ?
+      SET status_id = 2, reason = ?
       WHERE id = ?
       LIMIT 1;
-  `;
-
-    // Lấy kết nối và thực thi truy vấn
+    `;
+  
     SMySQL.getConnection((connection) => {
       connection?.execute(
         sql,
-        [reason, report_id], // Truyền vào `report_id` làm tham số
+        [reason, report_id],
         (error, result) => {
-          // Nếu có lỗi, ghi log lỗi và gọi callback với `false`
           if (error) {
-            onNext(false);
             SLog.log(
               LogType.Error,
               "LockUserReport",
               "Cannot lock user report",
               error
             );
-            return;
+            return onNext(false);
           }
-
-          // Nếu thành công, ghi log và gọi callback với `true`
+  
           SLog.log(
             LogType.Info,
             "LockUserReport",
@@ -204,29 +221,30 @@ GROUP BY user_reports.id, from_user.id, from_user.full_name, ifu.point, to_user.
       );
     });
   }
+  
   //tạo report
   public static CreatedReport(
     reporter: string,
     reportee: string,
     class_id: string,
     content: string,
+    files: string[],  // Các file gửi kèm theo báo cáo
     onNext: (result: boolean) => void
   ) {
     let reason = "";
-    let level_id=0;
-    let desc_point=0;
-    let status_id=0;
-    let updated_at=0;
+    let level_id = 0;
+    let desc_point = 0;
+    let status_id = 0;
+    let updated_at = Date.now();  // Cập nhật thời điểm hiện tại (milliseconds)
+    let createdAt = Date.now();   // Thời điểm tạo báo cáo
+  
     // Câu truy vấn SQL để thêm báo cáo mới
     const sql = `
-      INSERT INTO reports (reporter_id, reportee_id, class_id, content, created_at,reason,level_id, desc_point, status_id, updated_at)
+      INSERT INTO reports (reporter_id, reportee_id, class_id, content, created_at, reason, level_id, desc_point, status_id, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
     `;
-
-    // Thời điểm hiện tại tính bằng mili giây
-    const createdAt = Date.now();
-
-    // Lấy kết nối và thực thi truy vấn
+  
+    // Thực hiện truy vấn để thêm báo cáo
     SMySQL.getConnection((connection) => {
       connection?.execute(
         sql,
@@ -240,29 +258,100 @@ GROUP BY user_reports.id, from_user.id, from_user.full_name, ifu.point, to_user.
           level_id,
           desc_point,
           status_id,
-          updated_at
-
-        ], // Truyền các tham số vào truy vấn
+          updated_at,
+        ],
         (error, result) => {
-          // Nếu có lỗi, ghi log lỗi và gọi callback với `false`
           if (error) {
             onNext(false);
-            SLog.log(
-              LogType.Error,
-              "CreatedReport",
-              "Cannot create report",
-              error
-            );
+            SLog.log(LogType.Error, "CreatedReport", "Cannot create report", error);
             return;
           }
-
-          // Nếu thành công, ghi log và gọi callback với `true`
-          SLog.log(
-            LogType.Info,
-            "CreatedReport",
-            "Report created successfully"
-          );
-          onNext(true);
+  
+          // Kiểm tra kiểu trả về của result và lấy insertId
+          let reportId: number | null = null;
+          if ((result as any).insertId) {
+            reportId = (result as any).insertId;
+          } else if (Array.isArray(result) && result[0] && (result[0] as any).insertId) {
+            reportId = (result[0] as any).insertId;
+          }
+  
+          if (!reportId) {
+            onNext(false);
+            SLog.log(LogType.Error, "CreatedReport", "Failed to get report ID");
+            return;
+          }
+  
+          // Thêm các file vào bảng files
+          const fileSql = `
+            INSERT INTO files (name, path, ratio, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?);
+          `;
+          let fileInsertPromises = files.map((filePath) => {
+            return new Promise((resolve, reject) => {
+              const fileName = filePath.split('/').pop(); // Lấy tên file từ đường dẫn
+              connection?.execute(
+                fileSql,
+                [
+                  fileName,
+                  filePath,
+                  1,  // Tỷ lệ mặc định là 1
+                  createdAt,
+                  updated_at
+                ],
+                (fileError, fileResult) => {
+                  if (fileError) {
+                    SLog.log(LogType.Error, "CreatedReport", "Failed to insert file", fileError);
+                    reject(fileError);
+                    return;
+                  }
+  
+                  // Kiểm tra kiểu trả về và lấy fileId
+                  let fileId: number | null = null;
+                  if ((fileResult as any).insertId) {
+                    fileId = (fileResult as any).insertId;
+                  } else if (Array.isArray(fileResult) && fileResult[0] && (fileResult[0] as any).insertId) {
+                    fileId = (fileResult[0] as any).insertId;
+                  }
+  
+                  if (!fileId) {
+                    SLog.log(LogType.Error, "CreatedReport", "Failed to get file ID");
+                    reject(new Error("Failed to get file ID"));
+                    return;
+                  }
+  
+                  // Thêm vào bảng report_file
+                  const reportFileSql = `
+                    INSERT INTO report_files (report_id, file_id)
+                    VALUES (?, ?);
+                  `;
+                  connection?.execute(
+                    reportFileSql,
+                    [reportId, fileId],
+                    (reportFileError) => {
+                      if (reportFileError) {
+                        SLog.log(LogType.Error, "CreatedReport", "Failed to link file to report", reportFileError);
+                        reject(reportFileError);
+                        return;
+                      }
+                      SLog.log(LogType.Info, "CreatedReport", "File linked to report successfully");
+                      resolve(true);
+                    }
+                  );
+                }
+              );
+            });
+          });
+  
+          // Chờ tất cả các file được thêm và liên kết
+          Promise.all(fileInsertPromises)
+            .then(() => {
+              SLog.log(LogType.Info, "CreatedReport", "Report created successfully with files");
+              onNext(true);
+            })
+            .catch((error) => {
+              SLog.log(LogType.Error, "CreatedReport", "Error while processing files", error);
+              onNext(false);
+            });
         }
       );
     });
