@@ -6,6 +6,7 @@ import ClassLevel, { classLevelSubquery } from "./ClassLevel";
 import Major, { majorsSubquery } from "./Major";
 import db from "../configs/knex";
 import {Knex } from "knex";
+import Attendance from "./Attendance";
 
 export default class User {
     public id: string;
@@ -29,6 +30,8 @@ export default class User {
     public roles: Role[];
     public interested_class_levels: ClassLevel[];
     public interested_majors: Major[];
+    public children: User[] | undefined;
+    public attendance: Attendance | undefined;
 
     constructor(
         id = "",
@@ -49,7 +52,9 @@ export default class User {
         parent: User |  undefined = undefined,
         created_at = 0,
         updated_at = 0,
-        roles = []
+        roles = [],
+        children: User[] | undefined = undefined,
+        attendance: Attendance | undefined = undefined,
     ) {
         this.id = id;
         this.full_name = full_name;
@@ -70,6 +75,8 @@ export default class User {
         this.created_at = created_at;
         this.updated_at = updated_at;
         this.roles = roles;
+        this.children = children;
+        this.attendance = attendance;
     }
 }
 

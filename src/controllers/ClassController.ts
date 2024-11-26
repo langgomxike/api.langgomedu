@@ -71,6 +71,62 @@ export default class ClassController {
     request: express.Request,
     response: express.Response
   ) {
+    const query = request.query
+
+    const user_id = request.params.user_id;
+
+    const user_type: number =  Number(query.user_type) ?? UserType.LEANER;
+
+     // Lấy các giá trị filter từ query parameters
+    const filter: Filters = {
+    // Giá lớp học tối thiểu
+    minPrice: parseQueryNumber(query.minPrice),
+
+    // Giá lớp học tối đa
+    maxPrice: parseQueryNumber(query.maxPrice),
+
+    //Địa chỉ:
+    province: parseQueryString(query.province),
+    district: parseQueryString(query.district),
+    ward: parseQueryString(query.ward),
+
+    // Hình thức học: online/offline
+    isOnline: parseQueryBoolean(query.isOnline),
+
+    // Ngành học (nếu có)
+    major: parseQueryString(query.major),
+    // classLevelId: 
+    classLevelId: parseQueryString(query.classLevelId),
+
+    // Số lượng tối đa trong lớp 
+    maxLearners: parseQueryNumber(query.maxLearners),
+    // Ngày bắt đầu & Ngày kết thúc
+    startedAtMin: parseQueryNumber(query.startedAtMin),
+    endedAtMax: parseQueryNumber(query.endedAtMax),
+  };
+
+  // Lấy các tham số sắp xếp từ query parameters
+  // Trường sắp xếp mặc định: 'started_at'
+  const sortBy = parseQueryString(request.query.sort) ?? "started_at"; 
+
+  const page = Number(request.query.page) || 1;
+  const perPage = Number(request.query.perPage) || 2;
+
+    SClass.getSuggestsClasses(user_id, user_type, filter, sortBy, page, perPage ,
+      (classes, pagination) => {
+      SResponse.getResponse(
+        ResponseStatus.OK,
+        {classes, pagination} ,
+        "get sugget classes with filters",
+        response
+      );
+    });
+  }
+
+  public static getSuggestsClasses2(
+    request: express.Request,
+    response: express.Response
+  ) {
     // Tiêu chí gợi ý của lớp học cho người dùng (phụ huynh học sinh, gia sư)
     /*
      * Giợi ý theo ngành học quan tâm (interested_major)
@@ -101,7 +157,7 @@ export default class ClassController {
 
   
 
-    SClass.getSuggestsClasses(user_id, user_type, filter, page, perPage ,
+    SClass.getSuggestsClasses2(user_id, user_type, filter, page, perPage ,
       (classes, pagination) => {
       SResponse.getResponse(
         ResponseStatus.OK,
