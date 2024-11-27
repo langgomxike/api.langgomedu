@@ -5,6 +5,8 @@ import {v4} from "uuid";
 import SFirebase, {FirebaseNode} from "./SFirebase";
 import SMessage from "./SMessage";
 import * as crypto from "crypto";
+import * as dotenv from "dotenv";
+import {dot} from "node:test/reporters";
 
 export default class SUser {
   public static getAllUsers(onNext: (users: User[]) => void) {
@@ -50,14 +52,30 @@ export default class SUser {
     userId: string,
     onNext: (users: User[]) => void
   ) {
-    SMessage.getInboxes(userId, (inboxes) => {
-      const contacts = inboxes.map((inbox) => inbox.user);
+    const sql = `SELECT *
+                 FROM users
+                 WHERE ((
+                     EXISTS (SELECT 1 FROM messages WHERE messages.sender_id = users.id COLLATE utf8mb4_unicode_ci)
+                     )
+                    OR (
+                     EXISTS (SELECT 1 FROM messages WHERE messages.receiver_id = users.id COLLATE utf8mb4_unicode_ci)
+                     )) AND users.id <> ? AND users.id <> ? ORDER BY users.full_name ASC `;
+    ;
 
-      SLog.log(LogType.Info, "getContactUsers", "", contacts.length);
+    dotenv.config();
+    const superAdminId = process.env.ADMIN_ID ?? "-1";
 
-      contacts.sort((a, b) => a.full_name > b.full_name ? 1 : -1);
-
-      onNext(contacts);
+    SMySQL.getConnection(connection => {
+      connection?.execute<any[]>(sql, [userId, superAdminId], (error, results) => {
+        if (error) {
+          SLog.log(LogType.Error, "getContactUsers", "get all contacts failed", error);
+          onNext([]);
+        } else {
+          const contacts = results as User[] ?? [];
+          SLog.log(LogType.Error, "getContactUsers", "get all contacts successfully", contacts.length);
+          onNext(contacts);
+        }
+      });
     });
   }
 
@@ -263,45 +281,45 @@ export default class SUser {
   ) {
     // Tạo danh sách quyền dưới dạng chuỗi để chèn vào SQL
     const permissionValues = permissionIds.map(() => "(?, ?)").join(", ");
-  
+
     // Câu truy vấn DELETE để xóa các quyền hiện tại của user_id
     const deleteSql = `
       DELETE FROM user_role
       WHERE user_id = ?;
     `;
-  
+
     // Câu truy vấn INSERT để thêm quyền mới (bao gồm quyền mặc định 13 nếu cần)
     const insertSql = `
       INSERT INTO user_role (user_id, role_id)
       VALUES (?, ?);
     `;
-  
+
     // Câu truy vấn UPDATE để khóa các lớp có author_id bằng user_id
     const updateClassesSql = `
       UPDATE classes
       SET ended_at = (UNIX_TIMESTAMP() * 1000)
       WHERE author_id = ?;
     `;
-  
+
     // Câu truy vấn UPDATE để cài lại điểm về 0 cho user_id
     const updatePointsSql = `
       UPDATE users
       SET point = 0
       WHERE id = ?;
     `;
-  
+
     // Câu truy vấn để lấy điểm hiện tại của user_id
     const getUserPointsSql = `
       SELECT point FROM users WHERE id = ?;
     `;
-  
+
     // Câu truy vấn UPDATE để cập nhật desc_point trong bảng reports
     const updateReportDescPointSql = `
       UPDATE reports
       SET desc_point = ?
       WHERE id = ?;
     `;
-  
+
     // Thực thi câu truy vấn DELETE trước
     SMySQL.getConnection((connection) => {
       connection?.execute(getUserPointsSql, [user_id], (pointsError, pointsResult) => {
@@ -315,10 +333,10 @@ export default class SUser {
           );
           return;
         }
-  
+
         // Lấy điểm của user trước khi cập nhật thành 0
         const currentPoint = pointsResult[0]?.point || 0;
-  
+
         // Cập nhật bảng reports với desc_point = currentPoint
         connection.execute(updateReportDescPointSql, [currentPoint, report_id], (reportError) => {
           if (reportError) {
@@ -331,7 +349,7 @@ export default class SUser {
             );
             return;
           }
-  
+
           // Thực hiện các truy vấn còn lại (DELETE, INSERT, UPDATE các bảng khác)
           connection.execute(deleteSql, [user_id], (deleteError) => {
             if (deleteError) {
@@ -344,7 +362,7 @@ export default class SUser {
               );
               return;
             }
-  
+
             // Sau khi DELETE thành công, thêm quyền mặc định 13
             connection.execute(insertSql, [user_id, "13"], (insertError) => {
               if (insertError) {
@@ -357,7 +375,7 @@ export default class SUser {
                 );
                 return;
               }
-  
+
               // Cập nhật điểm về 0 cho người dùng
               connection.execute(updatePointsSql, [user_id], (pointsUpdateError) => {
                 if (pointsUpdateError) {
@@ -370,7 +388,7 @@ export default class SUser {
                   );
                   return;
                 }
-  
+
                 // Nếu quyền 7 có trong permissionIds, thực hiện câu truy vấn cập nhật cho các lớp
                 if (permissionIds.includes("7")) {
                   connection.execute(updateClassesSql, [user_id], (updateError) => {
@@ -384,7 +402,7 @@ export default class SUser {
                       );
                       return;
                     }
-  
+
                     // Nếu cập nhật lớp thành công, ghi log và gọi callback với `true`
                     SLog.log(
                       LogType.Info,
@@ -409,9 +427,7 @@ export default class SUser {
       });
     });
   }
-  
-  
-  
+
   //trừ điểm uy tín của người dùng
   public static MinusUserPoints(
     user_id: string,
@@ -420,10 +436,10 @@ export default class SUser {
     onNext: (result: boolean) => void
   ) {
     const updateUserPointsSql = `UPDATE users SET point = point - ? WHERE id = ? LIMIT 1;`;
-  
+
     // Câu truy vấn cập nhật desc_point trong bảng reports
     const updateReportDescPointSql = `UPDATE reports SET desc_point = ? WHERE id = ? LIMIT 1;`;
-  
+
     SMySQL.getConnection((connection) => {
       // Thực hiện trừ điểm cho người dùng
       connection?.execute(updateUserPointsSql, [point, user_id], (error, result) => {
@@ -432,9 +448,9 @@ export default class SUser {
           onNext(false);
           return;
         }
-  
+
         console.log("Subtracted points successfully for user", user_id);
-  
+
         // Sau khi trừ điểm thành công, cập nhật desc_point trong bảng reports
         connection.execute(updateReportDescPointSql, [point, report_id], (reportError, reportResult) => {
           if (reportError) {
@@ -442,17 +458,17 @@ export default class SUser {
             onNext(false);
             return;
           }
-  
+
           console.log("Updated desc_point in reports for report_id", report_id);
-  
+
           // Cuối cùng, gọi callback với kết quả thành công
           onNext(true);
         });
       });
     });
   }
-  
-  
+
+
   //tạo admin
   public static CreateAdminUser(
     phone: string,

@@ -24,6 +24,7 @@ export enum FirebaseNode {
   Lessons = "lessons",
   Majors = "majors",
   Messages = "messages",
+  Notifications = "notifications",
   OTPs = "otps",
   Permissions = "permissions",
   Ratings = "ratings",
