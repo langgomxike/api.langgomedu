@@ -5,6 +5,8 @@ import {v4} from "uuid";
 import SFirebase, {FirebaseNode} from "./SFirebase";
 import SMessage from "./SMessage";
 import * as crypto from "crypto";
+import * as dotenv from "dotenv";
+import {dot} from "node:test/reporters";
 
 export default class SUser {
   public static getAllUsers(onNext: (users: User[]) => void) {
@@ -50,14 +52,30 @@ export default class SUser {
     userId: string,
     onNext: (users: User[]) => void
   ) {
-    SMessage.getInboxes(userId, (inboxes) => {
-      const contacts = inboxes.map((inbox) => inbox.user);
+    const sql = `SELECT *
+                 FROM users
+                 WHERE ((
+                     EXISTS (SELECT 1 FROM messages WHERE messages.sender_id = users.id COLLATE utf8mb4_unicode_ci)
+                     )
+                    OR (
+                     EXISTS (SELECT 1 FROM messages WHERE messages.receiver_id = users.id COLLATE utf8mb4_unicode_ci)
+                     )) AND users.id <> ? AND users.id <> ? ORDER BY users.full_name ASC `;
+    ;
 
-      SLog.log(LogType.Info, "getContactUsers", "", contacts.length);
+    dotenv.config();
+    const superAdminId = process.env.ADMIN_ID ?? "-1";
 
-      contacts.sort((a, b) => a.full_name > b.full_name ? 1 : -1);
-
-      onNext(contacts);
+    SMySQL.getConnection(connection => {
+      connection?.execute<any[]>(sql, [userId, superAdminId], (error, results) => {
+        if (error) {
+          SLog.log(LogType.Error, "getContactUsers", "get all contacts failed", error);
+          onNext([]);
+        } else {
+          const contacts = results as User[] ?? [];
+          SLog.log(LogType.Error, "getContactUsers", "get all contacts successfully", contacts.length);
+          onNext(contacts);
+        }
+      });
     });
   }
 
@@ -270,10 +288,12 @@ export default class SUser {
 
     // Câu truy vấn DELETE để xóa các quyền hiện tại của user_id
     const deleteSql = `
-      DELETE FROM user_role
-      WHERE user_id = ? AND role_id IN (${permissionIds
-        .map(() => "?")
-        .join(", ")});
+        DELETE
+        FROM user_role
+        WHERE user_id = ?
+          AND role_id IN (${permissionIds
+                .map(() => "?")
+                .join(", ")});
     `;
 
     // Câu truy vấn INSERT để thêm lại các quyền mới cho user_id

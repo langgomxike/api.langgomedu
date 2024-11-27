@@ -1,9 +1,9 @@
 // Import necessary modules and libraries
 // @ts-ignore
-import express, { Express, Request, Response } from "express";
+import express, {Express, Request, Response} from "express";
 // @ts-ignore
 import dotenv from "dotenv";
-import SLog, { LogType } from "./services/SLog";
+import SLog, {LogType} from "./services/SLog";
 import SMySQL from "./services/SMySQL";
 import UserController from "./controllers/UserController";
 import AttendanceController from "./controllers/AttendanceController";
@@ -31,6 +31,12 @@ import SResponse, {ResponseStatus} from "./services/SResponse";
 import {ClassLevelController} from "./controllers/ClassLevelController";
 import {setUpRoles} from "./configs/RoleConfig";
 import {setUpUsers} from "./configs/UserConfig";
+import SMessage from "./services/SMessage";
+import bodyParser = require("body-parser");
+// @ts-ignore
+import multer from "multer";
+// @ts-ignore
+import path from "path";
 
 dotenv.config();
 
@@ -40,15 +46,27 @@ const port = process.env.PORT || 3000;
 app.use(express.json());
 
 app.get("/", (req: Request, res: Response) => {
-    res.redirect("/api");
+  res.redirect("/api");
 });
 
 app.get("/api", (req: Request, res: Response) => {
-    res.sendFile(__dirname + "/index.html");
+  res.sendFile(__dirname + "/index.html");
 });
 
 app.use('/', express.static('public'));
 
+app.use('/avatars', express.static(path.join(__dirname, 'images/avatars')));
+
+
+app.use(bodyParser.urlencoded({extended: true}));
+
+const upload = multer({
+  dest: 'public/uploads/messages/',
+});
+
+interface MulterRequest extends Request {
+  file?: Express.Multer.File;
+}
 
 // ClassLevel routes
 const CLASSLEVEL_BASE_URL = Config.PREFIX + "/class-levels";
@@ -90,20 +108,20 @@ app.post(CLASS_BASE_URL + "/create", ClassController.createClass);
 app.put(CLASS_BASE_URL, ClassController.updateClass);
 app.patch(CLASS_BASE_URL, ClassController.updateClass);
 app.delete(CLASS_BASE_URL,
-    (req, res, onNext) => SAuthentication.checkAuthorization(
-        req, res, onNext,
-        OWNING_REF_TABLES.PERSONAL_CLASS,
-        OWNING_REF_COLUMNS.AUTHOR_ID,
-        OWNING_KEY_COLUMNS.iD
-    ),
-    (req, res, onNext) => SAuthentication.checkAuthentication(
-        req, res, onNext,
-        [
-            PermissionList.DELETE_PERSONAL_CLASS,
-            PermissionList.DELETE_OTHER_USER_CLASS,
-        ]
-    ),
-    ClassController.deleteClass
+  (req, res, onNext) => SAuthentication.checkAuthorization(
+    req, res, onNext,
+    OWNING_REF_TABLES.PERSONAL_CLASS,
+    OWNING_REF_COLUMNS.AUTHOR_ID,
+    OWNING_KEY_COLUMNS.iD
+  ),
+  (req, res, onNext) => SAuthentication.checkAuthentication(
+    req, res, onNext,
+    [
+      PermissionList.DELETE_PERSONAL_CLASS,
+      PermissionList.DELETE_OTHER_USER_CLASS,
+    ]
+  ),
+  ClassController.deleteClass
 );
 app.post(CLASS_BASE_URL + "/:class_id/join", ClassController.requestToAttendClass);
 app.post(CLASS_BASE_URL + "/:class_id/accept_to_teach", ClassController.acceptClassToTeach);
@@ -166,15 +184,25 @@ app.delete(MAJOR_BASE_URL + "/:id", MajorController.deleteMajor);
 
 const MESSAGE_BASE_URL = Config.PREFIX + "/messages";
 app.get(MESSAGE_BASE_URL + "/contacts", MessageController.getContacts);
+app.get(MESSAGE_BASE_URL + "/notifications", MessageController.getNotifications);
+app.put(MESSAGE_BASE_URL + "/notifications/mark-as-read", MessageController.markAsReadNotifications);
+app.patch(MESSAGE_BASE_URL + "/notifications/mark-as-read", MessageController.markAsReadNotifications);
+app.delete(MESSAGE_BASE_URL + "/notifications/:id", MessageController.deleteNotification);
+app.get(MESSAGE_BASE_URL + "/inboxes/group", MessageController.getInboxClasses);
 app.get(MESSAGE_BASE_URL + "/inboxes", MessageController.getInboxUsers);
 app.post(MESSAGE_BASE_URL + "/two-users", MessageController.getMessages);
+app.post(MESSAGE_BASE_URL + "/image", upload.single('file'), MessageController.createImageMessage);
 app.put(MESSAGE_BASE_URL + "/two-users/mark-as-read", MessageController.markAsRead);
 app.patch(MESSAGE_BASE_URL + "/two-users/mark-as-read", MessageController.markAsRead);
-app.put(MESSAGE_BASE_URL + "/two-users/reply", MessageController.updateMessage);
-app.patch(MESSAGE_BASE_URL + "/two-users/reply", MessageController.updateMessage);
-app.put(MESSAGE_BASE_URL + "/two-users/delete", MessageController.updateMessage);
-app.patch(MESSAGE_BASE_URL + "/two-users/delete", MessageController.updateMessage);
+app.put(MESSAGE_BASE_URL + "/group/mark-as-read", MessageController.markAsReadClassMessges);
+app.patch(MESSAGE_BASE_URL + "/group/mark-as-read", MessageController.markAsReadClassMessges);
+app.post(MESSAGE_BASE_URL + "/group", MessageController.createClassMessage);
+app.put(MESSAGE_BASE_URL + "/group", MessageController.deleteClassMessage);
+app.patch(MESSAGE_BASE_URL + "/group", MessageController.deleteClassMessage);
+app.get(MESSAGE_BASE_URL + "/group/:id", MessageController.getClassMessages);
 app.post(MESSAGE_BASE_URL, MessageController.createMessage);
+app.put(MESSAGE_BASE_URL, MessageController.deleteMessage);
+app.patch(MESSAGE_BASE_URL, MessageController.deleteMessage);
 
 const OTHER_SKILL_BASE_URL = Config.PREFIX + "/skills";
 app.get(OTHER_SKILL_BASE_URL, OtherSkillController.getAllSkills);
@@ -232,7 +260,7 @@ app.get(ADMIN_USER_BASE_URL + "/classes", AdminController.getAllClasses);
 app.get(ADMIN_USER_BASE_URL + "/classes/:class_id", AdminController.getDetailClass);
 
 app.listen(port, () => {
-    SLog.log(LogType.Info, "Listen to the port", "server is running at http://127.0.0.1", port);
+  SLog.log(LogType.Info, "Listen to the port", "server is running at http://127.0.0.1", port);
 });
 
 SMySQL.connect();
@@ -242,3 +270,5 @@ setUpGenders();
 setUpUsers();
 
 export default app;
+
+SMessage.createNotification("thong bao thu " + new Date(), "000004_child001", () => {});
