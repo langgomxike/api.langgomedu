@@ -44,4 +44,10 @@ export const createSubquery = (table: string, alias:string , addressAlias: strin
   .where(`${alias}.cv_id = cvs.id`);
 }
 
+// Lắng nghe sự kiện query 
+// cần log ra câu truy vấn để xem thì mở cái đây lên
 
+// db.on('query', (queryData) => {
+//   console.log('Executing Query:', queryData.sql); // Log câu truy vấn
+//   console.log('Bindings:', queryData.bindings); // Log giá trị binding
+// });

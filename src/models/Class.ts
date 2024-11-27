@@ -1,8 +1,9 @@
 
-import Address from "./Address";
-import ClassLevel from "./ClassLevel";
-import Major from "./Major";
-import User from "./User";
+import db from "../configs/knex";
+import Address, { addressJson } from "./Address";
+import ClassLevel, { classLevelJson } from "./ClassLevel";
+import Major, { majorJson } from "./Major";
+import User, { subqueryUser, userJson, userJsonwithoutName } from "./User";
 import { QueryResult, RowDataPacket } from 'mysql2';
 
 export default class Class {
@@ -61,7 +62,7 @@ export const classJson = (asName: string): string => {
     'max_learners', ${asName}.max_learners,
     'started_at', ${asName}.started_at,
     'ended_at', ${asName}.ended_at,
-    'address', ${asName},
+    'address', ${asName}.address_id,
     'paid', ${asName}.paid,
     'author_accepted', ${asName}.author_accepted,
     'admin_accepted', ${asName}.admin_accepted,
@@ -70,30 +71,25 @@ export const classJson = (asName: string): string => {
 )`;
 }
 
-export const classJs = (tableAlias: string) => `
-JSON_OBJECT(
-    'id', ${tableAlias}.id,
-    'title', ${tableAlias}.title,
-    'description', ${tableAlias}.description,
-    'major', ${tableAlias}.major_id,
-    'tutor', ${tableAlias}.tutor_id,
-    'author', ${tableAlias}.author_id,
-    'price', ${tableAlias}.price,
-    'class_creation_fee', ${tableAlias}.class_creation_fee,
-    'class_level', ${tableAlias}.class_level_id,
-    'max_learners', ${tableAlias}.max_learners,
-    'started_at', ${tableAlias}.started_at,
-    'ended_at', ${tableAlias}.ended_at,
-    'address', JSON_OBJECT(
-        'province', addresses.province,
-        'district', addresses.district,
-        'ward', addresses.ward,
-        'detail', addresses.detail
-    ),
-    'paid', ${tableAlias}.paid,
-    'author_accepted', ${tableAlias}.author_accepted,
-    'admin_accepted', ${tableAlias}.admin_accepted,
-    'created_at', ${tableAlias}.created_at,
-    'updated_at', ${tableAlias}.updated_at
-)
-`;
+export const  classWithTutorJson = (asName: string): string => {
+    return `JSON_OBJECT(
+    'id', ${asName}.id,
+    'title', ${asName}.title,
+    'description', ${asName}.description,
+    'major', (${majorJson('major')}),
+    'tutor', (${userJsonwithoutName('tutor', 'tutor_address', 'tutor_gender')}),
+    'author', ${asName}.author_id,
+    'price', ${asName}.price,
+    'class_creation_fee', ${asName}.class_creation_fee,
+    'class_level', (${classLevelJson('class_levels')}),
+    'max_learners', ${asName}.max_learners,
+    'started_at', ${asName}.started_at,
+    'ended_at', ${asName}.ended_at,
+    'address', ${addressJson('address')},
+    'paid', ${asName}.paid,
+    'author_accepted', ${asName}.author_accepted,
+    'admin_accepted', ${asName}.admin_accepted,
+    'created_at', ${asName}.created_at,
+    'updated_at', ${asName}.updated_at
+)`;
+}

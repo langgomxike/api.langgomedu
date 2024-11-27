@@ -1,5 +1,5 @@
 import { response } from "express";
-import Class, { classJs, classJson } from "./../models/Class";
+import Class from "./../models/Class";
 import SLog, { LogType } from "./SLog";
 import SMySQL from "./SMySQL";
 import User from "../models/User";
@@ -171,9 +171,6 @@ export default class SClass {
     student_id: number,
     onNext: (classes: Class[]) => void
   ) {}
-  public static getClassesWithoutTutor(onNext: (classes: Class[]) => void) {}
-  public static getUnstartedClasses(onNext: (classes: Class[]) => void) {}
-  public static getIncompleteClasses(onNext: (classes: Class[]) => void) {}
 
   //Lấy chi tiết lớp học và với user id
   public static getClassDetailWithUser(
@@ -245,15 +242,25 @@ export default class SClass {
                         WHEN class_members.user_id IS NOT NULL THEN 'member'
                         ELSE 'not_joined'
                     END,
-                    'lessons', JSON_ARRAYAGG(
-                    JSON_OBJECT(
-                        'id', lessons.id,
-                        'day', lessons.day,
-                        'started_at', lessons.started_at,
-                        'duration', lessons.duration,
-                        'is_online', lessons.is_online,
-                        'note', lessons.note)
-                		)
+                    'lessons', (
+                      SELECT JSON_ARRAYAGG(
+                          JSON_OBJECT(
+                              'id', l.id,
+                              'day', l.day,
+                              'started_at', l.started_at,
+                              'duration', l.duration,
+                              'is_online', l.is_online,
+                              'note', l.note
+                          )
+                      )
+                      FROM (
+                          SELECT * 
+                          FROM lessons 
+                          WHERE lessons.class_id = c.id
+                          GROUP BY lessons.day
+                          ORDER BY lessons.day ASC
+                      ) l
+                  )
                     ) as class
                 FROM classes c
                 LEFT JOIN users tutor ON tutor.id = c.tutor_id
@@ -282,6 +289,7 @@ export default class SClass {
           }
 
           const _class: Class = result[0].class as Class;
+
           this.getconflictingLessonsWithClassUsers(
             id,
             ["089204000001"],
@@ -359,6 +367,8 @@ export default class SClass {
         'max_learners', classes.max_learners,
         'started_at', classes.started_at,
         'ended_at', classes.ended_at,
+        'admin_accepted', classes.admin_accepted,
+       	'author_accepted', classes.author_accepted,
         'created_at', classes.created_at,
         'updated_at', classes.updated_at,
         'address', JSON_OBJECT (
@@ -408,8 +418,9 @@ export default class SClass {
     ) AS class
   `;
 
-  // Lấy danh sách lớp học gợi ý
-  public static getSuggestedClasses(
+  // Lấy danh sách lớp học gợi
+
+  public static getSuggestsClasses(
     userId: string,
     userType: number,
     filter: Filters,
@@ -422,10 +433,9 @@ export default class SClass {
     const condition =
       userType === UserType.TUTOR
         ? `classes.tutor_id IS NULL AND classes.author_id != ? AND class_members.user_id IS NULL`
-        : `classes.author_id != ? AND classes.tutor_id IS NULL AND class_members.user_id IS NULL`;
+        : `classes.author_id != ? AND  classes.tutor_id IS NULL AND class_members.user_id IS NULL`;
 
-        console.log("Filter", filter);
-        
+    // Tạo các điều kiện lọc động
     // Tạo các điều kiện lọc động
     let filterConditions = "";
 
@@ -452,20 +462,25 @@ export default class SClass {
 
     if (filter.ward) {
       const wards = filter.ward.split(",").map((w) => `%${w.trim()}%`);
-      filterConditions += ` AND (${wards.map(() => "addresses.ward LIKE ?").join(" OR ")})`;
+      filterConditions += ` AND (${wards
+        .map(() => "addresses.ward LIKE ?")
+        .join(" OR ")})`;
     }
 
     if (filter.major) {
       const majors = filter.major.split(",").map(Number);
-      filterConditions += ` AND classes.major_id IN (${majors.map(() => "?").join(",")})`;
+      filterConditions += ` AND classes.major_id IN (${majors
+        .map(() => "?")
+        .join(",")})`;
     }
 
     if (filter.classLevelId) {
       const classLevels = filter.classLevelId.split(",").map(Number);
-      filterConditions += ` AND classes.class_level_id IN (${classLevels.map(() => "?").join(",")})`;
+      filterConditions += ` AND classes.class_level_id IN (${classLevels
+        .map(() => "?")
+        .join(",")})`;
     }
 
-    
     if (filter.maxLearners) {
       filterConditions += ` AND classes.max_learners <= ?`;
     }
@@ -498,137 +513,6 @@ export default class SClass {
     }
 
     // SQL query to fetch class information, including tutor, major, and class level details
-    const sql = `SELECT 
-                    ${this.classJsonSQL}
-                  FROM classes
-                  LEFT JOIN users tutor ON tutor.id = classes.tutor_id
-                  LEFT JOIN users author ON author.id = classes.author_id
-                  LEFT JOIN majors ON majors.id = classes.major_id
-                  LEFT JOIN class_levels ON class_levels.id = classes.class_level_id
-                  LEFT JOIN addresses ON addresses.id = classes.address_id
-                  LEFT JOIN lessons ON lessons.class_id = classes.id
-                  LEFT JOIN class_members ON class_members.class_id = classes.id AND class_members.user_id = ?
-                  WHERE ${condition} ${filterConditions}
-                  GROUP BY classes.id
-                  ${orderBy}
-                  LIMIT ${perPage} OFFSET ${(page - 1) * perPage} ;`;
-
-    const totleSQL = `
-    SELECT COUNT(DISTINCT classes.id) AS total_classes
-    FROM classes
-    LEFT JOIN users tutor ON tutor.id = classes.tutor_id
-    LEFT JOIN users author ON author.id = classes.author_id
-    LEFT JOIN majors ON majors.id = classes.major_id
-    LEFT JOIN class_levels ON class_levels.id = classes.class_level_id
-    LEFT JOIN addresses ON addresses.id = classes.address_id
-    LEFT JOIN lessons ON lessons.class_id = classes.id
-    LEFT JOIN class_members ON class_members.class_id = classes.id AND class_members.user_id = ?
-    WHERE ${condition} ${filterConditions};
-    `;
-
-    // Thay thế các giá trị điều kiện theo userType và các filter
-    const params = [
-      ...(userType === UserType.TUTOR ? [userId, userId] : [userId, userId]),
-      filter.minPrice,
-      filter.maxPrice,
-      ...(filter.province?.split(",") || []),
-      ...(filter.district?.split(",") || []),
-      ...(filter.ward?.split(",") || []),
-      ...(parseNumericFilter(filter.major) || []),
-      ...(parseNumericFilter(filter.classLevelId) || []),
-      filter.maxLearners,
-    ].filter((param) => param !== undefined);
-    
-
-    console.log(mysql.format(sql, params));
-    console.log(params);
-    
-
-    // Get a database connection
-    SMySQL.getConnection((connection) => {
-      // Execute the SQL query with the provided user_id as a parameter
-      connection?.execute<any[]>(sql, params, (err, rows) => {
-        if (err) {
-          // If an error occurs, return an empty array to the callback
-          onNext([], new Pagination());
-          console.log("getSuggestedClasses", err);
-
-          return;
-        }
-
-        const classes: Class[] = [];
-
-        // Iterate through` each row from the query result
-        rows.forEach((row) => {
-          const _class = row.class;
-
-          // Add the created Class instance to the classes array
-          classes.push(_class);
-        });
-
-        connection.execute<any>(totleSQL, params, (err2, result) => {
-          if (err2) {
-            console.log("Error in detail query:", err2);
-            onNext([], new Pagination());
-            return;
-          }
-
-          const pagination: Pagination = {
-            page: page,
-            perPage: perPage,
-            total_pages: Math.ceil(result[0].total_classes / perPage),
-            total_items: result[0].total_classes,
-          };
-
-          // Return the list of classes via the callback function
-          return onNext(classes, pagination);
-        });
-      });
-    });
-  }
-
-  public static getSuggestsClasses(
-    userId: string,
-    userType: number,
-    filter: Filters,
-    page: number,
-    perPage: number,
-    onNext: (classes: Class[], pagination: Pagination) => void
-  ) {
-    // Xác định điều kiện WHERE theo userType
-    const condition =
-      userType === UserType.TUTOR
-        ? `classes.tutor_id IS NULL AND classes.author_id != ? AND class_members.user_id IS NULL`
-        : `classes.author_id != ? AND  classes.tutor_id IS NULL AND class_members.user_id IS NULL`;
-
-    // Tạo các điều kiện lọc động
-    let filterConditions = "";
-    if (filter.province) {
-      const provinces = filter.province.split(",").map((p) => `%{p.strim()%}`);
-      filterConditions += ` AND (${provinces
-        .map(() => "addresses.province LIKE ?")
-        .join(" OR ")})`;
-    }
-
-    if (filter.district) {
-      const districts = filter.district.split(",").map((d) => `%${d.trim()}%`);
-      filterConditions += ` AND (${districts
-        .map(() => "addresses.district LIKE ?")
-        .join(" OR ")})`;
-    }
-
-    if (filter.major) {
-      const majors = filter.major.split(",").map(Number);
-      filterConditions += ` AND classes.major_id IN (${majors.map(() => "?").join(",")})`;
-    }
-
-    if (filter.classLevelId) {
-      const classLevels = filter.classLevelId.split(",").map(Number);
-      filterConditions += ` AND classes.class_level_id IN (${classLevels.map(() => "?").join(",")})`;
-    }
-
-
-    // SQL query to fetch class information, including tutor, major, and class level details
     const sql = `
     WITH SuggestedClasses AS (
       SELECT
@@ -641,7 +525,7 @@ export default class SClass {
       LEFT JOIN addresses ON addresses.id = classes.address_id
       LEFT JOIN lessons ON lessons.class_id = classes.id
       LEFT JOIN class_members ON class_members.class_id = classes.id AND class_members.user_id = ?
-      WHERE ${condition} ${filterConditions}
+      WHERE classes.admin_accepted = 1 AND ${condition} ${filterConditions}
       GROUP BY classes.id
     ),
     RandomClasses AS (
@@ -655,7 +539,7 @@ export default class SClass {
       LEFT JOIN addresses ON addresses.id = classes.address_id
       LEFT JOIN lessons ON lessons.class_id = classes.id
       LEFT JOIN class_members ON class_members.class_id = classes.id AND class_members.user_id = ?
-      WHERE ${condition} AND classes.id NOT IN (SELECT classes.id FROM SuggestedClasses)
+      WHERE classes.admin_accepted = 1 AND ${condition} AND classes.id NOT IN (SELECT classes.id FROM SuggestedClasses)
       GROUP BY classes.id
     ),
 
@@ -670,25 +554,25 @@ export default class SClass {
     CombinedClasses.*
     FROM CombinedClasses
 
-    ORDER BY RAND()
-
-    LIMIT ${perPage} OFFSET ${(page -1) * perPage};
+    LIMIT ${perPage} OFFSET ${(page - 1) * perPage};
   `;
 
     // Thay thế các giá trị điều kiện theo userType và các filter
     const params = [
       ...(userType === UserType.TUTOR ? [userId, userId] : [userId, userId]),
+      filter.minPrice,
+      filter.maxPrice,
       ...(filter.province?.split(",") || []),
       ...(filter.district?.split(",") || []),
+      ...(filter.ward?.split(",") || []),
       ...(parseNumericFilter(filter.major) || []),
       ...(parseNumericFilter(filter.classLevelId) || []),
+      filter.maxLearners,
       ...(userType === UserType.TUTOR ? [userId, userId] : [userId, userId]),
     ].filter((param) => param !== undefined);
-    
 
-    console.log(mysql.format(sql, params));
-    console.log(params);
-    
+    // console.log(mysql.format(sql, params));
+    // console.log(params);
 
     // Get a database connection
     SMySQL.getConnection((connection) => {
@@ -720,7 +604,6 @@ export default class SClass {
 
         // Return the list of classes via the callback function
         return onNext(classes, pagination);
-        
       });
     });
   }
@@ -752,7 +635,7 @@ export default class SClass {
   //         const majors = majorIds.split(",").map(Number);
   //         filterConditions += ` AND classes.major_id IN (${majors.map(() => "?").join(",")})`;
   //       }
-    
+
   //       if (classLevelIds) {
   //         const classLevels = classLevelIds.split(",").map(Number);
   //         filterConditions += ` AND classes.class_level_id IN (${classLevels.map(() => "?").join(",")})`;
@@ -761,7 +644,7 @@ export default class SClass {
   //   const sql = `
   //     -- Truy vấn chính lấy lớp học liên quan đến người dùng
   //         WITH RelevantClasses AS (
-  //           SELECT 
+  //           SELECT
   //              ${this.classJsonSQL}
   //           FROM classes
   //           LEFT JOIN users tutor ON tutor.id = classes.tutor_id
@@ -775,7 +658,7 @@ export default class SClass {
   //         ),
   //         RandomClasses AS (
   //           -- Truy vấn lớp học ngẫu nhiên nếu không có lớp liên quan
-  //           SELECT 
+  //           SELECT
   //              ${this.classJsonSQL}
   //           FROM classes
   //           LEFT JOIN users tutor ON tutor.id = classes.tutor_id
@@ -785,12 +668,12 @@ export default class SClass {
   //           LEFT JOIN majors ON classes.major_id = majors.id
   //           LEFT JOIN class_levels ON classes.class_level_id = class_levels.id
   //           LEFT JOIN class_members ON class_members.class_id = classes.id AND class_members.user_id = ?
-  //           WHERE 
+  //           WHERE
   //             ${condition}
   //           ORDER BY RAND()
   //         )
   //         -- Lấy dữ liệu lớp học có phân trang
-  //         SELECT * 
+  //         SELECT *
   //         FROM (
   //           SELECT * FROM RelevantClasses
   //           UNION ALL
@@ -810,7 +693,7 @@ export default class SClass {
   //     LEFT JOIN majors ON classes.major_id = majors.id
   //     LEFT JOIN class_levels ON classes.class_level_id = class_levels.id
   //     LEFT JOIN class_members ON class_members.class_id = classes.id AND class_members.user_id = ?
-  //     WHERE 
+  //     WHERE
   //       (addresses.province = ? OR addresses.district = ? OR addresses.ward = ?)
   //       AND majors.id = ?
   //       AND class_levels.id = ?
@@ -826,7 +709,7 @@ export default class SClass {
   //     LEFT JOIN majors ON classes.major_id = majors.id
   //     LEFT JOIN class_levels ON classes.class_level_id = class_levels.id
   //     LEFT JOIN class_members ON class_members.class_id = classes.id AND class_members.user_id = ?
-  //     WHERE 
+  //     WHERE
   //       ${condition}
   //   )
   //   -- Tính tổng số lượng lớp học
@@ -837,7 +720,6 @@ export default class SClass {
   //     SELECT * FROM RandomClasses
   //   ) AS CombinedClasses;
   //   `;
-
 
   //   const params = [
   //     ...(userType === UserType.TUTOR ? [userId, userId] : [userId, userId]),
@@ -886,8 +768,6 @@ export default class SClass {
   //     });
   //   });
   // }
-  
-  
 
   // Lấy danh sách  lớp học liên quan
   public static getRelatedClasses(
@@ -1015,158 +895,32 @@ export default class SClass {
     });
   }
 
-  // Lấy danh sách lớp học đang tham gia
-  public static getAttendingClasses(
-    user_id: string,
-    onNext: (classes: Class[]) => void
-  ) {
+  // Lấy danh sách lớp học của người dùng
+  public static getClassByUserId(userId: string, onNext: (classes: Class[]) => void) {
     // SQL query to fetch class information, including tutor, major, and class level details
     const sql = `SELECT 
-                    JSON_OBJECT(
-                          'id', classes.id ,
-                          'title', classes.title ,
-                          'description', classes.description,
-                          'price', classes.price,
-                          'class_creation_fee', classes.class_creation_fee,
-                          'max_learners', classes.max_learners,
-                          'started_at', classes.started_at,
-                          'ended_at', classes.ended_at,
-                          'created_at', classes.created_at,
-                          'updated_at', classes.updated_at,
-                          'address', JSON_OBJECT (
-                              "id", addresses.id,
-                              "province", addresses.province,
-                              "district", addresses.district,
-                              "ward", addresses.ward,
-                              "detail", addresses.detail
-                          ),
-                          'tutor', JSON_OBJECT(
-                            'id', tutor.id,
-                            'full_name', tutor.full_name,
-                            'email', tutor.email,
-                            'phone_number', tutor.phone_number,
-                            'avatar', tutor.avatar
-                          ),
-                          'author', JSON_OBJECT(
-                              'id', author.id,
-                              'full_name', author.full_name,
-                              'email', author.email,
-                              'phone_number', author.phone_number,
-                              'avatar', author.avatar
-                          ),
-                          'major', JSON_OBJECT(
-                              'id', majors.id,
-                              'icon', majors.icon,
-                              'vn_name', majors.vn_name,
-                              'en_name', majors.en_name,
-                              'ja_name', majors.ja_name
-                          ),
-                          'class_level', JSON_OBJECT(
-                            'id', cl.id,
-                              'vn_name', cl.vn_name,
-                              'en_name', cl.en_name,
-                              'ja_name', cl.ja_name
-                          )
-                      ) AS class 
+                    ${this.classJsonSQL}
                   FROM classes
                   LEFT JOIN users tutor ON tutor.id = classes.tutor_id
                   LEFT JOIN users author ON author.id = classes.author_id
                   LEFT JOIN majors ON majors.id = classes.major_id
-                  LEFT JOIN class_levels cl ON cl.id = classes.class_level_id
+                  LEFT JOIN class_levels class_levels ON class_levels.id = classes.class_level_id
                   LEFT JOIN addresses ON addresses.id = classes.address_id
-                  LEFT JOIN class_members ON class_members.class_id = classes.id
-                  WHERE class_members.user_id = ?;`;
+                  LEFT JOIN lessons ON lessons.class_id = classes.id
+                  LEFT JOIN class_members ON class_members.class_id = classes.id AND class_members.user_id = ?
+                  WHERE classes.tutor_id = ? OR classes.author_id = ? OR class_members.user_id IS NOT NULL 
+                   GROUP BY classes.id;`;
 
+      // console.log("", mysql.format(sql, [userId, userId, userId]));
+      
     // Get a database connection
     SMySQL.getConnection((connection) => {
       // Execute the SQL query with the provided user_id as a parameter
-      connection?.execute<any[]>(sql, [user_id], (err, rows) => {
-        // If an error occurs, return an empty array to the callback
-        if (err) {
-          onNext([]);
-          return;
-        }
-
-        const classes: Class[] = [];
-
-        // Iterate through each row from the query result
-        rows.forEach((row) => {
-          const classData = row.class;
-          classes.push(classData);
-        });
-
-        return onNext(classes);
-      });
-    });
-  }
-
-  // Lấy danh sách lớp học đang dạy
-  public static getTeachingClasses(
-    user_id: string,
-    onNext: (classes: Class[]) => void
-  ) {
-    // SQL query to fetch class information, including tutor, major, and class level details
-    const sql = `SELECT 
-                    JSON_OBJECT(
-                          'id', classes.id ,
-                          'title', classes.title ,
-                          'description', classes.description,
-                          'price', classes.price,
-                          'class_creation_fee', classes.class_creation_fee,
-                          'max_learners', classes.max_learners,
-                          'started_at', classes.started_at,
-                          'ended_at', classes.ended_at,
-                          'created_at', classes.created_at,
-                          'updated_at', classes.updated_at,
-                          'address', JSON_OBJECT (
-                              "id", addresses.id,
-                              "province", addresses.province,
-                              "district", addresses.district,
-                              "ward", addresses.ward,
-                              "detail", addresses.detail
-                          ),
-                          'tutor', JSON_OBJECT(
-                            'id', tutor.id,
-                            'full_name', tutor.full_name,
-                            'email', tutor.email,
-                            'phone_number', tutor.phone_number,
-                            'avatar', tutor.avatar
-                          ),
-                          'author', JSON_OBJECT(
-                              'id', author.id,
-                              'full_name', author.full_name,
-                              'email', author.email,
-                              'phone_number', author.phone_number,
-                              'avatar', author.avatar
-                          ),
-                          'major', JSON_OBJECT(
-                              'id', majors.id,
-                              'icon', majors.icon,
-                              'vn_name', majors.vn_name,
-                              'en_name', majors.en_name,
-                              'ja_name', majors.ja_name
-                          ),
-                          'class_level', JSON_OBJECT(
-                            'id', cl.id,
-                              'vn_name', cl.vn_name,
-                              'en_name', cl.en_name,
-                              'ja_name', cl.ja_name
-                          )
-                      ) AS class 
-                  FROM classes
-                  LEFT JOIN users tutor ON tutor.id = classes.tutor_id
-                  LEFT JOIN users author ON author.id = classes.author_id
-                  LEFT JOIN majors ON majors.id = classes.major_id
-                  LEFT JOIN class_levels cl ON cl.id = classes.class_level_id
-                  LEFT JOIN addresses ON addresses.id = classes.address_id
-                  WHERE classes.tutor_id = ?;`;
-
-    // Get a database connection
-    SMySQL.getConnection((connection) => {
-      // Execute the SQL query with the provided user_id as a parameter
-      connection?.execute<any[]>(sql, [user_id], (err, rows) => {
+      connection?.execute<any[]>(sql, [userId, userId, userId], (err, rows) => {
         if (err) {
           // If an error occurs, return an empty array to the callback
+          console.log("Get class by user id: ", err);
+          
           onNext([]);
           return;
         }
@@ -1174,90 +928,11 @@ export default class SClass {
         const classes: Class[] = [];
 
         rows.forEach((row) => {
-          const classData = row.class;
-          classes.push(classData);
-        });
-
-        return onNext(classes);
-      });
-    });
-  }
-
-  // Lấy danh sách lớp học đã được tạo
-  public static getCreatedClasses(
-    user_id: string,
-    onNext: (classes: Class[]) => void
-  ) {
-    // SQL query to fetch class information, including tutor, major, and class level details
-    const sql = `SELECT 
-                    JSON_OBJECT(
-                          'id', classes.id ,
-                          'title', classes.title ,
-                          'description', classes.description,
-                          'price', classes.price,
-                          'class_creation_fee', classes.class_creation_fee,
-                          'max_learners', classes.max_learners,
-                          'started_at', classes.started_at,
-                          'ended_at', classes.ended_at,
-                          'created_at', classes.created_at,
-                          'updated_at', classes.updated_at,
-                          'address', JSON_OBJECT (
-                              "id", addresses.id,
-                              "province", addresses.province,
-                              "district", addresses.district,
-                              "ward", addresses.ward,
-                              "detail", addresses.detail
-                          ),
-                          'tutor', JSON_OBJECT(
-                            'id', tutor.id,
-                            'full_name', tutor.full_name,
-                            'email', tutor.email,
-                            'phone_number', tutor.phone_number,
-                            'avatar', tutor.avatar
-                          ),
-                          'author', JSON_OBJECT(
-                              'id', author.id,
-                              'full_name', author.full_name,
-                              'email', author.email,
-                              'phone_number', author.phone_number,
-                              'avatar', author.avatar
-                          ),
-                          'major', JSON_OBJECT(
-                              'id', majors.id,
-                              'icon', majors.icon,
-                              'vn_name', majors.vn_name,
-                              'en_name', majors.en_name,
-                              'ja_name', majors.ja_name
-                          ),
-                          'class_level', JSON_OBJECT(
-                            'id', cl.id,
-                              'vn_name', cl.vn_name,
-                              'en_name', cl.en_name,
-                              'ja_name', cl.ja_name
-                          )
-                      ) AS class 
-                  FROM classes
-                  LEFT JOIN users tutor ON tutor.id = classes.tutor_id
-                  LEFT JOIN users author ON author.id = classes.author_id
-                  LEFT JOIN majors ON majors.id = classes.major_id
-                  LEFT JOIN class_levels cl ON cl.id = classes.class_level_id
-                  LEFT JOIN addresses ON addresses.id = classes.address_id
-                  WHERE classes.author_id = ?;`;
-
-    // Get a database connection
-    SMySQL.getConnection((connection) => {
-      // Execute the SQL query with the provided user_id as a parameter
-      connection?.execute<any[]>(sql, [user_id], (err, rows) => {
-        if (err) {
-          // If an error occurs, return an empty array to the callback
-          onNext([]);
-          return;
-        }
-
-        const classes: Class[] = [];
-
-        rows.forEach((row) => {
-          const classData = row.class;
+          const classData = {
+            ...row.class,
+            author_accepted: !!row.class.author_accepted,
+            admin_accepted: !!row.class.admin_accepted
+          };
           classes.push(classData);
         });
 
