@@ -203,7 +203,7 @@ WHERE cvs.id = ?;`
     ) AS user_data
   `
 
-  public static getSugestedCVs(
+  public static getSugestedCVs2(
     page: number, perPage: number,
     province: string | undefined, district: string | undefined, ward: string | undefined,
     onNext: (cvs: CV[], pagination: Pagination) => void,
@@ -247,6 +247,99 @@ WHERE cvs.id = ?;`
 
     SMySQL.getConnection((connection)=>{
       connection?.query<any[]>(sql, [province, district], (err, results)=>{
+        if(err){
+          SLog.log(LogType.Error, "fail to fetch cv", "can't fetch user cv", err),
+          onNext([], new Pagination)
+          return;
+        }
+
+        const totalCount = results[0]?.totalCount
+        const cvs: CV[] = []
+        results.forEach((result) => {
+          const cv = result.user_data
+          cvs.push(cv)
+
+        })
+        const pagination: Pagination = {
+          page: page,
+          perPage: perPage,
+          total_pages: Math.ceil(totalCount / perPage),
+          total_items: totalCount,
+        };
+
+        onNext(cvs, pagination)
+        return;
+
+      })
+    })
+  }
+
+  public static getSugestedCVs(
+    page: number, perPage: number,
+    filter: Filters,
+    onNext: (cvs: CV[], pagination: Pagination) => void,
+  ){
+
+    // Build SQL query dynamically based on provided filters
+    let filterConditions = "1=1 AND cvs.approved_at IS NOT NULL";
+    let queryParams: any[] = []; 
+
+    // Add filter conditions if they are provided
+  if (filter.province) {
+    const provinces = filter.province.split(",").map((p) => `%${p.trim()}%`);
+    filterConditions += ` AND (${provinces.map(() => "ad.province LIKE ?").join(" OR ")})`;
+    queryParams.push(...provinces);
+  }
+
+  if (filter.district) {
+    const districts = filter.district.split(",").map((d) => `%${d.trim()}%`);
+    filterConditions += ` AND (${districts.map(() => "ad.district LIKE ?").join(" OR ")})`;
+    queryParams.push(...districts); 
+  }
+
+  if (filter.ward) {
+    const wards = filter.ward.split(",").map((w) => `%${w.trim()}%`);
+    filterConditions += ` AND (${wards.map(() => "ad.ward LIKE ?").join(" OR ")})`;
+    queryParams.push(...wards);
+  }
+
+    const sql = `
+        WITH SuggestedCVs AS (
+        SELECT
+          ${this.cvJsonSQL}
+        FROM cvs
+        LEFT JOIN users ON users.id = cvs.id
+        LEFT JOIN addresses ad ON ad.id = users.address_id
+        LEFT JOIN genders g ON g.id = users.gender_id
+        WHERE ${filterConditions}
+        ),
+        RandomCVs AS (
+        SELECT
+          ${this.cvJsonSQL}
+        FROM cvs
+        LEFT JOIN users ON users.id = cvs.id
+        LEFT JOIN addresses ad ON ad.id = users.address_id
+        LEFT JOIN genders g ON g.id = users.gender_id
+        WHERE cvs.approved_at IS NOT NULL AND cvs.id NOT IN (SELECT cvs.id FROM SuggestedCVs)
+        ),
+        CombinedCVs AS (
+        SELECT * FROM SuggestedCVs
+        UNION ALL
+        SELECT * FROM RandomCVs
+        )
+        -- Lấy dữ liệu phân trang
+        SELECT (SELECT COUNT(*) FROM CombinedCVs) AS totalCount,
+        CombinedCVs.*
+        FROM CombinedCVs
+        LIMIT ${perPage} OFFSET ${(page - 1) * perPage};
+    `;
+
+    console.log("getSugestedCVs", mysql.format(sql, queryParams));
+    
+    // console.log(mysql.format(sql, [province, district]));
+
+    SMySQL.getConnection((connection)=>{
+      connection?.query<any[]>(sql, queryParams, (err, results)=>{
         if(err){
           SLog.log(LogType.Error, "fail to fetch cv", "can't fetch user cv", err),
           onNext([], new Pagination)
