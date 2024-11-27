@@ -26,9 +26,9 @@ import PermissionList, {setUpPermissions} from "./configs/PermissionConfig";
 import {setUpGenders} from "./configs/GenderConfig";
 import SFirebase, {FirebaseNode} from "./services/SFirebase";
 import AdminController from "./controllers/admin/AdminController";
-import {uploadPayment} from "./configs/MulterConfig";
-import SResponse, {ResponseStatus} from "./services/SResponse";
-import {ClassLevelController} from "./controllers/ClassLevelController";
+import {uploadPayment, uploadReports} from "./configs/MulterConfig";
+import SResponse, { ResponseStatus } from "./services/SResponse";
+import { ClassLevelController } from "./controllers/ClassLevelController";
 import {setUpRoles} from "./configs/RoleConfig";
 import {setUpUsers} from "./configs/UserConfig";
 import SMessage from "./services/SMessage";
@@ -79,8 +79,8 @@ app.post(ATTENDANCE_BASE_URL + "/request", AttendanceController.requestAttendanc
 app.put(ATTENDANCE_BASE_URL + "/accept", AttendanceController.acceptAttendance);
 app.get(ATTENDANCE_BASE_URL + "/learner/:class_id/:lesson_id/:user_id", AttendanceController.getAttendanceByLearnerClassLesson);
 app.get(ATTENDANCE_BASE_URL + "/tutor/:class_id/:lesson_id/:user_id", AttendanceController.getAttendanceByTutorClassLesson);
-app.post(ATTENDANCE_BASE_URL + "/pay", uploadPayment.single('file'), AttendanceController.updatePaymentOfLearner);
-app.post(ATTENDANCE_BASE_URL + "/confirm_paid", AttendanceController.confirmPaymentByTutor);
+app.post(ATTENDANCE_BASE_URL + "/pay", uploadPayment.single('file'),AttendanceController.updatePaymentOfLearner);
+app.post(ATTENDANCE_BASE_URL + "/confirm_paid",AttendanceController.confirmPaymentByTutor);
 
 
 // Define the base URL for certificate-related routes
@@ -99,7 +99,8 @@ app.get(CERTIFICATE_BASE_URL + "/:id/levels", CertificateController.getAllLevels
 
 const CLASS_BASE_URL = Config.PREFIX + "/classes";
 app.get(CLASS_BASE_URL, ClassController.getAllClasses);
-app.get(CLASS_BASE_URL + "/suggests/:user_id", ClassController.getSuggestedClasses);
+app.get(CLASS_BASE_URL + "/suggests/filter/:user_id", ClassController.getSuggestedClasses);
+app.get(CLASS_BASE_URL + "/suggests/:user_id", ClassController.getSuggestsClasses);
 app.get(CLASS_BASE_URL + "/attending/:user_id", ClassController.getAttendingClasses);
 app.get(CLASS_BASE_URL + "/teaching/:user_id", ClassController.getTeachingClasses);
 app.get(CLASS_BASE_URL + "/created/:user_id", ClassController.getCreatedClasses);
@@ -150,7 +151,7 @@ app.get(REPORT_BASE_URL + "/class/:id", ReportController.getClassReport);
 app.post(REPORT_BASE_URL + "/class/:id", ReportController.approveClassReport);
 app.get(REPORT_BASE_URL + "/user", ReportController.getAllUserReports);
 app.get(REPORT_BASE_URL + "/user/:id", ReportController.getUserReport);
-app.post(REPORT_BASE_URL + "/user", ReportController.createUserReport);
+// app.post(REPORT_BASE_URL + "/user", ReportController.createUserReport);
 app.post(REPORT_BASE_URL + "/user/:id", ReportController.approveUserReport);
 
 //trừ điểm uy tín của người dùng
@@ -159,15 +160,16 @@ app.post(REPORT_BASE_URL + "/minusUserPoints", UserController.MinusUserPoints);
 app.post(REPORT_BASE_URL + "/lockUserAccount", UserController.LockUserAccount);
 //khoá lớp học của người dùng
 app.post(REPORT_BASE_URL + "/lockClass", ClassController.LockClass);
-//khoá user reports
-app.post(REPORT_BASE_URL + "/lockUserReport", ReportController.LockReport);
+//khoá reports
+app.post(REPORT_BASE_URL + "/lockReport", ReportController.LockReport);
 //tạo report
-app.post(REPORT_BASE_URL + "/created_report", ReportController.createReport);
+app.post(REPORT_BASE_URL + "/created_report",uploadReports.array('reports', 10), ReportController.createReport);
 
 
 const CV_BASE_URL = Config.PREFIX + "/cvs";
 app.get(CV_BASE_URL, CVController.getAllCVs);
-app.get(CV_BASE_URL + "/suggest", CVController.getSuggestedCVs);
+app.get(CV_BASE_URL + "/suggests", CVController.getSuggestedCVs);
+app.get(CV_BASE_URL + "/suggests/filters", CVController.getSuggestedCVsFilter);
 app.get(CV_BASE_URL + "/:id", CVController.getCV);
 app.post(CV_BASE_URL, CVController.createCV);
 app.put(CV_BASE_URL + "/:id", CVController.updateCV);

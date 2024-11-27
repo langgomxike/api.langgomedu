@@ -65,7 +65,7 @@ export default class AttendanceController {
   ) {
     let { lesson_id, user_ids, paid, type, deferred } = request.body;
 
-    console.log("data:", request.body);
+    // console.log("data:", request.body);
 
     // Lấy đường dẫn file đã upload
     const file = (request as any).file;

@@ -50,4 +50,4 @@ const multerOptions = {
 // Tạo các multer instances với cấu hình riêng cho từng loại thư mục
 export const uploadPayment = multer({ storage: createStorage('payments'), ...multerOptions });
 export const uploadAvatar = multer({ storage: createStorage('avatars'), ...multerOptions });
-export const uploadReport = multer({ storage: createStorage('reports'), ...multerOptions });
+export const uploadReports = multer({storage: createStorage('reports'),...multerOptions,}); 
