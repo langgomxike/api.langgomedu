@@ -41,35 +41,42 @@ export default class ReportController {
     });
   }
 
- public static createUserReport(
-  request: express.Request,
-  response: express.Response
-) {
-  // Lấy dữ liệu từ body của request
-  const { reporter, reportee, class_id, content } = request?.body?.report || {};
+  // public static createUserReport(
+  //   request: express.Request,
+  //   response: express.Response
+  // ) {
+  //   // Lấy dữ liệu từ body của request
+  //   const { reporter, reportee, class_id, content } =
+  //     request?.body?.report || {};
 
-  // Kiểm tra các tham số cần thiết
-  if (!reporter || !reportee || !content) {
-    return response
-      .status(400)
-      .json({ success: false, message: "Missing required fields." });
-  }
+  //   // Kiểm tra các tham số cần thiết
+  //   if (!reporter || !reportee || !content) {
+  //     return response
+  //       .status(400)
+  //       .json({ success: false, message: "Missing required fields." });
+  //   }
 
-  // Gọi phương thức CreatedReport để tạo báo cáo
-  SUserReport.CreatedReport(reporter, reportee, class_id, content, (result) => {
-    if (result) {
-      // Nếu thành công, trả về phản hồi JSON
-      response
-        .status(201)
-        .json({ success: true, message: "Report created successfully." });
-    } else {
-      // Nếu thất bại, trả về lỗi
-      response
-        .status(500)
-        .json({ success: false, message: "Failed to create report." });
-    }
-  });
-}
+  //   // Gọi phương thức CreatedReport để tạo báo cáo
+  //   SUserReport.CreatedReport(
+  //     reporter,
+  //     reportee,
+  //     class_id,
+  //     content,
+  //     (result) => {
+  //       if (result) {
+  //         // Nếu thành công, trả về phản hồi JSON
+  //         response
+  //           .status(201)
+  //           .json({ success: true, message: "Report created successfully." });
+  //       } else {
+  //         // Nếu thất bại, trả về lỗi
+  //         response
+  //           .status(500)
+  //           .json({ success: false, message: "Failed to create report." });
+  //       }
+  //     }
+  //   );
+  // }
 
   public static approveClassReport(
     request: express.Request,
@@ -118,8 +125,27 @@ export default class ReportController {
     request: express.Request,
     response: express.Response
   ) {
-    // Lấy dữ liệu từ body của request
-    const { reporter, reportee, class_id, content } = request?.body?.report || {};
+    // In ra dữ liệu nhận được từ request để kiểm tra
+    console.log("Request Body:", request.body);
+    // console.log("Files:", request.files);
+  
+    // Lấy dữ liệu từ body của request (không cần truy cập qua report nếu không có trường này)
+    const { reporter, reportee, class_id, content } = request.body;
+  
+    // Lấy đường dẫn file để upload từ request.files
+    const files = (request as any).files;
+    const filePaths: string[] = [];
+  
+    // Kiểm tra và lưu đường dẫn các file
+    if (files && Array.isArray(files)) {
+      files.forEach((file: any) => {
+        const filePath = file ? `uploads/reports/${file.filename}` : null;
+        if (filePath) {
+          filePaths.push(filePath); // Thêm filePath vào mảng filePaths
+          console.log("File path uploaded: ", filePath);
+        }
+      });
+    }
   
     // Kiểm tra các tham số cần thiết
     if (!reporter || !reportee || !content) {
@@ -129,21 +155,27 @@ export default class ReportController {
     }
   
     // Gọi phương thức CreatedReport để tạo báo cáo
-    SUserReport.CreatedReport(reporter, reportee, class_id, content, (result) => {
-      if (result) {
-        // Nếu thành công, trả về phản hồi JSON
-        response
-          .status(201)
-          .json({ success: true, message: "Report created successfully." });
-      } else {
-        // Nếu thất bại, trả về lỗi
-        response
-          .status(500)
-          .json({ success: false, message: "Failed to create report." });
+    SUserReport.CreatedReport(
+      reporter,
+      reportee,
+      class_id,
+      content,
+      filePaths, // Truyền filePaths vào tham số files
+      (result) => {
+        if (result) {
+          // Nếu thành công, trả về phản hồi JSON
+          response
+            .status(201)
+            .json({ success: true, message: "Report created successfully." });
+        } else {
+          // Nếu thất bại, trả về lỗi
+          response
+            .status(500)
+            .json({ success: false, message: "Failed to create report." });
+        }
       }
-    });
+    );
   }
-  
 
   public static approveUserReport(
     request: express.Request,
@@ -155,29 +187,25 @@ export default class ReportController {
     request: express.Request,
     response: express.Response
   ) {
-    const report = request?.body?.report;
-    const id = report?.id;
-    const reason = report?.reason;
-    // sửa lại để lấy trực tiếp `reportId`
-    console.log("request: " + JSON.stringify(request.body));
-    console.log("reportId: " + id);
+    const { reportId, reason } = request.body;
 
-    // Kiểm tra nếu `reportId` không tồn tại
-    if (!id) {
-      return response
-        .status(400)
-        .json({ success: false, message: "Report ID is required." });
+    console.log("Payload received:", request.body);
+
+    // Kiểm tra nếu `reportId` hoặc `reason` không tồn tại
+    if (!reportId || !reason) {
+      return response.status(400).json({
+        success: false,
+        message: "Report ID and reason are required.",
+      });
     }
 
-    // Gọi phương thức LockUserReport của SUser
-    SUserReport.LockReport(id, reason, (result) => {
+    // Gọi phương thức LockUserReport để xử lý
+    SUserReport.LockReport(reportId, reason, (result) => {
       if (result) {
-        // Nếu thành công, gửi phản hồi JSON
         response
           .status(200)
           .json({ success: true, message: "User report locked successfully." });
       } else {
-        // Nếu thất bại, gửi phản hồi lỗi
         response
           .status(500)
           .json({ success: false, message: "Failed to lock user report." });
