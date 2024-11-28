@@ -1,6 +1,8 @@
-import Lesson from "../models/Lesson";
+import Lesson, { lessonJson, scheduleJson } from "../models/Lesson";
 import SLog, { LogType } from "./SLog";
 import SMySQL from "./SMySQL";
+import db from '../configs/knex';
+import User, { simpleUserJson, userJson } from "../models/User";
 
 
 export default class SLesson {
@@ -154,8 +156,77 @@ WHERE c.tutor_id = ?
         })
     }
 
-    public static createLesson(){
-
+    public static async getTutorSchedule2(tutor_id: string, onNext: (lesson: Lesson[])=> void){
+        
+        await db('lessons as l')
+        .leftJoin('classes as c', 'c.id', 'l.class_id')
+        .leftJoin('users as tutor', 'tutor.id', 'c.tutor_id')
+        .leftJoin('majors as major', 'major.id', 'c.major_id')
+        .leftJoin('class_levels', 'class_levels.id', 'c.class_level_id')
+        .leftJoin('addresses as address', 'address.id', 'c.address_id')
+        .leftJoin('addresses as tutor_address', 'tutor_address.id', 'tutor.address_id')
+        .leftJoin('genders as tutor_gender', 'tutor_gender.id', 'tutor.gender_id')
+        .select(db.raw(scheduleJson('l', 'c')))
+        .where('c.tutor_id', tutor_id)
+        .then((results)=>{
+            const lessons : Lesson[] =[];
+            results.forEach(result => {
+                lessons.push(result.lesson)
+            });
+            onNext(lessons);
+        }).catch((err)=> {
+            SLog.log(LogType.Error, "Schedule", "getSchedulefortutor2", err);
+        })
     }
+
+    public static async getUserSchedule2(tutor_id: string, onNext: (lesson: Lesson[])=> void){
+  
+        await db('lessons as l')
+        .leftJoin('classes as c', 'c.id', 'l.class_id')
+        .leftJoin('users as tutor', 'tutor.id', 'c.tutor_id')
+        .leftJoin('majors as major', 'major.id', 'c.major_id')
+        .leftJoin('class_levels', 'class_levels.id', 'c.class_level_id')
+        .leftJoin('addresses as address', 'address.id', 'c.address_id')
+        .leftJoin('addresses as tutor_address', 'tutor_address.id', 'tutor.address_id')
+        .leftJoin('genders as tutor_gender', 'tutor_gender.id', 'tutor.gender_id')
+        .leftJoin('class_members as cm', 'cm.class_id', 'c.id')
+        .select(db.raw(scheduleJson('l', 'c')))
+        .where('cm.user_id', tutor_id)
+        .then((results)=>{
+            const lessons : Lesson[] =[];
+            results.forEach(result => {
+                lessons.push(result.lesson)
+            });
+            onNext(lessons);
+            
+        }).catch((err)=> {
+            SLog.log(LogType.Error, "Schedule", "getSchedulefortutor2", err);
+        })
+    }
+
+    public static async getUserParentandChildren(user_id, onNext: (users: any[])=> void){
+        await db('users')
+        .leftJoin('user_role as ur', 'ur.user_id', 'users.id')
+        .join('roles', 'roles.id', 'ur.role_id')
+        // .leftJoin('genders as gender', 'gender.id', 'users.gender_id')
+        .select(db.raw(simpleUserJson('users', 'roles')))
+        .where('users.id', user_id)
+        .orWhere('parent_id', user_id)
+        .groupBy('users.id')
+        .then((results)=> {
+            const users : any[] =[];
+            results.forEach(result => {
+                users.push(result.user)
+            });
+            // console.log(users);
+            
+            onNext(users);
+          
+        })
+        .catch((err)=> {
+          SLog.log(LogType.Error,"getUserParentandChildren", " can't get parent and children", err);
+        })
+      }
+
 
 }

@@ -5,93 +5,64 @@ import SLog, { LogType } from "../services/SLog";
 import Class from "../models/Class";
 import SClass from "../services/SClass";
 import { UserType } from "../configs/UserType";
-import SAddress from "../services/SAddress";
-import Lesson from "../models/Lesson";
+import { Filter } from "firebase-admin/firestore";
+import Filters from "../models/Filters";
+import { parseQueryBoolean, parseQueryNumber, parseQueryString } from "../configs/QueryHelpers";
+
+
 export default class ClassController {
-  public static getSuggestedClasses(
+
+  public static getSuggestsClasses(
     request: express.Request,
     response: express.Response
   ) {
-    // Tiêu chí gợi ý của lớp học cho người dùng (phụ huynh học sinh, gia sư)
-    /*
-     * Giợi ý theo ngành học quan tâm (interested_major)
-     * Lớp học cùng cấp độ người dùng quan tâm (user_preferred_class_levels)
-     * Lớp học gần vị trí người dùng
-     * Lớp học có thời gian bắt đầu phù hợp
-     */
+    const query = request.query
 
     const user_id = request.params.user_id;
-    const user_type: number =
-      Number(request.query.user_type) ?? UserType.LEANER;
 
-    SClass.getSuggestedClasses(user_id, user_type, (classes) => {
+    const user_type: number =  Number(query.user_type) ?? UserType.LEANER;
+
+     // Lấy các giá trị filter từ query parameters
+    const filter: Filters = {
+    // Giá lớp học tối thiểu
+    minPrice: parseQueryNumber(query.minPrice),
+
+    // Giá lớp học tối đa
+    maxPrice: parseQueryNumber(query.maxPrice),
+
+    //Địa chỉ:
+    province: parseQueryString(query.province),
+    district: parseQueryString(query.district),
+    ward: parseQueryString(query.ward),
+
+    // Hình thức học: online/offline
+    isOnline: parseQueryBoolean(query.isOnline),
+
+    // Ngành học (nếu có)
+    major: parseQueryString(query.major),
+    // classLevelId: 
+    classLevelId: parseQueryString(query.classLevelId),
+
+    // Số lượng tối đa trong lớp 
+    maxLearners: parseQueryNumber(query.maxLearners),
+    // Ngày bắt đầu & Ngày kết thúc
+    startedAtMin: parseQueryNumber(query.startedAtMin),
+    endedAtMax: parseQueryNumber(query.endedAtMax),
+  };
+
+  // Lấy các tham số sắp xếp từ query parameters
+  // Trường sắp xếp mặc định: 'started_at'
+  const sortBy = parseQueryString(request.query.sort) ?? "started_at"; 
+
+  const page = Number(request.query.page) || 1;
+  const perPage = Number(request.query.perPage) || 2;
+
+    SClass.getSuggestsClasses(user_id, user_type, filter, sortBy, page, perPage ,
+      (classes, pagination) => {
       SResponse.getResponse(
         ResponseStatus.OK,
-        classes,
-        "get sugget classes",
-        response
-      );
-    });
-  }
-
-  public static getTeachingClasses(
-    request: express.Request,
-    response: express.Response
-  ) {
-    // Lấy user_id từ request.params
-    const user_id = request.params.user_id;
-    // SLog.log(LogType.Info, "getTeachingClasses", "user id", user_id)
-    SClass.getTeachingClasses(user_id, (classes) => {
-      SResponse.getResponse(
-        ResponseStatus.OK,
-        classes,
-        "get teaching classes",
-        response
-      );
-    });
-  }
-
-  public static getAttendingClasses(
-    request: express.Request,
-    response: express.Response
-  ) {
-    // Lấy user_id
-    const user_id = request.params.user_id;
-    // const user_id =  request.body.user_id;
-
-    const now = new Date();
-    const currentTime = `${now.getFullYear()}-${(now.getMonth() + 1)
-      .toString()
-      .padStart(2, "0")}-${now.getDate().toString().padStart(2, "0")} ${now
-      .getHours()
-      .toString()
-      .padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}:${now
-      .getSeconds()
-      .toString()
-      .padStart(2, "0")}`;
-
-    // SLog.log(LogType.Info, currentTime , "user id", user_id)
-    SClass.getAttendingClasses(user_id, (classes) => {
-      SResponse.getResponse(
-        ResponseStatus.OK,
-        classes,
-        "get attending classes",
-        response
-      );
-    });
-  }
-  public static getCreatedClasses(
-    request: express.Request,
-    response: express.Response
-  ) {
-    const user_id = request.params.user_id;
-    // const user_id =  request.body.user_id;
-    // SLog.log(LogType.Info, "get created classes", "user id", user_id)
-    SClass.getCreatedClasses(user_id, (classes) => {
-      SResponse.getResponse(
-        ResponseStatus.OK,
-        classes,
-        "get created classes",
+        {classes, pagination} ,
+        "get sugget classes with filters",
         response
       );
     });
@@ -134,6 +105,21 @@ export default class ClassController {
         response
       );
       return;
+    });
+  }
+
+  public static getClassesByUserId(
+    request: express.Request,
+    response: express.Response
+  ) {
+    const user_id = request.params.user_id;
+    SClass.getClassByUserId(user_id, (classes) => {
+      SResponse.getResponse(
+        ResponseStatus.OK,
+        classes,
+        "get classes width user id",
+        response
+      );
     });
   }
 

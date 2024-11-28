@@ -2,7 +2,6 @@ import Role from "../models/Role";
 import SLog, {LogType} from "./SLog";
 import SMySQL from "./SMySQL";
 import SFirebase, {FirebaseNode} from "./SFirebase";
-import {QueryResult} from "mysql2";
 
 export default class SRole {
   public static getRolesByIds(ids: number[], onNext: (roles: Role[] | []) => void) {
@@ -91,7 +90,14 @@ export default class SRole {
           }
 
           SLog.log(LogType.Info, "addRolesToUser", "addRolesToUser successfully");
-          onNext();
+          SFirebase.push(FirebaseNode.Users, [
+              {
+                key: FirebaseNode.Id,
+                value: userId,
+              }
+            ],
+            onNext
+          );
         });
       });
     });

@@ -63,9 +63,9 @@ export default class AttendanceController {
     request: express.Request,
     response: express.Response
   ) {
-    let { lesson_id, user_ids, paid, type, deferred } = request.body;
+    let { lesson_id, user_id, paid, type, deferred } = request.body;
 
-    console.log("data:", request.body);
+    // console.log("data:", request.body);
 
     // Lấy đường dẫn file đã upload
     const file = (request as any).file;
@@ -75,11 +75,8 @@ export default class AttendanceController {
     paid = paid === "true";
     deferred = deferred === "true";
 
-     // Chuyển đổi `user_ids` từ chuỗi sang mảng nếu là chuỗi
-  const userIds = typeof user_ids === 'string' ? JSON.parse(user_ids) : user_ids;
-
     SAttendance.updatePaymentOfLearner(
-      lesson_id, userIds, paid, filePath,  type, deferred,
+      lesson_id, user_id, paid, filePath,  type, deferred,
       (message, result) => {
         SResponse.getResponse(ResponseStatus.OK, { message, result }, "update payment of leaner", response);
       }
@@ -90,15 +87,16 @@ export default class AttendanceController {
     request: express.Request,
     response: express.Response
   ) {
-    const { lesson_id, user_ids, confirm_paid } = request.body;
+    const { lesson_id, user_id, action ,value } = request.body;
   
     console.log("Request body:", request.body);
   
     // Cập nhật thanh toán xác nhận từ tutor
     SAttendance.confirmPaymentByTutor(
       lesson_id,
-      user_ids,
-      confirm_paid,
+      user_id,
+      action,
+      value,
       (message, result) => {
         SResponse.getResponse(
           ResponseStatus.OK,
@@ -117,20 +115,16 @@ export default class AttendanceController {
     const classId = request.params.class_id;
     const lessonId = request.params.lesson_id;
     const userId = request.params.user_id;
-    const attendedAt: number = Number(request.query.attended_at);
-
-    console.log(">>> getAttendanceByUserClassLesson", request.params);
 
     SAttendance.getAttendanceByLeanerClassLesson(
       classId,
       lessonId,
       userId,
-      attendedAt,
-      (lesson, attendStudents) => {
+      (lesson, learner) => {
         // Xử lý thành công
         SResponse.getResponse(
           ResponseStatus.OK,
-          { lesson, attendStudents },
+          { lesson, learner },
           `Get attendance for user id: ${userId} in class id: ${classId} of lesson: ${lessonId}`,
           response
         );
@@ -142,33 +136,47 @@ export default class AttendanceController {
     );
   }
 
+  public static getAttendanceByLearnerLesson(
+    request: express.Request,
+    response: express.Response
+  ) {
+    const lessonId = request.params.lesson_id;
+    const userId = request.params.user_id;
+
+    SAttendance.getAttendanceByLeanerLesson(
+      lessonId,
+      userId,
+      (attendance) => {
+        // Xử lý thành công
+        SResponse.getResponse(
+          ResponseStatus.OK,
+          { attendance },
+          `Get attendance for user id: ${userId} in lesson: ${lessonId}`,
+          response
+        );
+      },
+    );
+  }
+
+  // Lấy danh sách học sinh trong lớp của buổi học đó và thông tin điểm danh của họ
   public static getAttendanceByTutorClassLesson(
     request: express.Request,
     response: express.Response
   ) {
     const classId = request.params.class_id;
     const lessonId = request.params.lesson_id;
-    const userId = request.params.user_id;
-
-    console.log(">>> getAttendanceByTutorClassLesson", request.params);
-
     SAttendance.getAttendanceByTutorClassLesson(
       classId,
       lessonId,
-      userId,
-      (lessonDetail, attendStudents, learners) => {
+      (learners) => {
         // Xử lý thành công
         SResponse.getResponse(
           ResponseStatus.OK,
-          { lessonDetail, attendStudents, learners },
-          `Get attendance for tutor id: ${userId} in class id: ${classId} of lesson: ${lessonId}`,
+          {learners },
+          `Get attendance for tutor class id: ${classId} of lesson: ${lessonId}`,
           response
         );
       },
-      (message) => {
-        // Xử lý lỗi
-        SResponse.getResponse(ResponseStatus.Internal_Server_Error, null, message, response);
-      }
     );
   }
 }

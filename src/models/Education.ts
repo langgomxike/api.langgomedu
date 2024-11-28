@@ -56,3 +56,7 @@ export const educationsSubquery = db('educations as edu')
   .leftJoin('files as edu_evi', 'edu_evi.id', 'edu.evidence_id')
   .whereRaw('edu.cv_id = cvs.id')
   .as('educationsSubquery');
+
+
+
+  

@@ -15,3 +15,12 @@ export const roleJson = (asName: string): string => {
     'name', ${asName}.name
 )`;
 }
+
+export const arrayRoleJson = (asName: string): string => {
+    return `JSON_ARRAYAGG(
+        JSON_OBJECT(
+            'id', ${asName}.id,
+            'name', ${asName}.name
+        )
+    )`;
+}

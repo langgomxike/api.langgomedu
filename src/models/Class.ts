@@ -1,8 +1,9 @@
 
-import Address from "./Address";
-import ClassLevel from "./ClassLevel";
-import Major from "./Major";
-import User from "./User";
+import db from "../configs/knex";
+import Address, { addressJson } from "./Address";
+import ClassLevel, { classLevelJson } from "./ClassLevel";
+import Major, { majorJson } from "./Major";
+import User, { subqueryUser, userJson, userJsonwithoutName } from "./User";
 import { QueryResult, RowDataPacket } from 'mysql2';
 
 export default class Class {
@@ -62,6 +63,29 @@ export const classJson = (asName: string): string => {
     'started_at', ${asName}.started_at,
     'ended_at', ${asName}.ended_at,
     'address', ${asName}.address_id,
+    'paid', ${asName}.paid,
+    'author_accepted', ${asName}.author_accepted,
+    'admin_accepted', ${asName}.admin_accepted,
+    'created_at', ${asName}.created_at,
+    'updated_at', ${asName}.updated_at
+)`;
+}
+
+export const  classWithTutorJson = (asName: string): string => {
+    return `JSON_OBJECT(
+    'id', ${asName}.id,
+    'title', ${asName}.title,
+    'description', ${asName}.description,
+    'major', (${majorJson('major')}),
+    'tutor', (${userJsonwithoutName('tutor', 'tutor_address', 'tutor_gender')}),
+    'author', ${asName}.author_id,
+    'price', ${asName}.price,
+    'class_creation_fee', ${asName}.class_creation_fee,
+    'class_level', (${classLevelJson('class_levels')}),
+    'max_learners', ${asName}.max_learners,
+    'started_at', ${asName}.started_at,
+    'ended_at', ${asName}.ended_at,
+    'address', ${addressJson('address')},
     'paid', ${asName}.paid,
     'author_accepted', ${asName}.author_accepted,
     'admin_accepted', ${asName}.admin_accepted,
