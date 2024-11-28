@@ -268,26 +268,34 @@ export default class SClass {
         (err, result) => {
           if (err) {
             SLog.log(
-              LogType.Error,  "get Class by ID", "can't not get class", err);
+              LogType.Error,
+              "get Class by ID",
+              "can't not get class",
+              err
+            );
             onNext(new Class(), err);
           }
 
           const _class: Class = result[0].class as Class;
-          this.getconflictingLessonsWithClassUsers(id, ["089204000001"], (data) => {
-            onNext(_class, data);
-          })
-
+          this.getconflictingLessonsWithClassUsers(
+            id,
+            ["089204000001"],
+            (data) => {
+              onNext(_class, data);
+            }
+          );
         }
       );
     });
   }
 
- 
-
   // Lây danh sách các buổi học bị trùng với lớp học người dùng đang học
-  public static getconflictingLessonsWithClassUsers(classId: number, userIds: string[], onNext: (data: any[]) => void){
-
-    const userPlaceholders = userIds.map(() => "?").join(", "); 
+  public static getconflictingLessonsWithClassUsers(
+    classId: number,
+    userIds: string[],
+    onNext: (data: any[]) => void
+  ) {
+    const userPlaceholders = userIds.map(() => "?").join(", ");
     const sql = `
         SELECT 
         cm.user_id,
@@ -327,11 +335,10 @@ export default class SClass {
         }
 
         onNext(result);
-
-      })
-    })
+      });
+    });
   }
-  
+
   public static getClassesByKey(
     key: string,
     onNext: (classes: Class[]) => void
@@ -1013,189 +1020,131 @@ export default class SClass {
     });
   }
 
-  // public static createClass(
-  //   title: string,
-  //   description: string,
-  //   major_id: number,
-  //   class_level_id: number,
-  //   price: number,
-  //   started_at: number,
-  //   ended_at: number,
-  //   lessons: Lesson[],
-  //   onNext: (result: boolean, insertId?: number) => void
-  // ) {
-  //   const sql =
-  //     "INSERT INTO classes (title, description, major_id, price, class_level_id, started_at, ended_at) VALUES (?,?,?,?,?,?,?)";
-
-  //   //class_level_id:  lấy danh sách cấp học -> lưu lại id
-  //   // bỏ mô tả và yêu cầu trong giao diện
-
-  //   SMySQL.getConnection((connection) => {
-  //     connection?.execute(
-  //       sql,
-  //       [
-  //         title,
-  //         description,
-  //         major_id,
-  //         price,
-  //         class_level_id,
-  //         started_at,
-  //         ended_at,
-  //       ],
-  //       (err, result) => {
-  //         if (err) {
-  //           // Xử lý khi có lỗi
-  //           SLog.log(
-  //             LogType.Error,
-  //             "addNewClass",
-  //             "Failed to insert new class",
-  //             err
-  //           );
-  //           onNext(false);
-  //           return;
-  //         }
-  //         // Trả về kết quả thành công và ID của lớp học vừa thêm
-  //         const classId = (result as any).insertId || undefined;
-  //         onNext(true, classId); // tìm cách trả về ID lớp vừa tạo
-
-  //         // Chuẩn bị dữ liệu cho việc chèn nhiều dòng trong bảng lessons
-  //         if (lessons.length > 0) {
-  //           const values: any[] = [];
-  //           lessons.forEach((lesson) => {
-  //             values.push(
-  //               classId,
-  //               lesson.day,
-  //               lesson.started_at,
-  //               lesson.duration,
-  //               lesson.is_online
-  //             );
-  //           });
-  //           console.log("values: " + values);
-
-  //           // Xây dựng câu truy vấn `INSERT` với nhiều giá trị
-  //           const placeholders = lessons.map(() => "(?,?,?,?,?)").join(",");
-  //           const sqlLesson = `INSERT INTO lessons (class_id, day, started_at, duration, is_online) VALUES ${placeholders}`;
-
-  //           console.log("sql lesson: ", sqlLesson);
-
-  //           connection.execute(sqlLesson, values, (lessonErr) => {
-  //             if (lessonErr) {
-  //               SLog.log(
-  //                 LogType.Error,
-  //                 "addLessons",
-  //                 "Failed to insert lessons",
-  //                 lessonErr
-  //               );
-  //               onNext(false);
-  //             } else {
-  //               onNext(true, classId); // thanh cong tra ve id cho lop
-  //             }
-  //           });
-  //         } else {
-  //           onNext(true, classId);
-  //         }
-  //       }
-  //     );
-  //   });
-  // }
-
-  // Join class by leaner
+  /**
+   * Thực hiện tạo lớp học
+   * @param title Tiêu đề lớp học
+   * @param description Mô tả lớp học
+   * @param major_id ID chuyên ngành
+   * @param class_level_id ID cấp lớp
+   * @param price Giá lớp học
+   * @param started_at Ngày bắt đầu (timestamp)
+   * @param ended_at Ngày kết thúc (timestamp)
+   * @param lessons Danh sách bài học
+   * @param onNext Hàm callback để trả kết quả
+   */
 
   public static createClass(
     title: string,
     description: string,
     major_id: number,
+    tutor_id: number,
+    author_id: number,
     class_level_id: number,
     price: number,
     started_at: number,
     ended_at: number,
-    lessons: Lesson[],
+    address_id: number,
+    lessons: Lesson[], // Nhận danh sách đầy đủ các bài học
     onNext: (result: boolean, insertId?: number) => void
   ) {
-    const sql =
-      "INSERT INTO classes (title, description, major_id, price, class_level_id, started_at, ended_at) VALUES (?,?,?,?,?,?,?)";
-
+    const classSql = `
+      INSERT INTO classes (title, description, major_id, tutor_id, author_id, price, class_level_id, started_at, ended_at, address_id) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+  
     SMySQL.getConnection((connection) => {
       if (!connection) {
+        console.error("Không thể kết nối database.");
         onNext(false);
         return;
       }
-
+  
       connection.beginTransaction((transactionErr) => {
         if (transactionErr) {
+          console.error("Lỗi khi bắt đầu transaction:", transactionErr);
           onNext(false);
           return;
         }
-
+  
         connection.execute(
-          sql,
+          classSql,
           [
             title,
             description,
             major_id,
+            tutor_id, // Phải nhận từ frontend
+            author_id, // Phải nhận từ frontend
             price,
             class_level_id,
             started_at,
             ended_at,
+            address_id,
           ],
-          (classErr, result) => {
+          (classErr, classResult) => {
             if (classErr) {
+              console.error("Lỗi khi thêm lớp học:", classErr);
               connection.rollback(() => onNext(false));
               return;
             }
-
-            const classId = (result as any).insertId || undefined;
+  
+            const classId = (classResult as any).insertId;
             if (!classId) {
-              onNext(false);
+              console.error("Không lấy được ID lớp học vừa tạo.");
+              connection.rollback(() => onNext(false));
               return;
             }
-
-            // Kiểm tra nếu không có bài học để thêm, commit ngay
+  
             if (lessons.length === 0) {
               connection.commit((commitErr) => {
                 if (commitErr) {
+                  console.error("Lỗi khi commit transaction:", commitErr);
                   onNext(false);
                 } else {
+                  console.log("Tạo lớp học thành công, không có bài học.");
                   onNext(true, classId);
                 }
               });
-              return;
+            } else {
+              // Insert các bài học
+              const lessonSql = `
+                INSERT INTO lessons (class_id, day, started_at, duration, is_online, note) 
+                VALUES ${lessons.map(() => "(?, ?, ?, ?, ?, ?)").join(",")}
+              `;
+              const lessonValues = lessons
+                .map((lesson) => [
+                  classId,
+                  lesson.day,
+                  lesson.started_at,
+                  lesson.duration,
+                  lesson.is_online,
+                  lesson.note || null,
+                ])
+                .flat();
+  
+              connection.execute(lessonSql, lessonValues, (lessonErr) => {
+                if (lessonErr) {
+                  console.error("Lỗi khi thêm bài học:", lessonErr);
+                  connection.rollback(() => onNext(false));
+                  return;
+                }
+  
+                connection.commit((commitErr) => {
+                  if (commitErr) {
+                    console.error("Lỗi khi commit transaction:", commitErr);
+                    onNext(false);
+                  } else {
+                    console.log("Tạo lớp học và bài học thành công.");
+                    onNext(true, classId);
+                  }
+                });
+              });
             }
-
-            // Thêm các bài học vào bảng lessons
-            const values: any[] = [];
-            lessons.forEach((lesson) => {
-              values.push(
-                classId,
-                lesson.day,
-                lesson.started_at,
-                lesson.duration,
-                lesson.is_online
-              );
-            });
-
-            const placeholders = lessons.map(() => "(?,?,?,?,?)").join(",");
-            const sqlLesson = `INSERT INTO lessons (class_id, day, started_at, duration, is_online) VALUES ${placeholders}`;
-
-            connection.execute(sqlLesson, values, (lessonErr) => {
-              if (lessonErr) {
-                connection.rollback(() => onNext(false));
-                return;
-              }
-
-              connection.commit((commitErr) => {
-                if (commitErr) {
-                  onNext(false);
-                } else {
-                  onNext(true, classId);
-                }
-              });
-            });
           }
         );
       });
     });
   }
+  
 
   public static joinClass(
     classId: number,
@@ -1216,7 +1165,7 @@ export default class SClass {
       // Thêm classId và userId vào params
       params.push(classId, userId);
     });
-    
+
     const sql = `
           INSERT INTO class_members (class_id, user_id)
           VALUES ${values}
@@ -1231,9 +1180,13 @@ export default class SClass {
             false
           );
         }
-        SFirebase.push(FirebaseNode.Classes, [{key: FirebaseNode.ClassId, value: classId}], ()=> {
-          onNext(`Join in class id: ${classId} successful!`, true);
-        })
+        SFirebase.push(
+          FirebaseNode.Classes,
+          [{ key: FirebaseNode.ClassId, value: classId }],
+          () => {
+            onNext(`Join in class id: ${classId} successful!`, true);
+          }
+        );
       });
     });
   }
@@ -1288,14 +1241,14 @@ export default class SClass {
       });
     });
   }
-   //khoá lớp học
-//  UPDATE classes
-// SET status = 1
-// WHERE class_id = your_class_id
-// LIMIT 1;
-public static LockClass(class_id: string, onNext: (result: boolean) => void) {
-  // Câu truy vấn SQL để khóa lớp học
-  const sql = `
+  //khoá lớp học
+  //  UPDATE classes
+  // SET status = 1
+  // WHERE class_id = your_class_id
+  // LIMIT 1;
+  public static LockClass(class_id: string, onNext: (result: boolean) => void) {
+    // Câu truy vấn SQL để khóa lớp học
+    const sql = `
   UPDATE classes
   SET ended_at = (UNIX_TIMESTAMP() * 1000)
   WHERE id = ?
