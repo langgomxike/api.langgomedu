@@ -136,6 +136,7 @@ export default class SMessage {
     const sql = `SELECT JSON_OBJECT(
                                 'id', c.id,
                                 'title', c.title,
+                                'tutor_id', c.tutor_id,
                                 'major', JSON_OBJECT(
                                         'icon', majors.icon
                                          )
