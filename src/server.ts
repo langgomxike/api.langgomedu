@@ -77,10 +77,10 @@ const ATTENDANCE_BASE_URL = Config.PREFIX + "/attendances";
 app.get(ATTENDANCE_BASE_URL + "/histories", AttendanceController.getAttendanceHistories);
 app.post(ATTENDANCE_BASE_URL + "/request", AttendanceController.requestAttendance);
 app.put(ATTENDANCE_BASE_URL + "/accept", AttendanceController.acceptAttendance);
-app.get(ATTENDANCE_BASE_URL + "/learner/:class_id/:lesson_id/:user_id", AttendanceController.getAttendanceByLearnerClassLesson);
-app.get(ATTENDANCE_BASE_URL + "/tutor/:class_id/:lesson_id/:user_id", AttendanceController.getAttendanceByTutorClassLesson);
-app.post(ATTENDANCE_BASE_URL + "/pay", uploadPayment.single('file'),AttendanceController.updatePaymentOfLearner);
-app.post(ATTENDANCE_BASE_URL + "/confirm_paid",AttendanceController.confirmPaymentByTutor);
+app.get(ATTENDANCE_BASE_URL + "/learner/:lesson_id/:user_id", AttendanceController.getAttendanceByLearnerLesson);
+app.get(ATTENDANCE_BASE_URL + "/tutor/:class_id/:lesson_id", AttendanceController.getAttendanceByTutorClassLesson);
+app.post(ATTENDANCE_BASE_URL + "/pay", uploadPayment.single('file'), AttendanceController.updatePaymentOfLearner);
+app.post(ATTENDANCE_BASE_URL + "/confirm_paid", AttendanceController.confirmPaymentByTutor);
 
 
 // Define the base URL for certificate-related routes
@@ -99,11 +99,8 @@ app.get(CERTIFICATE_BASE_URL + "/:id/levels", CertificateController.getAllLevels
 
 const CLASS_BASE_URL = Config.PREFIX + "/classes";
 app.get(CLASS_BASE_URL, ClassController.getAllClasses);
-app.get(CLASS_BASE_URL + "/suggests/filter/:user_id", ClassController.getSuggestedClasses);
 app.get(CLASS_BASE_URL + "/suggests/:user_id", ClassController.getSuggestsClasses);
-app.get(CLASS_BASE_URL + "/attending/:user_id", ClassController.getAttendingClasses);
-app.get(CLASS_BASE_URL + "/teaching/:user_id", ClassController.getTeachingClasses);
-app.get(CLASS_BASE_URL + "/created/:user_id", ClassController.getCreatedClasses);
+app.get(CLASS_BASE_URL + "/:user_id", ClassController.getClassesByUserId);
 app.get(CLASS_BASE_URL + "/:class_id", ClassController.getClass);
 app.post(CLASS_BASE_URL + "/create", ClassController.createClass);
 app.put(CLASS_BASE_URL, ClassController.updateClass);
@@ -135,12 +132,15 @@ app.patch(CLASS_BASE_URL + "/levels/:id", ClassController.updateLevel);
 app.delete(CLASS_BASE_URL + "/levels/:id", ClassController.deleteLevel);
 
 const LESSON_BASE_URL = Config.PREFIX + "/lessons";
+app.get(LESSON_BASE_URL+ "/tutor/:id", LessonController.getTutorSchedule);
+app.get(LESSON_BASE_URL + "/learner/:id", LessonController.getLearnerSchedule);
+app.get(LESSON_BASE_URL +"/user/:id", LessonController.getUserParentAndChildren);
 app.get(LESSON_BASE_URL + "/:class", LessonController.getLessonsInClass);
 // app.post(LESSON_BASE_URL + "/:class", LessonController.createLesson);
 app.put(LESSON_BASE_URL + "/:id", LessonController.updateLesson);
 app.patch(LESSON_BASE_URL + "/:id", LessonController.updateLesson);
 app.delete(LESSON_BASE_URL + "/:id", LessonController.deleteLesson);
-app.get(LESSON_BASE_URL, LessonController.getTutorSchedule);
+
 //demo
 // app.get(LESSON_BASE_URL, LessonController.demoLesson);
 
@@ -169,7 +169,6 @@ app.post(REPORT_BASE_URL + "/created_report",uploadReports.array('reports', 10),
 const CV_BASE_URL = Config.PREFIX + "/cvs";
 app.get(CV_BASE_URL, CVController.getAllCVs);
 app.get(CV_BASE_URL + "/suggests", CVController.getSuggestedCVs);
-app.get(CV_BASE_URL + "/suggests/filters", CVController.getSuggestedCVsFilter);
 app.get(CV_BASE_URL + "/:id", CVController.getCV);
 app.post(CV_BASE_URL, CVController.createCV);
 app.put(CV_BASE_URL + "/:id", CVController.updateCV);
@@ -267,9 +266,9 @@ app.listen(port, () => {
 
 SMySQL.connect();
 setUpPermissions();
-setUpRoles();
-setUpGenders();
-setUpUsers();
+// setUpRoles();
+// setUpGenders();
+// setUpUsers();
 
 export default app;
 

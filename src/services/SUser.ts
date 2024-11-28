@@ -1,10 +1,11 @@
-import User from "./../models/User";
+import User, { userJson } from "./../models/User";
 import SMySQL from "./SMySQL";
 import SLog, {LogType} from "./SLog";
 import {v4} from "uuid";
 import SFirebase, {FirebaseNode} from "./SFirebase";
 import SMessage from "./SMessage";
 import * as crypto from "crypto";
+import db from "../configs/knex";
 import * as dotenv from "dotenv";
 import {dot} from "node:test/reporters";
 
@@ -537,4 +538,6 @@ export default class SUser {
       );
     });
   }
+
+  
 }

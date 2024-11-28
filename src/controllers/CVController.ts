@@ -13,23 +13,23 @@ export default class CVController {
         })
     }
 
+    // public static getSuggestedCVs(request: express.Request, response: express.Response) {
+    //     const query = request.query
+    //     //Địa chỉ:
+    //     const province =  parseQueryString(query.province);
+    //     const district =  parseQueryString(query.district);
+    //     const ward = parseQueryString(query.ward);
+
+    //     const page = Number(request.query.page) || 1;
+    //     const perPage = Number(request.query.perPage) || 2;
+
+    //     SCV.getSugestedCVs(page, perPage, province, district, ward,(cvs, pagination)=>{
+    //         SResponse.getResponse(ResponseStatus.OK, {cvs, pagination}, "get sugests CVs", response);
+    //         return;
+    //     })
+    // }
+
     public static getSuggestedCVs(request: express.Request, response: express.Response) {
-        const query = request.query
-        //Địa chỉ:
-        const province =  parseQueryString(query.province);
-        const district =  parseQueryString(query.district);
-        const ward = parseQueryString(query.ward);
-
-        const page = Number(request.query.page) || 1;
-        const perPage = Number(request.query.perPage) || 2;
-
-        SCV.getSugestedCVs(page, perPage, province, district, ward,(cvs, pagination)=>{
-            SResponse.getResponse(ResponseStatus.OK, {cvs, pagination}, "get sugests CVs", response);
-            return;
-        })
-    }
-
-    public static getSuggestedCVsFilter(request: express.Request, response: express.Response) {
         const query = request.query
 
         const filter: Filters = {
@@ -47,7 +47,7 @@ export default class CVController {
         const page = Number(request.query.page) || 1;
         const perPage = Number(request.query.perPage) || 2;
 
-        SCV.getSugestedCVsFilter(page, perPage, filter ,(cvs, pagination)=>{
+        SCV.getSugestedCVs(page, perPage, filter ,(cvs, pagination)=>{
             SResponse.getResponse(ResponseStatus.OK, {cvs, pagination}, "get sugests CVs", response);
             return;
         })
@@ -59,7 +59,7 @@ export default class CVController {
         // console.log(user_id);
         
         if(userId){
-            SCV.getUserCV2(userId, (cv)=>{
+            SCV.getUserCV3(userId, (cv)=>{
                 SResponse.getResponse(ResponseStatus.OK, cv, "get User CV", response);
             })
         }else{
