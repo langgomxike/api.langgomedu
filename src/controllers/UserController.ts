@@ -6,8 +6,8 @@ import User from "../models/User";
 import Message from "../models/Message";
 import * as dotenv from "dotenv";
 import SMessage from "../services/SMessage";
-import { v4 } from "uuid";
-import SLog, { LogType } from "../services/SLog";
+import {v4} from "uuid";
+import SLog, {LogType} from "../services/SLog";
 import SInformation from "../services/SInformation";
 import PermissionList from "../configs/PermissionConfig";
 import SPermission from "../services/SPermission";
@@ -237,7 +237,11 @@ export default class UserController {
         return;
       }
 
-      SResponse.getResponse(ResponseStatus.OK, user, "get user info", response);
+      SRole.getRolesByUserId(user.id, (roles) => {
+        user.roles = roles;
+
+        SResponse.getResponse(ResponseStatus.OK, user, "get user info", response);
+      });
     });
   }
 
@@ -319,26 +323,23 @@ export default class UserController {
     });
   }
 
-  public static
-
-  getUser(request
-            :
-            express.Request, response
-            :
-            express.Response
+  public static changeUserRoles(
+    request: express.Request,
+    response: express.Response
   ) {
-  }
+    const user: User = request?.body?.user;
+    const roles: number[] = request?.body?.roles;
 
-  public static
+    if (!user || !user.id || roles.length < 1) {
+      SLog.log(LogType.Error, "changeUserRoles", "Invalid user or roles");
+      SResponse.getResponse(ResponseStatus.Internal_Server_Error, {}, "Invalid user or roles", response);
+      return;
+    }
 
-  changeUserPermissions(
-    request
-      :
-      express.Request,
-    response
-      :
-      express.Response
-  ) {
+    SRole.addRolesToUser(user.id, roles.map(r => new Role(r)), () => {
+      SLog.log(LogType.Info, "changeUserRoles", "Added roles to user");
+      SResponse.getResponse(ResponseStatus.OK, {}, "Added roles to user", response);
+    });
   }
 
   public static
@@ -375,21 +376,21 @@ export default class UserController {
       :
       express.Response
   ) {
-    const { user_id, point, report_id } = request.body; // Thêm report_id vào body request
+    const {user_id, point, report_id} = request.body; // Thêm report_id vào body request
     const pointsToDeduct = point ?? 30; // Mặc định trừ 30 nếu không truyền
-    
+
     if (!user_id || pointsToDeduct == null || !report_id) {
       return response
         .status(400)
-        .json({ success: false, message: "User ID, point, and report ID are required." });
+        .json({success: false, message: "User ID, point, and report ID are required."});
     }
-  
+
     // Thực hiện trừ điểm và cập nhật bảng reports
     SUser.MinusUserPoints(user_id, pointsToDeduct, report_id, (result) => {
       if (result) {
-        response.status(200).json({ success: true, message: "Points subtracted and report updated successfully." });
+        response.status(200).json({success: true, message: "Points subtracted and report updated successfully."});
       } else {
-        response.status(500).json({ success: false, message: "Failed to subtract points or update report." });
+        response.status(500).json({success: false, message: "Failed to subtract points or update report."});
       }
     });
   }
@@ -401,30 +402,30 @@ export default class UserController {
     const userId = request.body.user_id; // Lấy `user_id` từ request
     const reportId = request.body.report_id; // Lấy `report_id` từ request
     let permissionIds: string[] = request.body.permission_ids || []; // Lấy danh sách `permission_ids` hoặc mảng rỗng
-    
+
     console.log("Request body: " + JSON.stringify(request.body));
     console.log("UserId: " + userId);
     console.log("ReportId: " + reportId);
     console.log("PermissionIds: " + JSON.stringify(permissionIds));
-    
+
     // Kiểm tra `userId` và `reportId` có tồn tại không
     if (!userId) {
       return response
         .status(400)
         .json({success: false, message: "User ID is required."});
     }
-    
+
     if (!reportId) {
       return response
         .status(400)
-        .json({ success: false, message: "Report ID is required." });
+        .json({success: false, message: "Report ID is required."});
     }
-    
+
     // Nếu danh sách quyền rỗng, đặt mặc định là quyền `13`
     if (permissionIds.length === 0) {
       permissionIds = ["13"];
     }
-    
+
     // Gọi hàm LockUserAccount với `userId`, `reportId`, và `permissionIds`
     SUser.LockUserAccount(userId, reportId, permissionIds, (result) => {
       if (result) {
@@ -476,5 +477,5 @@ export default class UserController {
     });
   }
 
-  
+
 }

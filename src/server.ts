@@ -249,6 +249,8 @@ app.post(USER_BASE_URL + "/change-password", UserController.changePassword);
 app.post(USER_BASE_URL + "/login/implicit", UserController.implicitLogin);
 app.post(USER_BASE_URL + "/password/reset/:id", UserController.resetPassword);
 app.post(USER_BASE_URL + "/password/change/:id", UserController.changePassword);
+app.put(USER_BASE_URL + "/roles", UserController.changeUserRoles);
+app.patch(USER_BASE_URL + "/roles", UserController.changeUserRoles);
 app.put(USER_BASE_URL, UserController.updateUserInfo);
 app.patch(USER_BASE_URL, UserController.updateUserInfo);
 app.delete(USER_BASE_URL + "/:id", UserController.deleteAccount);
@@ -266,9 +268,9 @@ app.listen(port, () => {
 
 SMySQL.connect();
 setUpPermissions();
-// setUpRoles();
-// setUpGenders();
-// setUpUsers();
+setUpRoles();
+setUpGenders();
+setUpUsers();
 
 export default app;
 
