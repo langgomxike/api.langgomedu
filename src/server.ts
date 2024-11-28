@@ -272,4 +272,4 @@ setUpPermissions();
 
 export default app;
 
-SMessage.createNotification("thong bao thu " + new Date(), "000004_child001", () => {});
+// SMessage.createNotification("thong bao thu " + new Date(), "000004_child001", () => {});
