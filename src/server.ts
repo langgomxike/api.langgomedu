@@ -241,6 +241,7 @@ app.delete(STUDENT_BASE_URL + "/:id", StudentController.deleteStudent);
 const USER_BASE_URL = Config.PREFIX + "/users";
 app.get(USER_BASE_URL, UserController.getAllUsers);
 app.get(USER_BASE_URL + "/:id", UserController.getUserInfo);
+app.post(USER_BASE_URL + "/register/child", UserController.registerChild);
 app.post(USER_BASE_URL + "/register", UserController.registerUser);
 app.post(USER_BASE_URL + "/register/admin", UserController.registerAdmin);
 app.post(USER_BASE_URL + "/auth", UserController.auth);
