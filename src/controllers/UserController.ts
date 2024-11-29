@@ -15,6 +15,7 @@ import Permission from "../models/Permission";
 import SRole from "../services/SRole";
 import RoleList from "../configs/RoleConfig";
 import Role from "../models/Role";
+import SStudent from "../services/SStudent";
 
 export default class UserController {
   public static login(request: express.Request, response: express.Response) {
@@ -102,11 +103,9 @@ export default class UserController {
     });
   }
 
-  public static implicitLogin(request
-                                :
-                                express.Request, response
-                                :
-                                express.Response
+  public static implicitLogin(
+    request: express.Request,
+    response: express.Response
   ) {
     const token: string =
       request?.headers?.authorization?.replace("Bearer ", "") ?? "";
@@ -158,13 +157,9 @@ export default class UserController {
     });
   }
 
-  public static
-
-  registerUser(request
-                 :
-                 express.Request, response
-                 :
-                 express.Response
+  public static registerUser(
+    request: express.Request,
+    response: express.Response
   ) {
     const user: User = request?.body?.user;
     const requestCode: number = request.body.code ?? 0;
@@ -202,6 +197,44 @@ export default class UserController {
     }
   }
 
+
+  public static registerChild(
+    request: express.Request,
+    response: express.Response
+  ) {
+    const user: User = request?.body?.user;
+    const parent: User = request?.body?.parent;
+
+    SLog.log(LogType.Warning, "registerChild", "check params", {user, parent});
+
+    if (!user || !user.password || !user.username || !user.full_name || !parent || !parent.username || !parent.full_name || !parent.id || !parent.phone_number) {
+      SLog.log(LogType.Error, "registerChild", "Invalid user or parent");
+      SResponse.getResponse(ResponseStatus.Internal_Server_Error, {}, "Invalid user or parent", response);
+      return;
+    }
+
+    SStudent.getStudentByUserId(parent.id, (students) => {
+      const quantity = students.length;
+
+      SLog.log(LogType.Warning, "registerChild", "check children quantity", quantity);
+
+      user.id = parent.id + "|c:" + quantity;
+      user.phone_number = parent.phone_number + "|c:" + quantity;
+      user.parent = parent;
+
+      //check request code
+      SUser.storeUser(user, (result) => {
+        if (!result) {
+          SLog.log(LogType.Error, "registerChild", "Fail to store child");
+          SResponse.getResponse(ResponseStatus.Internal_Server_Error, {}, "Fail to store child", response);
+          return;
+        }
+
+        SLog.log(LogType.Info, "registerChild", "Fail to store child");
+        SResponse.getResponse(ResponseStatus.OK, {}, "Store child successfully", response);
+      });
+    });
+  }
 
   public static
 
