@@ -37,6 +37,7 @@ import bodyParser = require("body-parser");
 import multer from "multer";
 // @ts-ignore
 import path from "path";
+import SUser from "./services/SUser";
 
 dotenv.config();
 
@@ -246,7 +247,8 @@ app.post(USER_BASE_URL + "/register", UserController.registerUser);
 app.post(USER_BASE_URL + "/register/admin", UserController.registerAdmin);
 app.post(USER_BASE_URL + "/auth", UserController.auth);
 app.post(USER_BASE_URL + "/login", UserController.login);
-app.post(USER_BASE_URL + "/change-password", UserController.changePassword);
+app.put(USER_BASE_URL + "/change-password", UserController.changePassword);
+app.patch(USER_BASE_URL + "/change-password", UserController.changePassword);
 app.post(USER_BASE_URL + "/login/implicit", UserController.implicitLogin);
 app.post(USER_BASE_URL + "/password/reset/:id", UserController.resetPassword);
 app.post(USER_BASE_URL + "/password/change/:id", UserController.changePassword);
@@ -274,5 +276,3 @@ setUpRoles();
 // setUpUsers();
 
 export default app;
-
-// SMessage.createNotification("thong bao thu " + new Date(), "000004_child001", () => {});
