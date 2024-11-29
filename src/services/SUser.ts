@@ -1,15 +1,27 @@
-import User, {userJson} from "./../models/User";
+import User from "./../models/User";
 import SMySQL from "./SMySQL";
 import SLog, {LogType} from "./SLog";
 import {v4} from "uuid";
 import SFirebase, {FirebaseNode} from "./SFirebase";
-import SMessage from "./SMessage";
 import * as crypto from "crypto";
-import db from "../configs/knex";
 import * as dotenv from "dotenv";
-import {dot} from "node:test/reporters";
+import OTP from "../models/OTP";
 
 export default class SUser {
+
+  public static sendOTP(userID: string, onNext: (otp: number) => void) {
+    const otp = new OTP(Math.floor(111111 + Math.random() * 888889), new Date().getTime() + 5 * 60 * 1000);
+
+    SFirebase.push(FirebaseNode.OTPs, [
+      {
+        key: FirebaseNode.UserId,
+        value: userID
+      },
+    ], () => {
+      onNext(otp.code);
+    }, otp);
+  }
+
   public static getAllUsers(onNext: (users: User[]) => void) {
     const sql = `SELECT users.*,
                         JSON_OBJECT(
@@ -157,16 +169,16 @@ export default class SUser {
       connection?.execute<any>(sql, [phoneNumber, username], (error, result) => {
         if (error) {
           onNext(undefined);
-          SLog.log(LogType.Error, "getUserByPhoneNumberOrUsername", "", error);
+          SLog.log(LogType.Error, "getUserByPhoneNumberOrUsername", "found error", error);
           return;
         } else {
           const user: User | undefined = (result && result[0]) || undefined;
 
-          if (user) {
-            user.username = (user as any)?.user_name;
-          }
+          // if (user) {
+          //   user.username = (user as any)?.user_name;
+          // }
 
-          SLog.log(LogType.Info, "getUserByPhoneNumberOrUsername", "", user);
+          SLog.log(LogType.Info, "getUserByPhoneNumberOrUsername", "sucessfully", user);
           onNext(user);
         }
       });
@@ -291,6 +303,28 @@ export default class SUser {
     });
 
   }
+
+  public static updateUserPassword(userId: string, password: string, onNext: (result: boolean) => void) {
+    const sql = "UPDATE `users` SET `password` = ?, `updated_at` = ? WHERE id = ?";
+
+    SMySQL.getConnection((connection) => {
+      connection?.execute<any>(
+        sql,
+        [password, new Date().getTime(), userId],
+        (error, result) => {
+          if (error) {
+            onNext(false);
+            SLog.log(LogType.Error, "updateUser", "failed to execute", error);
+            return;
+          }
+
+          onNext(true);
+        }
+      );
+    });
+
+  }
+
 
   public static softDeleteUser(id: number, onNext: (result: boolean) => void) {
   }
