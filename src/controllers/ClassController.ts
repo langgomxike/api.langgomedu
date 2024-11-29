@@ -1,4 +1,5 @@
 import express, { Response } from "express";
+import moment from "moment"; // Thư viện hỗ trợ xử lý thời gian
 import SResponse, { ResponseStatus } from "../services/SResponse";
 import SLog, { LogType } from "../services/SLog";
 import Class from "../models/Class";
@@ -141,7 +142,7 @@ export default class ClassController {
       (_class, conflictingLessons) => {
         SResponse.getResponse(
           ResponseStatus.OK,
-          { class: _class, conflictingLessons},
+          { class: _class, conflictingLessons },
           "get class by id",
           response
         );
@@ -150,65 +151,129 @@ export default class ClassController {
     );
   }
 
-  public static getconflictingLessonsWithClassUsers(request: express.Request, response: express.Response) {
+  public static getconflictingLessonsWithClassUsers(
+    request: express.Request,
+    response: express.Response
+  ) {
     SClass.getconflictingLessonsWithClassUsers(1, [], (data) => {
-      SResponse.getResponse(ResponseStatus.OK, data , "get conflicting lessons with class users", response
+      SResponse.getResponse(
+        ResponseStatus.OK,
+        data,
+        "get conflicting lessons with class users",
+        response
       );
       return;
-    })
+    });
   }
 
   public static createClass(
     request: express.Request,
     response: express.Response
   ) {
-    // lấy các giá trị từ request body
     const {
       title,
       description,
       major_id,
+      tutor_id, // Yêu cầu từ frontend
+      author_id, // Yêu cầu từ frontend
       class_level_id,
       price,
       started_at,
       ended_at,
-      lessons,
+      province,
+      district,
+      ward,
+      detail,
+      lessons, // Mảng các bài học, chứa thông tin ngày học (vd: thứ 2, thứ 3)
     } = request.body;
 
-    console.log("body: ", request.body);
+    // Kiểm tra tính hợp lệ
+    if (
+      !title ||
+      !description ||
+      !major_id ||
+      !tutor_id ||
+      !author_id ||
+      !class_level_id ||
+      !price ||
+      !started_at ||
+      !ended_at ||
+      !province ||
+      !district ||
+      !ward ||
+      !detail ||
+      !Array.isArray(lessons) ||
+      lessons.length === 0
+    ) {
+      return SResponse.getResponse(
+        ResponseStatus.Internal_Server_Error,
+        { message: "Dữ liệu đầu vào không hợp lệ." },
+        "Invalid input data.",
+        response
+      );
+    }
 
-    // gọi hàm createClass từ SClass
-    SClass.createClass(
-      title,
-      description,
-      major_id,
-      class_level_id,
-      price,
-      started_at,
-      ended_at,
-      lessons,
-      (result, insertId) => {
-        if (result) {
-          // Nếu thêm thành công, trả về phản hồi với ID của lớp học mới
-          SResponse.getResponse(
-            ResponseStatus.OK,
-            {
-              message: "Tạo lớp học thành công",
-              classId: insertId,
-            },
-            "Create class successfully!",
-            response
-          );
-        } else {
-          // Nếu có lỗi, trả về mã lỗi 500 và thông báo lỗi
-          SResponse.getResponse(
-            ResponseStatus.OK,
-            {
-                message: "Không thể tạo lớp học",
-            },
-            "Create class successfully!",
+    // Tính toán danh sách các buổi học
+    const fullLessons = lessons.flatMap((lesson) =>
+      calculateLessonDates(
+        started_at,
+        ended_at,
+        [lesson.day] // Dựa vào từng ngày trong tuần
+      ).map((calculatedLesson) => ({
+        ...lesson,
+        day: calculatedLesson.day,
+        started_at: calculatedLesson.started_at,
+      }))
+    );
+
+    console.log("Danh sách đầy đủ các buổi học:", fullLessons);
+
+    // Tiếp tục xử lý như bình thường
+    SAddress.createAddress(
+      province,
+      district,
+      ward,
+      detail,
+      (addressResult, addressId) => {
+        if (!addressResult || !addressId) {
+          return SResponse.getResponse(
+            ResponseStatus.Internal_Server_Error,
+            { message: "Không thể tạo địa chỉ." },
+            "Failed to create address.",
             response
           );
         }
+
+        SClass.createClass(
+          title,
+          description,
+          major_id,
+          tutor_id,
+          author_id,
+          class_level_id,
+          price,
+          started_at,
+          ended_at,
+          addressId,
+          fullLessons, // Truyền danh sách đầy đủ các buổi học
+          (result: boolean, insertId?: number) => {
+            if (result) {
+              SResponse.getResponse(
+                ResponseStatus.OK,
+                { message: "Tạo lớp học thành công.", classId: insertId },
+                "Create class successfully!",
+                response
+              );
+            } else {
+              SResponse.getResponse(
+                ResponseStatus.Internal_Server_Error,
+                { message: "Không thể tạo lớp học." },
+                "Create class failed!",
+                response
+              );
+            }
+          }
+        );
       }
     );
   }
@@ -404,4 +469,28 @@ export default class ClassController {
       }
     });
   }
+}
+
+// Hàm tính danh sách các ngày cho một ngày cụ thể trong tuần
+function calculateLessonDates(
+  startDate: number,
+  endDate: number,
+  daysOfWeek: number[]
+): { day: number; started_at: number }[] {
+  const result: { day: number; started_at: number }[] = [];
+  let current = moment(startDate).startOf("day");
+
+  const end = moment(endDate).endOf("day");
+  while (current <= end) {
+    const currentDayOfWeek = current.isoWeekday(); // Lấy thứ trong tuần (1: Thứ 2, 7: Chủ Nhật)
+    if (daysOfWeek.includes(currentDayOfWeek)) {
+      result.push({
+        day: currentDayOfWeek,
+        started_at: current.valueOf(), // Lưu timestamp
+      });
+    }
+    current.add(1, "day");
+  }
+
+  return result;
 }
