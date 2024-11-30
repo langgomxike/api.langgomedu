@@ -1,15 +1,27 @@
-import User, { userJson } from "./../models/User";
+import User from "./../models/User";
 import SMySQL from "./SMySQL";
 import SLog, {LogType} from "./SLog";
 import {v4} from "uuid";
 import SFirebase, {FirebaseNode} from "./SFirebase";
-import SMessage from "./SMessage";
 import * as crypto from "crypto";
-import db from "../configs/knex";
 import * as dotenv from "dotenv";
-import {dot} from "node:test/reporters";
+import OTP from "../models/OTP";
 
 export default class SUser {
+
+  public static sendOTP(userID: string, onNext: (otp: number) => void) {
+    const otp = new OTP(Math.floor(111111 + Math.random() * 888889), new Date().getTime() + 5 * 60 * 1000);
+
+    SFirebase.push(FirebaseNode.OTPs, [
+      {
+        key: FirebaseNode.UserId,
+        value: userID
+      },
+    ], () => {
+      onNext(otp.code);
+    }, otp);
+  }
+
   public static getAllUsers(onNext: (users: User[]) => void) {
     const sql = `SELECT users.*,
                         JSON_OBJECT(
@@ -56,11 +68,18 @@ export default class SUser {
     const sql = `SELECT *
                  FROM users
                  WHERE ((
-                     EXISTS (SELECT 1 FROM messages WHERE messages.sender_id = users.id COLLATE utf8mb4_unicode_ci)
-                     )
-                    OR (
-                     EXISTS (SELECT 1 FROM messages WHERE messages.receiver_id = users.id COLLATE utf8mb4_unicode_ci)
-                     )) AND users.id <> ? AND users.id <> ? ORDER BY users.full_name ASC `;
+                            EXISTS (SELECT 1
+                                    FROM messages
+                                    WHERE messages.sender_id = users.id COLLATE utf8mb4_unicode_ci)
+                            )
+                     OR (
+                            EXISTS (SELECT 1
+                                    FROM messages
+                                    WHERE messages.receiver_id = users.id COLLATE utf8mb4_unicode_ci)
+                            ))
+                   AND users.id <> ?
+                   AND users.id <> ?
+                 ORDER BY users.full_name ASC `;
     ;
 
     dotenv.config();
@@ -97,6 +116,10 @@ export default class SUser {
         } else {
           const user: User | undefined = (result && result[0]) || undefined;
 
+          if (user) {
+            user.username = (user as any)?.user_name;
+          }
+
           SLog.log(LogType.Info, "getUserById", "", user);
           onNext(user);
         }
@@ -120,6 +143,11 @@ export default class SUser {
           return;
         } else {
           const user: User | undefined = (result && result[0]) || undefined;
+
+          if (user) {
+            user.username = (user as any)?.user_name;
+          }
+
           SLog.log(LogType.Info, "getUserByToken", "", user);
           onNext(user);
         }
@@ -141,11 +169,16 @@ export default class SUser {
       connection?.execute<any>(sql, [phoneNumber, username], (error, result) => {
         if (error) {
           onNext(undefined);
-          SLog.log(LogType.Error, "getUserByPhoneNumberOrUsername", "", error);
+          SLog.log(LogType.Error, "getUserByPhoneNumberOrUsername", "found error", error);
           return;
         } else {
           const user: User | undefined = (result && result[0]) || undefined;
-          SLog.log(LogType.Info, "getUserByPhoneNumberOrUsername", "", user);
+
+          // if (user) {
+          //   user.username = (user as any)?.user_name;
+          // }
+
+          SLog.log(LogType.Info, "getUserByPhoneNumberOrUsername", "sucessfully", user);
           onNext(user);
         }
       });
@@ -179,7 +212,7 @@ export default class SUser {
   public static storeUser(user: User, onNext: (result: boolean) => void) {
 
     const sql =
-      "INSERT INTO `users` (`id`, `email`, `user_name`, `full_name`, `phone_number`, `password`, `token`, `hometown`, `birthday`, `gender_id`, `address_id`, `created_at`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
+      "INSERT INTO `users` (`id`, `email`, `user_name`, `full_name`, `phone_number`, `password`, `token`, `hometown`, `birthday`, `gender_id`, `address_id`, `created_at`, `parent_id`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?, ?)";
 
     SMySQL.getConnection((connection) => {
       connection?.execute<any>(
@@ -197,6 +230,7 @@ export default class SUser {
           user.gender?.id ?? 3,
           -1,
           new Date().getTime(),
+          user.parent?.id ?? "-1",
         ],
         (error, result) => {
           if (error) {
@@ -270,6 +304,28 @@ export default class SUser {
 
   }
 
+  public static updateUserPassword(userId: string, password: string, onNext: (result: boolean) => void) {
+    const sql = "UPDATE `users` SET `password` = ?, `updated_at` = ? WHERE id = ?";
+
+    SMySQL.getConnection((connection) => {
+      connection?.execute<any>(
+        sql,
+        [password, new Date().getTime(), userId],
+        (error, result) => {
+          if (error) {
+            onNext(false);
+            SLog.log(LogType.Error, "updateUser", "failed to execute", error);
+            return;
+          }
+
+          onNext(true);
+        }
+      );
+    });
+
+  }
+
+
   public static softDeleteUser(id: number, onNext: (result: boolean) => void) {
   }
 
@@ -285,40 +341,43 @@ export default class SUser {
 
     // Câu truy vấn DELETE để xóa các quyền hiện tại của user_id
     const deleteSql = `
-      DELETE FROM user_role
-      WHERE user_id = ?;
+        DELETE
+        FROM user_role
+        WHERE user_id = ?;
     `;
 
     // Câu truy vấn INSERT để thêm quyền mới (bao gồm quyền mặc định 13 nếu cần)
     const insertSql = `
-      INSERT INTO user_role (user_id, role_id)
-      VALUES (?, ?);
+        INSERT INTO user_role (user_id, role_id)
+        VALUES (?, ?);
     `;
 
     // Câu truy vấn UPDATE để khóa các lớp có author_id bằng user_id
     const updateClassesSql = `
-      UPDATE classes
-      SET ended_at = (UNIX_TIMESTAMP() * 1000)
-      WHERE author_id = ?;
+        UPDATE classes
+        SET ended_at = (UNIX_TIMESTAMP() * 1000)
+        WHERE author_id = ?;
     `;
 
     // Câu truy vấn UPDATE để cài lại điểm về 0 cho user_id
     const updatePointsSql = `
-      UPDATE users
-      SET point = 0
-      WHERE id = ?;
+        UPDATE users
+        SET point = 0
+        WHERE id = ?;
     `;
 
     // Câu truy vấn để lấy điểm hiện tại của user_id
     const getUserPointsSql = `
-      SELECT point FROM users WHERE id = ?;
+        SELECT point
+        FROM users
+        WHERE id = ?;
     `;
 
     // Câu truy vấn UPDATE để cập nhật desc_point trong bảng reports
     const updateReportDescPointSql = `
-      UPDATE reports
-      SET desc_point = ?
-      WHERE id = ?;
+        UPDATE reports
+        SET desc_point = ?
+        WHERE id = ?;
     `;
 
     // Thực thi câu truy vấn DELETE trước
@@ -436,10 +495,14 @@ export default class SUser {
     report_id: string,  // Thêm tham số report_id
     onNext: (result: boolean) => void
   ) {
-    const updateUserPointsSql = `UPDATE users SET point = point - ? WHERE id = ? LIMIT 1;`;
+    const updateUserPointsSql = `UPDATE users
+                                 SET point = point - ?
+                                 WHERE id = ? LIMIT 1;`;
 
     // Câu truy vấn cập nhật desc_point trong bảng reports
-    const updateReportDescPointSql = `UPDATE reports SET desc_point = ? WHERE id = ? LIMIT 1;`;
+    const updateReportDescPointSql = `UPDATE reports
+                                      SET desc_point = ?
+                                      WHERE id = ? LIMIT 1;`;
 
     SMySQL.getConnection((connection) => {
       // Thực hiện trừ điểm cho người dùng
@@ -539,5 +602,5 @@ export default class SUser {
     });
   }
 
-  
+
 }

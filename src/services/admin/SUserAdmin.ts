@@ -105,7 +105,7 @@ export default class SUserAdmin {
         WHERE COALESCE(user_role.role_id, 0) NOT IN (1, 2) ${additionalCondition} ${searchCondition};
     `;
 
-    console.log(mysql.format(sql, [search, search, search]));
+    // console.log(mysql.format(sql, [search, search, search]));
     SMySQL.getConnection((connection) => {
       connection?.execute<any[]>(sql, params, (err, results) => {
         if (err) {

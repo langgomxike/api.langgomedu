@@ -39,6 +39,7 @@ import multer from "multer";
 import path from "path";
 import GenderController from "./controllers/GenderController";
 import ClassAdminController from "./controllers/admin/ClassAdminController";
+import SUser from "./services/SUser";
 
 dotenv.config();
 
@@ -246,14 +247,18 @@ app.delete(STUDENT_BASE_URL + "/:id", StudentController.deleteStudent);
 const USER_BASE_URL = Config.PREFIX + "/users";
 app.get(USER_BASE_URL, UserController.getAllUsers);
 app.get(USER_BASE_URL + "/:id", UserController.getUserInfo);
+app.post(USER_BASE_URL + "/register/child", UserController.registerChild);
 app.post(USER_BASE_URL + "/register", UserController.registerUser);
 app.post(USER_BASE_URL + "/register/admin", UserController.registerAdmin);
 app.post(USER_BASE_URL + "/auth", UserController.auth);
 app.post(USER_BASE_URL + "/login", UserController.login);
-app.post(USER_BASE_URL + "/change-password", UserController.changePassword);
+app.put(USER_BASE_URL + "/change-password", UserController.changePassword);
+app.patch(USER_BASE_URL + "/change-password", UserController.changePassword);
 app.post(USER_BASE_URL + "/login/implicit", UserController.implicitLogin);
 app.post(USER_BASE_URL + "/password/reset/:id", UserController.resetPassword);
 app.post(USER_BASE_URL + "/password/change/:id", UserController.changePassword);
+app.put(USER_BASE_URL + "/roles", UserController.changeUserRoles);
+app.patch(USER_BASE_URL + "/roles", UserController.changeUserRoles);
 app.put(USER_BASE_URL, UserController.updateUserInfo);
 app.patch(USER_BASE_URL, UserController.updateUserInfo);
 app.delete(USER_BASE_URL + "/:id", UserController.deleteAccount);
@@ -270,11 +275,9 @@ app.listen(port, () => {
 });
 
 SMySQL.connect();
-setUpPermissions();
-// setUpRoles();
+// setUpPermissions();
+setUpRoles();
 // setUpGenders();
 // setUpUsers();
 
 export default app;
-
-SMessage.createNotification("thong bao thu " + new Date(), "000004_child001", () => {});

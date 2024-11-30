@@ -126,7 +126,7 @@ export default class SClassAdmin {
 
         const params = search !== undefined ?  [search] : [];
 
-        console.log(mysql.format(sql, params));
+        // console.log(mysql.format(sql, params));
         
 
         SMySQL.getConnection((connection) => {
