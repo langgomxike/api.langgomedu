@@ -273,6 +273,9 @@ export default class SClass {
                 WHERE c.id = ?
                 GROUP BY c.id;`;
 
+                console.log("Đã vào service");
+                
+
     SMySQL.getConnection((connection) => {
       connection?.query<any>(
         sql,
@@ -597,7 +600,7 @@ export default class SClass {
 
         const pagination: Pagination = {
           page: page,
-          perPage: perPage,
+          per_page: perPage,
           total_pages: Math.ceil(totalCount / perPage),
           total_items: totalCount,
         };

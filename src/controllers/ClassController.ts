@@ -112,6 +112,7 @@ export default class ClassController {
     response: express.Response
   ) {
     const user_id = request.params.user_id;
+    
     SClass.getClassByUserId(user_id, (classes) => {
       SResponse.getResponse(
         ResponseStatus.OK,
@@ -135,6 +136,8 @@ export default class ClassController {
       );
       return;
     }
+    console.log("Vao controller của detail class");
+    
     SClass.getClassDetailWithUser(
       classId,
       userId,
@@ -142,7 +145,7 @@ export default class ClassController {
         SResponse.getResponse(
           ResponseStatus.OK,
           { class: _class, conflictingLessons},
-          "get class by id",
+          "get detail class by id",
           response
         );
         return;

@@ -3,11 +3,19 @@ import SUserAdmin from '../../services/admin/SUserAdmin';
 import SResponse, { ResponseStatus } from '../../services/SResponse';
 import SClassAdmin from '../../services/admin/SClassAdmin';
 import SLog, { LogType } from '../../services/SLog';
-export default class AdminController {
+export default class UserAdminController {
    
     public static getAllUsers(request: express.Request, response: express.Response) {
-        SUserAdmin.getAllUsers((users) => {
-            SResponse.getResponse(ResponseStatus.OK, users, "get all users", response);
+        const search = String(request.query.search);
+        const page = Number(request.query.page) || 1;
+        const perPage = Number(request.query.perPage) || 10;  
+        const action = String(request.query.action);    
+        
+        console.log("request", request.query);
+        
+
+        SUserAdmin.getAllUsers(search, action ,page, perPage, (users, pagination) => {
+            SResponse.getResponse(ResponseStatus.OK, {users, pagination}, "get all users", response);
         });
     }
 
@@ -15,21 +23,6 @@ export default class AdminController {
         const userId = parseInt(request.params.user_id);
         SUserAdmin.getAllReportUserOfUser(userId,(users) => {
             SResponse.getResponse(ResponseStatus.OK, users, "get all report user of user", response);
-        });
-    }
-
-    public static getAllClasses(request: express.Request, response: express.Response) {
-        SClassAdmin.getAllClasses((classes) => {
-            SResponse.getResponse(ResponseStatus.OK, classes, "get all classes", response);
-        });
-    }
-
-    public static getDetailClass(request: express.Request, response: express.Response) {
-        const class_id = parseInt(request.params.class_id);
-        SClassAdmin.getClassById(class_id,(lessons, users) => {
-            console.log(">>> getDetailClass",   lessons, users );
-            
-            SResponse.getResponse(ResponseStatus.OK, {lessons, users}, "get class by id", response);
         });
     }
 
