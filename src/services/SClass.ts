@@ -272,6 +272,7 @@ export default class SClass {
                 LEFT JOIN class_members ON class_members.class_id = c.id AND class_members.user_id = ?
                 WHERE c.id = ?
                 GROUP BY c.id;`;
+                
 
     SMySQL.getConnection((connection) => {
       connection?.query<any>(
@@ -598,7 +599,7 @@ export default class SClass {
 
         const pagination: Pagination = {
           page: page,
-          perPage: perPage,
+          per_page: perPage,
           total_pages: Math.ceil(totalCount / perPage),
           total_items: totalCount,
         };
