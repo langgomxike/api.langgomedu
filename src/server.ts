@@ -103,6 +103,7 @@ app.get(CLASS_BASE_URL + "/suggests/:user_id", ClassController.getSuggestsClasse
 app.get(CLASS_BASE_URL + "/:user_id", ClassController.getClassesByUserId);
 app.get(CLASS_BASE_URL + "/:class_id", ClassController.getClass);
 app.post(CLASS_BASE_URL + "/create", ClassController.createClass);
+app.post(CLASS_BASE_URL + "/create-learner", ClassController.createClassForLearner);
 app.put(CLASS_BASE_URL, ClassController.updateClass);
 app.patch(CLASS_BASE_URL, ClassController.updateClass);
 app.delete(CLASS_BASE_URL,
@@ -178,7 +179,7 @@ app.post(CV_BASE_URL + "/approve/:id", CVController.approveCV);
 
 const MAJOR_BASE_URL = Config.PREFIX + "/majors";
 app.get(MAJOR_BASE_URL, MajorController.getAllMajors);
-app.post(MAJOR_BASE_URL, MajorController.createMajor);
+app.post(MAJOR_BASE_URL + "/create", MajorController.createMajor);
 app.put(MAJOR_BASE_URL + "/:id", MajorController.updateMajor);
 app.patch(MAJOR_BASE_URL + "/:id", MajorController.updateMajor);
 app.delete(MAJOR_BASE_URL + "/:id", MajorController.deleteMajor);
