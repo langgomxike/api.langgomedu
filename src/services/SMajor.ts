@@ -43,4 +43,60 @@ export default class SMajor {
       });
     });
   }
+
+  // CREATE MAJORS
+  public static createMajor(
+    vn_name: string,
+    ja_name: string,
+    en_name: string,
+    icon: string,
+    onNext: (result: boolean) => void
+  ) {
+    const majorSql = `INSERT INTO majors (vn_name, en_name, ja_name, icon) VALUES (?,?,?,?)`;
+  
+    SMySQL.getConnection((connection) => {
+      if (!connection) {
+        console.error("Không thể kết nối database.");
+        onNext(false);
+        return;
+      }
+  
+      connection.beginTransaction((transactionErr) => {
+        if (transactionErr) {
+          console.error("Lỗi khi bắt đầu transaction:", transactionErr);
+          onNext(false);
+          return;
+        }
+  
+        connection.execute(
+          majorSql,
+          [vn_name, ja_name, en_name, icon],
+          (majorErr, majorResult) => {
+            if (majorErr) {
+              console.error("Lỗi khi thêm major:", majorErr);
+              connection.rollback(() => {
+                onNext(false);
+              });
+              return;
+            }
+  
+            connection.commit((commitErr) => {
+              if (commitErr) {
+                console.error("Lỗi khi commit transaction:", commitErr);
+                connection.rollback(() => {
+                  onNext(false);
+                });
+                return;
+              }
+  
+              // Thành công
+              console.log("Major được thêm thành công:", majorResult);
+              onNext(true);
+            });
+          }
+        );
+      });
+    });
+  }
+  
 }
