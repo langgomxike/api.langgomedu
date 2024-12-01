@@ -236,6 +236,12 @@ export default class SClass {
                         "ward", addresses.ward,
                         "detail", addresses.detail
                     ),
+                    'author_accepted', c.author_accepted,
+                    'admin_accepted', c.admin_accepted,
+                    'paid', c.paid,
+                    'paid_path', c.paid_path,
+                    'created_at', c.created_at,
+                    'updated_at', c.updated_at,
                     'user_status', CASE 
                         WHEN c.author_id = ? THEN 'author'
                         WHEN c.tutor_id = ? THEN 'tutor'
@@ -280,22 +286,20 @@ export default class SClass {
         [userId, userId, userId, id],
         (err, result) => {
           if (err) {
-            SLog.log(
-              LogType.Error,
-              "get Class by ID",
-              "can't not get class",
-              err
-            );
+            console.log("get Class by ID", err);
             onNext(new Class(), err);
           }
 
-          const _class: Class = result[0].class as Class;
+          const classData: Class = result[0].class as Class;
+          classData.admin_accepted = result[0].class.admin_accepted  === 1
+          classData.author_accepted = result[0].class.author_accepted  === 1
+          classData.paid = result[0].class.paid  === 1
 
           this.getconflictingLessonsWithClassUsers(
             id,
             ["089204000001"],
             (data) => {
-              onNext(_class, data);
+              onNext(classData, data);
             }
           );
         }
@@ -369,6 +373,7 @@ export default class SClass {
         'max_learners', classes.max_learners,
         'started_at', classes.started_at,
         'ended_at', classes.ended_at,
+        'paid', classes.paid,
         'admin_accepted', classes.admin_accepted,
        	'author_accepted', classes.author_accepted,
         'created_at', classes.created_at,
@@ -922,7 +927,6 @@ export default class SClass {
         if (err) {
           // If an error occurs, return an empty array to the callback
           console.log("Get class by user id: ", err);
-          
           onNext([]);
           return;
         }
@@ -933,7 +937,8 @@ export default class SClass {
           const classData = {
             ...row.class,
             author_accepted: !!row.class.author_accepted,
-            admin_accepted: !!row.class.admin_accepted
+            admin_accepted: !!row.class.admin_accepted,
+            paid: !!row.class.paid
           };
           classes.push(classData);
         });
@@ -1487,6 +1492,46 @@ export default class SClass {
       });
     });
   }
+
+  public static payForClass(
+    classId: number,
+    paidPath: string | null, 
+    onNext: (message: string, result: boolean) => void
+    ) {
+  
+    console.log("class id: ", classId);
+    console.log("paymentPath: ", paidPath);
+      
+     // Tạo placeholders cho danh sách userIds
+    const sql = `
+    UPDATE classes SET paid_path = ?, updated_at = ? WHERE id = ?
+  `;
+  
+      const updatedAT = new Date().getTime();
+      const values = [paidPath, updatedAT ,classId];
+    
+      SMySQL.getConnection((connection) => {
+          connection?.execute<any>(sql, values, (err, results) => {
+            if (err) {
+              onNext('Update failed', false);
+              console.log('>>> Update failed:', err);
+              return;
+            }
+  
+            // Kiểm tra xem có bản ghi nào được cập nhật không
+            if (results.affectedRows === 0) {
+              onNext('No matching record found', false);
+            } else {
+                  onNext(`Payment update successful for ID: ${classId}`, true);
+            }
+  
+          });
+      })
+  
+  
+    }
+
+  
   //khoá lớp học
   //  UPDATE classes
   // SET status = 1
