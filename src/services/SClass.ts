@@ -1167,6 +1167,7 @@ export default class SClass {
     tutor_id: string,
     author_id: string,
     class_level_id: number,
+    max_learners: number,
     price: number,
     started_at: number,
     ended_at: number,
@@ -1175,8 +1176,8 @@ export default class SClass {
     onNext: (result: boolean, insertId?: number) => void
   ) {
     const classSql = `
-      INSERT INTO classes (title, description, major_id, tutor_id, author_id, price, class_level_id, started_at, ended_at, address_id) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO classes (title, description, major_id, tutor_id, author_id, price, class_level_id, max_learners, started_at, ended_at, address_id) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
   
     SMySQL.getConnection((connection) => {
@@ -1203,6 +1204,7 @@ export default class SClass {
             author_id, // Phải nhận từ frontend
             price,
             class_level_id,
+            max_learners,
             started_at,
             ended_at,
             address_id,

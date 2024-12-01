@@ -181,6 +181,7 @@ export default class ClassController {
       tutor_id, // Yêu cầu từ frontend
       author_id, // Yêu cầu từ frontend
       class_level_id,
+      max_learners,
       price,
       started_at,
       ended_at,
@@ -199,6 +200,7 @@ export default class ClassController {
       !tutor_id ||
       !author_id ||
       !class_level_id ||
+      !max_learners ||
       !price ||
       !started_at ||
       !ended_at ||
@@ -255,6 +257,7 @@ export default class ClassController {
           tutor_id,
           author_id,
           class_level_id,
+          max_learners,
           price,
           started_at,
           ended_at,
