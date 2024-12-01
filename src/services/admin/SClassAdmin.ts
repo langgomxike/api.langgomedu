@@ -59,6 +59,7 @@ JSON_OBJECT(
         ) AS class
 `
 export default class SClassAdmin {
+    // Lấy tất cả lớp học và tìm kiếm theo từ khóa
     public static getAllClasses(search, action, page, perPage, onNext: (classes: Class[], pagination: Pagination) => void) {
         const TAB = {
             ALL: "all",
@@ -75,11 +76,11 @@ export default class SClassAdmin {
                 break;
             }
             case TAB.PENDING_APPROVAL : {
-                additionalCondition = "AND classes.admin_accepted = 0";
+                additionalCondition = "AND classes.admin_accepted = 0 OR classes.admin_accepted IS NULL ";
                 break;
             }
             case TAB.PENDING_PAY : {
-                additionalCondition = "AND classes.admin_accepted != 0 AND classes.paid != 0";
+                additionalCondition = "AND classes.admin_accepted = 1 AND classes.paid IS NULL";
                 break;
             }
             default: {
@@ -108,6 +109,7 @@ export default class SClassAdmin {
         LEFT JOIN addresses ON addresses.id = classes.address_id
         LEFT JOIN reports ON reports.class_id = classes.id
         WHERE ${searchCondition} ${additionalCondition} 
+        ORDER BY classes.updated_at DESC
         `;
 
         const countSQL = ` 
@@ -165,6 +167,7 @@ export default class SClassAdmin {
         });
     }
 
+    // Lấy chi tiết lớp học theo id
     public static getClassById(class_id: number, onNext: (lessons: Lesson[], users: User[]) => void) {
         const sql = `
        SELECT
@@ -219,4 +222,45 @@ export default class SClassAdmin {
             });
         });
     }
+
+    // Duyệt lớp học
+    public static approveClass(class_id: number, onNext: (result: boolean, message: string) => void) {
+        const sqlUpdate = "UPDATE classes SET admin_accepted = ?, updated_at = ? WHERE id = ?;"
+
+        const updatedAt = new Date().getTime();
+        SMySQL.getConnection((connection) => {
+            connection?.execute(sqlUpdate, [1, updatedAt ,class_id], (err) => {
+                if (err) {
+                    console.log("adminApproveClass", "Update class failed", err);
+                     
+                    onNext(false, "admin Approve Class failed");
+                    return;
+                }
+
+                onNext(true, "Admin approve class success!");
+            });
+        });
+    }
+
+
+    // Xác nhận đã thanh toán
+    public static approvePaymentByAdmin(class_id: number, onNext: (result: boolean, message: string) => void) {
+        const sqlUpdate = "UPDATE classes SET paid = ?, updated_at = ? WHERE id = ?;"
+
+        const updatedAt = new Date().getTime();
+        SMySQL.getConnection((connection) => {
+            connection?.execute(sqlUpdate, [1, updatedAt ,class_id], (err) => {
+                if (err) {
+                    console.log("Approve payment by admin", "Update class failed", err);
+                     
+                    onNext(false, "Approve payment by admin failed");
+                    return;
+                }
+
+                onNext(true, "Approve payment by admin success!");
+            });
+        });
+    }
+
+    
 }

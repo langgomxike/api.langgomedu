@@ -122,6 +122,7 @@ app.delete(CLASS_BASE_URL,
 app.post(CLASS_BASE_URL + "/:class_id/join", ClassController.requestToAttendClass);
 app.post(CLASS_BASE_URL + "/:class_id/accept_to_teach", ClassController.acceptClassToTeach);
 app.post(CLASS_BASE_URL + "/approve/:id", ClassController.approveToAttendClass);
+app.post(CLASS_BASE_URL + "/class-fee/pay", uploadPayment.single("paid_image") ,ClassController.payForClass);
 
 app.get(CLASS_BASE_URL + "/levels", ClassController.getAllLevels); //
 app.post(CLASS_BASE_URL + "/levels", ClassController.createLevel);
@@ -266,6 +267,8 @@ app.get(ADMIN_USER_BASE_URL + "/users", AdminController.getAllUsers);
 app.get(ADMIN_USER_BASE_URL + "/users/:user_id/reports", AdminController.getAllReportUserOfUser);
 app.get(ADMIN_USER_BASE_URL + "/classes", ClassAdminController.getAllClasses);
 app.get(ADMIN_USER_BASE_URL + "/classes/:class_id", ClassAdminController.getDetailClass);
+app.put(ADMIN_USER_BASE_URL + "/classes/approve", ClassAdminController.approveClass);
+app.put(ADMIN_USER_BASE_URL + "/classes/approve-paid", ClassAdminController.approvePaymentByAdmin);
 
 app.listen(port, () => {
   SLog.log(LogType.Info, "Listen to the port", "server is running at http://127.0.0.1", port);

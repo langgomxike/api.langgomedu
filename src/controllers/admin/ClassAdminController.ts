@@ -25,4 +25,18 @@ export default class ClassAdminController {
         });
     }
 
+    public static approveClass (request: express.Request, response: express.Response) {
+        const class_id = parseInt(request.body.class_id);
+        SClassAdmin.approveClass(class_id, (result, message) => {
+            SResponse.getResponse(ResponseStatus.OK, {result, message}, "admin approve class", response);
+        });
+    }
+
+    public static approvePaymentByAdmin (request: express.Request, response: express.Response) {
+        const class_id = parseInt(request.body.class_id);
+        SClassAdmin.approvePaymentByAdmin(class_id, (result, message) => {
+            SResponse.getResponse(ResponseStatus.OK, {result, message}, "Approve payment by admin", response);
+        });
+    }
+
 }
