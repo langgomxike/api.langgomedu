@@ -282,6 +282,123 @@ export default class ClassController {
     );
   }
 
+  // tạo lớp cho phụ huynh
+  public static createClassForLearner(
+    request: express.Request,
+    response: express.Response
+  ) {
+    let {
+      title,
+      description,
+      major_id,
+      tutor_id,
+      author_id,
+      class_level_id,
+      price,
+      started_at,
+      ended_at,
+      max_learners,
+      province,
+      district,
+      ward,
+      detail,
+      lessons, // Mảng các buổi học
+    } = request.body;
+  
+    // Kiểm tra tính hợp lệ của dữ liệu đầu vào
+    if (
+      !title ||
+      !description ||
+      !major_id ||
+      !author_id ||
+      !class_level_id ||
+      !price ||
+      !started_at ||
+      !ended_at ||
+      !max_learners ||
+      !province ||
+      !district ||
+      !ward ||
+      !detail ||
+      !Array.isArray(lessons) ||
+      lessons.length === 0
+    ) {
+      return SResponse.getResponse(
+        ResponseStatus.Internal_Server_Error,
+        { message: 'Dữ liệu đầu vào không hợp lệ.' },
+        'Invalid input data.',
+        response
+      );
+    }
+  
+    // Kiểm tra tutor_id và xử lý nếu là chuỗi rỗng
+    if (!tutor_id || tutor_id === '') {
+      tutor_id = ""; // Nếu tutor_id là chuỗi rỗng, gán giá trị null
+    }
+  
+    // Tính toán danh sách các buổi học
+    const fullLessons = lessons.flatMap((lesson) =>
+      calculateLessonDates(started_at, ended_at, [lesson.day]).map((calculatedLesson) => ({
+        ...lesson,
+        day: calculatedLesson.day,
+        started_at: calculatedLesson.started_at,
+      }))
+    );
+  
+    console.log('Danh sách đầy đủ các buổi học:', fullLessons); // Log dữ liệu fullLessons
+  
+    // Tạo địa chỉ
+    SAddress.createAddress(
+      province,
+      district,
+      ward,
+      detail,
+      (addressResult, addressId) => {
+        if (!addressResult || !addressId) {
+          return SResponse.getResponse(
+            ResponseStatus.Internal_Server_Error,
+            { message: 'Không thể tạo địa chỉ.' },
+            'Failed to create address.',
+            response
+          );
+        }
+  
+        // Tạo lớp học
+        SClass.createClassForLearner(
+          title,
+          description,
+          major_id,
+          tutor_id,
+          author_id,
+          class_level_id,
+          price,
+          started_at,
+          ended_at,
+          max_learners,
+          addressId,
+          fullLessons,
+          (result: boolean, insertId?: number) => {
+            if (result) {
+              SResponse.getResponse(
+                ResponseStatus.OK,
+                { message: 'Tạo lớp học thành công.', classId: insertId },
+                'Create class successfully!',
+                response
+              );
+            } else {
+              SResponse.getResponse(
+                ResponseStatus.Internal_Server_Error,
+                { message: 'Không thể tạo lớp học.' },
+                'Create class failed!',
+                response
+              );
+            }
+          }
+        );
+      }
+    );
+  }
+
   /**
    * Updates a class based on the data provided in the request body.
    *

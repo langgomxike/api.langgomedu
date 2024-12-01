@@ -1159,8 +1159,8 @@ export default class SClass {
     title: string,
     description: string,
     major_id: number,
-    tutor_id: number,
-    author_id: number,
+    tutor_id: string,
+    author_id: string,
     class_level_id: number,
     price: number,
     started_at: number,
@@ -1266,6 +1266,130 @@ export default class SClass {
       });
     });
   }
+
+  public static createClassForLearner(
+    title: string,
+    description: string,
+    major_id: number,
+    tutor_id: string | "",
+    author_id: string,
+    class_level_id: number,
+    price: number,
+    started_at: number,
+    ended_at: number,
+    max_learners: number,
+    address_id: number,
+    lessons: Lesson[], // Nhận danh sách đầy đủ các bài học
+    onNext: (result: boolean, insertId?: number) => void
+  ) {
+    // Nếu tutor_id là chuỗi rỗng, gán giá trị null
+    if (!tutor_id || tutor_id === '') {
+      tutor_id = "";
+    }
+  
+    const classSql = `
+      INSERT INTO classes (title, description, major_id, tutor_id, author_id, price, class_level_id, started_at, ended_at, max_learners, address_id) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+  
+    SMySQL.getConnection((connection) => {
+      if (!connection) {
+        console.error("Không thể kết nối database.");
+        onNext(false);
+        return;
+      }
+  
+      connection.beginTransaction((transactionErr) => {
+        if (transactionErr) {
+          console.error("Lỗi khi bắt đầu transaction:", transactionErr);
+          onNext(false);
+          return;
+        }
+  
+        connection.execute(
+          classSql,
+          [
+            title,
+            description,
+            major_id,
+            tutor_id, // Phải nhận từ frontend
+            author_id, // Phải nhận từ frontend
+            price,
+            class_level_id,
+            started_at,
+            ended_at,
+            max_learners,
+            address_id,
+          ],
+          (classErr, classResult) => {
+            if (classErr) {
+              console.error("Lỗi khi thêm lớp học:", classErr);
+              connection.rollback(() => onNext(false));
+              return;
+            }
+  
+            const classId = (classResult as any).insertId;
+            if (!classId) {
+              console.error("Không lấy được ID lớp học vừa tạo.");
+              connection.rollback(() => onNext(false));
+              return;
+            }
+  
+            console.log('classId sau khi insert lớp học:', classId); // Log classId
+  
+            if (lessons.length === 0) {
+              connection.commit((commitErr) => {
+                if (commitErr) {
+                  console.error("Lỗi khi commit transaction:", commitErr);
+                  onNext(false);
+                } else {
+                  console.log("Tạo lớp học thành công, không có bài học.");
+                  onNext(true, classId);
+                }
+              });
+            } else {
+              // Insert các bài học
+              const lessonSql = `
+                INSERT INTO lessons (class_id, day, started_at, duration, is_online, note) 
+                VALUES ${lessons.map(() => "(?, ?, ?, ?, ?, ?)").join(",")}
+              `;
+              const lessonValues = lessons
+                .map((lesson) => [
+                  classId,
+                  lesson.day,
+                  lesson.started_at,
+                  lesson.duration,
+                  lesson.is_online,
+                  lesson.note || null,
+                ])
+                .flat();
+  
+              console.log('Câu truy vấn bài học:', lessonSql); // Log câu truy vấn bài học
+              console.log('Giá trị bài học:', lessonValues); // Log giá trị bài học
+  
+              connection.execute(lessonSql, lessonValues, (lessonErr) => {
+                if (lessonErr) {
+                  console.error("Lỗi khi thêm bài học:", lessonErr);
+                  connection.rollback(() => onNext(false));
+                  return;
+                }
+  
+                connection.commit((commitErr) => {
+                  if (commitErr) {
+                    console.error("Lỗi khi commit transaction:", commitErr);
+                    onNext(false);
+                  } else {
+                    console.log("Tạo lớp học và bài học thành công.");
+                    onNext(true, classId);
+                  }
+                });
+              });
+            }
+          }
+        );
+      });
+    });
+  }  
   
 
   public static joinClass(
