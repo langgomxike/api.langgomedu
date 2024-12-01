@@ -4,7 +4,6 @@ import SResponse, { ResponseStatus } from "../services/SResponse";
 import SLog, { LogType } from "../services/SLog";
 import Class from "../models/Class";
 import SClass from "../services/SClass";
-import SAddress from "../services/SAddress";
 import { UserType } from "../configs/UserType";
 import { Filter } from "firebase-admin/firestore";
 import Filters from "../models/Filters";
@@ -399,7 +398,7 @@ export default class ClassController {
       }
     );
   }
-  
+
   /**
    * Updates a class based on the data provided in the request body.
    *
