@@ -537,6 +537,29 @@ export default class ClassController {
     });
   }
 
+  public static payForClass(
+    request: express.Request,
+    response: express.Response
+  ) {
+    const classId = Number(request.body.class_id) ?? -1;
+
+    // Lấy đường dẫn file đã upload
+    const file = (request as any).file;
+    const paidPath = file ? `/uploads/payments/${file.filename}` : null;
+
+    SClass.payForClass(classId, paidPath, (message, result) => {
+      // Trả về phản hồi thành công khi lớp học đã được nhận
+      SResponse.getResponse(
+        ResponseStatus.OK,
+        { message, result },
+        "Pay for class",
+        response
+      );
+    });
+  }
+
+
+
   public static approveToAttendClass(
     request: express.Request,
     response: express.Response
