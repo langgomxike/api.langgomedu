@@ -9,6 +9,7 @@ import { UserType } from "../configs/UserType";
 import { Filter } from "firebase-admin/firestore";
 import Filters from "../models/Filters";
 import { parseQueryBoolean, parseQueryNumber, parseQueryString } from "../configs/QueryHelpers";
+import SAddress from "../services/SAddress";
 
 
 export default class ClassController {
@@ -114,6 +115,7 @@ export default class ClassController {
     response: express.Response
   ) {
     const user_id = request.params.user_id;
+    
     SClass.getClassByUserId(user_id, (classes) => {
       SResponse.getResponse(
         ResponseStatus.OK,
@@ -137,14 +139,16 @@ export default class ClassController {
       );
       return;
     }
+    console.log("Vao controller của detail class");
+    
     SClass.getClassDetailWithUser(
       classId,
       userId,
       (_class, conflictingLessons) => {
         SResponse.getResponse(
           ResponseStatus.OK,
-          { class: _class, conflictingLessons },
-          "get class by id",
+          { class: _class, conflictingLessons},
+          "get detail class by id",
           response
         );
         return;

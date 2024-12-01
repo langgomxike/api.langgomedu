@@ -25,18 +25,21 @@ import SAuthentication, {OWNING_KEY_COLUMNS, OWNING_REF_COLUMNS, OWNING_REF_TABL
 import PermissionList, {setUpPermissions} from "./configs/PermissionConfig";
 import {setUpGenders} from "./configs/GenderConfig";
 import SFirebase, {FirebaseNode} from "./services/SFirebase";
-import AdminController from "./controllers/admin/AdminController";
+import AdminController from "./controllers/admin/UserAdminController";
 import {uploadPayment, uploadReports} from "./configs/MulterConfig";
 import SResponse, { ResponseStatus } from "./services/SResponse";
 import { ClassLevelController } from "./controllers/ClassLevelController";
 import {setUpRoles} from "./configs/RoleConfig";
 import {setUpUsers} from "./configs/UserConfig";
 import SMessage from "./services/SMessage";
-import bodyParser = require("body-parser");
+// import bodyParser = require("body-parser");
 // @ts-ignore
 import multer from "multer";
 // @ts-ignore
 import path from "path";
+import GenderController from "./controllers/GenderController";
+import ClassAdminController from "./controllers/admin/ClassAdminController";
+import SUser from "./services/SUser";
 
 dotenv.config();
 
@@ -58,7 +61,7 @@ app.use('/', express.static('public'));
 app.use('/avatars', express.static(path.join(__dirname, 'images/avatars')));
 
 
-app.use(bodyParser.urlencoded({extended: true}));
+// app.use(bodyParser.urlencoded({extended: true}));
 
 const upload = multer({
   dest: 'public/uploads/messages/',
@@ -101,7 +104,7 @@ const CLASS_BASE_URL = Config.PREFIX + "/classes";
 app.get(CLASS_BASE_URL, ClassController.getAllClasses);
 app.get(CLASS_BASE_URL + "/suggests/:user_id", ClassController.getSuggestsClasses);
 app.get(CLASS_BASE_URL + "/:user_id", ClassController.getClassesByUserId);
-app.get(CLASS_BASE_URL + "/:class_id", ClassController.getClass);
+app.get(CLASS_BASE_URL + "/detail/:class_id", ClassController.getClass);
 app.post(CLASS_BASE_URL + "/create", ClassController.createClass);
 app.post(CLASS_BASE_URL + "/create-learner", ClassController.createClassForLearner);
 app.put(CLASS_BASE_URL, ClassController.updateClass);
@@ -177,6 +180,9 @@ app.patch(CV_BASE_URL + "/:id", CVController.updateCV);
 app.delete(CV_BASE_URL + "/:id", CVController.deleteCV);
 app.post(CV_BASE_URL + "/approve/:id", CVController.approveCV);
 
+const GENDER_BASE_URL = Config.PREFIX + "/genders";
+app.get(GENDER_BASE_URL, GenderController.getAllGender);
+
 const MAJOR_BASE_URL = Config.PREFIX + "/majors";
 app.get(MAJOR_BASE_URL, MajorController.getAllMajors);
 app.post(MAJOR_BASE_URL + "/create", MajorController.createMajor);
@@ -242,11 +248,13 @@ app.delete(STUDENT_BASE_URL + "/:id", StudentController.deleteStudent);
 const USER_BASE_URL = Config.PREFIX + "/users";
 app.get(USER_BASE_URL, UserController.getAllUsers);
 app.get(USER_BASE_URL + "/:id", UserController.getUserInfo);
+app.post(USER_BASE_URL + "/register/child", UserController.registerChild);
 app.post(USER_BASE_URL + "/register", UserController.registerUser);
 app.post(USER_BASE_URL + "/register/admin", UserController.registerAdmin);
 app.post(USER_BASE_URL + "/auth", UserController.auth);
 app.post(USER_BASE_URL + "/login", UserController.login);
-app.post(USER_BASE_URL + "/change-password", UserController.changePassword);
+app.put(USER_BASE_URL + "/change-password", UserController.changePassword);
+app.patch(USER_BASE_URL + "/change-password", UserController.changePassword);
 app.post(USER_BASE_URL + "/login/implicit", UserController.implicitLogin);
 app.post(USER_BASE_URL + "/password/reset/:id", UserController.resetPassword);
 app.post(USER_BASE_URL + "/password/change/:id", UserController.changePassword);
@@ -258,10 +266,10 @@ app.delete(USER_BASE_URL + "/:id", UserController.deleteAccount);
 
 // Define the base URL for user-related routes
 const ADMIN_USER_BASE_URL = Config.PREFIX + "/admin";
-app.get(ADMIN_USER_BASE_URL + "/users", AdminController.getUsers);
+app.get(ADMIN_USER_BASE_URL + "/users", AdminController.getAllUsers);
 app.get(ADMIN_USER_BASE_URL + "/users/:user_id/reports", AdminController.getAllReportUserOfUser);
-app.get(ADMIN_USER_BASE_URL + "/classes", AdminController.getAllClasses);
-app.get(ADMIN_USER_BASE_URL + "/classes/:class_id", AdminController.getDetailClass);
+app.get(ADMIN_USER_BASE_URL + "/classes", ClassAdminController.getAllClasses);
+app.get(ADMIN_USER_BASE_URL + "/classes/:class_id", ClassAdminController.getDetailClass);
 
 app.listen(port, () => {
   SLog.log(LogType.Info, "Listen to the port", "server is running at http://127.0.0.1", port);
@@ -274,5 +282,3 @@ setUpRoles();
 // setUpUsers();
 
 export default app;
-
-// SMessage.createNotification("thong bao thu " + new Date(), "000004_child001", () => {});
