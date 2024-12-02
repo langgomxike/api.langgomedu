@@ -105,6 +105,7 @@ app.get(CLASS_BASE_URL, ClassController.getAllClasses);
 app.get(CLASS_BASE_URL + "/suggests/:user_id", ClassController.getSuggestsClasses);
 app.get(CLASS_BASE_URL + "/:user_id", ClassController.getClassesByUserId);
 app.get(CLASS_BASE_URL + "/detail/:class_id", ClassController.getClass);
+app.post(CLASS_BASE_URL + "/conflicting", ClassController.getconflictingLessonsWithClassUsers);
 app.post(CLASS_BASE_URL + "/create", ClassController.createClass);
 app.post(CLASS_BASE_URL + "/create-learner", ClassController.createClassForLearner);
 app.put(CLASS_BASE_URL, ClassController.updateClass);
@@ -127,6 +128,7 @@ app.delete(CLASS_BASE_URL,
 );
 app.post(CLASS_BASE_URL + "/:class_id/join", ClassController.requestToAttendClass);
 app.post(CLASS_BASE_URL + "/:class_id/accept_to_teach", ClassController.acceptClassToTeach);
+app.put(CLASS_BASE_URL + "/accept-tutor", ClassController.acceptTutorForClass);
 app.post(CLASS_BASE_URL + "/approve/:id", ClassController.approveToAttendClass);
 app.post(CLASS_BASE_URL + "/class-fee/pay", uploadPayment.single("paid_image") ,ClassController.payForClass);
 

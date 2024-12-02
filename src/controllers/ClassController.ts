@@ -138,15 +138,14 @@ export default class ClassController {
       );
       return;
     }
-    console.log("Vao controller của detail class");
     
     SClass.getClassDetailWithUser(
       classId,
       userId,
-      (_class, conflictingLessons) => {
+      (_class) => {
         SResponse.getResponse(
           ResponseStatus.OK,
-          { class: _class, conflictingLessons},
+          { class: _class},
           "get detail class by id",
           response
         );
@@ -159,7 +158,10 @@ export default class ClassController {
     request: express.Request,
     response: express.Response
   ) {
-    SClass.getconflictingLessonsWithClassUsers(1, [], (data) => {
+    const userId = request.body.user_id;
+    const classId = Number(request.body.class_id);
+    
+    SClass.getconflictingLessonsWithClassUsers(classId, userId, (data) => {
       SResponse.getResponse(
         ResponseStatus.OK,
         data,
@@ -550,6 +552,24 @@ export default class ClassController {
         ResponseStatus.OK,
         { message, result },
         "Pay for class",
+        response
+      );
+    });
+  }
+
+  public static acceptTutorForClass(
+    request: express.Request,
+    response: express.Response
+  ) {
+    const classId = Number(request.body.class_id) ?? -1;
+    const authorAccpeted = Boolean(request.body.author_accepted);
+
+    SClass.acceptTutorForClass(classId, authorAccpeted, (message, result) => {
+      // Trả về phản hồi thành công khi lớp học đã được nhận
+      SResponse.getResponse(
+        ResponseStatus.OK,
+        { message, result },
+        "Accept tutor for class",
         response
       );
     });
