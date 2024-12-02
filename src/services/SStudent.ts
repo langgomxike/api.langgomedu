@@ -42,7 +42,6 @@ export default class SStudent {
                 if (err) {
                     return;
                 }
-
                 const students:User[] = results;
 
                 onNext(students);
