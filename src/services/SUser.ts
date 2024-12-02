@@ -6,16 +6,30 @@ import SFirebase, {FirebaseNode} from "./SFirebase";
 import * as crypto from "crypto";
 import * as dotenv from "dotenv";
 import OTP from "../models/OTP";
+import SMessage from "./SMessage";
+import {pbkdf2Sync, randomBytes} from "node:crypto";
 
 export default class SUser {
 
-  public static sendOTP(userID: string, onNext: (otp: number) => void) {
+  private static hashPassword(password: string): string {
+    const salt = randomBytes(16).toString("hex"); // Generate a unique salt
+    const hash = pbkdf2Sync(password, salt, 100000, 64, "sha256").toString("hex"); // Hash with PBKDF2
+    return `${salt}:${hash}`; // Store salt and hash together
+  }
+
+  public static verifyPassword(password: string, storedHash: string): boolean {
+    const [salt, hash] = storedHash.split(":");
+    const hashToVerify = pbkdf2Sync(password, salt, 100000, 64, "sha256").toString("hex");
+    return hash === hashToVerify;
+  }
+
+  public static sendOTP(phoneNumber: string, onNext: (otp: number) => void) {
     const otp = new OTP(Math.floor(111111 + Math.random() * 888889), new Date().getTime() + 5 * 60 * 1000);
 
     SFirebase.push(FirebaseNode.OTPs, [
       {
-        key: FirebaseNode.UserId,
-        value: userID
+        key: FirebaseNode.PhoneNumber,
+        value: phoneNumber
       },
     ], () => {
       onNext(otp.code);
@@ -174,9 +188,9 @@ export default class SUser {
         } else {
           const user: User | undefined = (result && result[0]) || undefined;
 
-          // if (user) {
-          //   user.username = (user as any)?.user_name;
-          // }
+          if (user) {
+            user.username = (user as any)?.user_name;
+          }
 
           SLog.log(LogType.Info, "getUserByPhoneNumberOrUsername", "sucessfully", user);
           onNext(user);
@@ -212,7 +226,7 @@ export default class SUser {
   public static storeUser(user: User, onNext: (result: boolean) => void) {
 
     const sql =
-      "INSERT INTO `users` (`id`, `email`, `user_name`, `full_name`, `phone_number`, `password`, `token`, `hometown`, `birthday`, `gender_id`, `address_id`, `created_at`, `parent_id`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?, ?)";
+      "INSERT INTO `users` (`id`, `email`, `user_name`, `full_name`, `phone_number`, `password`, `token`, `hometown`, `birthday`, `gender_id`, `address_id`, `created_at`, `parent_id`, `avatar`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
     SMySQL.getConnection((connection) => {
       connection?.execute<any>(
@@ -223,7 +237,7 @@ export default class SUser {
           user.username,
           user.full_name,
           user.phone_number,
-          user.password,
+          this.hashPassword(user.password),
           v4(),
           user.hometown,
           user.birthday,
@@ -231,6 +245,7 @@ export default class SUser {
           -1,
           new Date().getTime(),
           user.parent?.id ?? "-1",
+          "/images/avatars/user_" + (Math.floor(1 + Math.random() * 5)) + ".jpg",
         ],
         (error, result) => {
           if (error) {
@@ -242,7 +257,13 @@ export default class SUser {
           //update into firebase
           SFirebase.push(FirebaseNode.Users, [{key: FirebaseNode.Id, value: user.id}], () => {
             SLog.log(LogType.Info, "storeUser", "store user successfully");
-            onNext(true);
+
+            const encodedPhone = user.phone_number.slice(0, 3) + "*".repeat(user.phone_number.length - 3);
+
+            SMessage.createNotification(`Xin chào ${user.full_name}, bạn đã đăng ký tài khoản thành công. Tài khoản mới với số điện thoại [${encodedPhone}], tên tài khoản [${user.username}] đã được tạo thành công. Từ nay bạn sẽ có thể đăng nhập tài khoản với những thông tin này. Vui lòng ghi nhớ những thông tin cho các lần đăng nhập tiếp theo!`, user.id,
+              () => {
+                onNext(true);
+              });
           });
         }
       );
@@ -310,7 +331,7 @@ export default class SUser {
     SMySQL.getConnection((connection) => {
       connection?.execute<any>(
         sql,
-        [password, new Date().getTime(), userId],
+        [this.hashPassword(password), new Date().getTime(), userId],
         (error, result) => {
           if (error) {
             onNext(false);
@@ -318,7 +339,9 @@ export default class SUser {
             return;
           }
 
-          onNext(true);
+          SMessage.createNotification(`Cập nhật mật khẩu mới thành công. Từ nay bạn sẽ đăng nhập tài khoản với mật khẩu mới này.`, userId, () => {
+            onNext(true);
+          });
         }
       );
     });

@@ -20,18 +20,12 @@ import RatingController from "./controllers/RatingController";
 import RoleController from "./controllers/RoleController";
 import StudentController from "./controllers/StudentController";
 import LessonController from "./controllers/LessonController";
-import DatabaseSeeder from "./seeders/DatabaseSeeder";
 import SAuthentication, {OWNING_KEY_COLUMNS, OWNING_REF_COLUMNS, OWNING_REF_TABLES} from "./services/SAuthentication";
-import PermissionList, {setUpPermissions} from "./configs/PermissionConfig";
-import {setUpGenders} from "./configs/GenderConfig";
-import SFirebase, {FirebaseNode} from "./services/SFirebase";
+import PermissionList from "./configs/PermissionConfig";
 import AdminController from "./controllers/admin/UserAdminController";
 import {uploadPayment, uploadReports} from "./configs/MulterConfig";
-import SResponse, { ResponseStatus } from "./services/SResponse";
-import { ClassLevelController } from "./controllers/ClassLevelController";
+import {ClassLevelController} from "./controllers/ClassLevelController";
 import {setUpRoles} from "./configs/RoleConfig";
-import {setUpUsers} from "./configs/UserConfig";
-import SMessage from "./services/SMessage";
 // import bodyParser = require("body-parser");
 // @ts-ignore
 import multer from "multer";
@@ -137,9 +131,9 @@ app.patch(CLASS_BASE_URL + "/levels/:id", ClassController.updateLevel);
 app.delete(CLASS_BASE_URL + "/levels/:id", ClassController.deleteLevel);
 
 const LESSON_BASE_URL = Config.PREFIX + "/lessons";
-app.get(LESSON_BASE_URL+ "/tutor/:id", LessonController.getTutorSchedule);
+app.get(LESSON_BASE_URL + "/tutor/:id", LessonController.getTutorSchedule);
 app.get(LESSON_BASE_URL + "/learner/:id", LessonController.getLearnerSchedule);
-app.get(LESSON_BASE_URL +"/user/:id", LessonController.getUserParentAndChildren);
+app.get(LESSON_BASE_URL + "/user/:id", LessonController.getUserParentAndChildren);
 app.get(LESSON_BASE_URL + "/:class", LessonController.getLessonsInClass);
 // app.post(LESSON_BASE_URL + "/:class", LessonController.createLesson);
 app.put(LESSON_BASE_URL + "/:id", LessonController.updateLesson);
@@ -168,7 +162,7 @@ app.post(REPORT_BASE_URL + "/lockClass", ClassController.LockClass);
 //khoá reports
 app.post(REPORT_BASE_URL + "/lockReport", ReportController.LockReport);
 //tạo report
-app.post(REPORT_BASE_URL + "/created_report",uploadReports.array('reports', 10), ReportController.createReport);
+app.post(REPORT_BASE_URL + "/created_report", uploadReports.array('reports', 10), ReportController.createReport);
 
 
 const CV_BASE_URL = Config.PREFIX + "/cvs";
@@ -256,6 +250,8 @@ app.post(USER_BASE_URL + "/auth", UserController.auth);
 app.post(USER_BASE_URL + "/login", UserController.login);
 app.put(USER_BASE_URL + "/change-password", UserController.changePassword);
 app.patch(USER_BASE_URL + "/change-password", UserController.changePassword);
+app.put(USER_BASE_URL + "/reset-password", UserController.resetPassword);
+app.patch(USER_BASE_URL + "/reset-password", UserController.resetPassword);
 app.post(USER_BASE_URL + "/login/implicit", UserController.implicitLogin);
 app.post(USER_BASE_URL + "/password/reset/:id", UserController.resetPassword);
 app.post(USER_BASE_URL + "/password/change/:id", UserController.changePassword);
@@ -284,4 +280,7 @@ setUpRoles();
 // setUpGenders();
 // setUpUsers();
 
+SLog.log(LogType.Info, "check verify", "",
+  SUser.verifyPassword("123456", "c2e118335dc43d6665abb66314612a76:44a2a47666c7b883c3770e202dc647bd94f467bf5e72d44ca3ae7c00cf2a3ba3f092700e46e4678cf60ab8e395438b19bd4687b6dffbccc0514514afc57251bb")
+);
 export default app;
