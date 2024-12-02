@@ -1210,6 +1210,7 @@ GROUP BY parent_children.id;
     tutor_id: string,
     author_id: string,
     class_level_id: number,
+    max_learners: number,
     price: number,
     started_at: number,
     ended_at: number,
@@ -1218,8 +1219,8 @@ GROUP BY parent_children.id;
     onNext: (result: boolean, insertId?: number) => void
   ) {
     const classSql = `
-      INSERT INTO classes (title, description, major_id, tutor_id, author_id, price, class_level_id, started_at, ended_at, address_id) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO classes (title, description, major_id, tutor_id, author_id, price, class_level_id, max_learners, started_at, ended_at, address_id) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
   
     SMySQL.getConnection((connection) => {
@@ -1246,6 +1247,7 @@ GROUP BY parent_children.id;
             author_id, // Phải nhận từ frontend
             price,
             class_level_id,
+            max_learners,
             started_at,
             ended_at,
             address_id,
