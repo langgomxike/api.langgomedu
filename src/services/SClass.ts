@@ -174,9 +174,9 @@ export default class SClass {
 
   //Lấy chi tiết lớp học và với user id
   public static getClassDetailWithUser(
-    id: number,
+    classId: number,
     userId: string,
-    onNext: (_class: Class, conflictingLessons: any) => void
+    onNext: (_class: Class) => void
   ) {
     //get class
     const sql = `SELECT JSON_OBJECT(
@@ -184,6 +184,7 @@ export default class SClass {
                     'title', c.title,
                     'description', c.description,
                     'price', c.price,
+                    'class_creation_fee', c.class_creation_fee,
                     'tutor', JSON_OBJECT(
                         'id', tutor.id,
                         'full_name', tutor.full_name,
@@ -243,6 +244,7 @@ export default class SClass {
                     'created_at', c.created_at,
                     'updated_at', c.updated_at,
                     'user_status', CASE 
+                        WHEN c.author_id = ? AND c.tutor_id = ? THEN 'author_and_tutor'
                         WHEN c.author_id = ? THEN 'author'
                         WHEN c.tutor_id = ? THEN 'tutor'
                         WHEN class_members.user_id IS NOT NULL THEN 'member'
@@ -283,11 +285,11 @@ export default class SClass {
     SMySQL.getConnection((connection) => {
       connection?.query<any>(
         sql,
-        [userId, userId, userId, id],
+        [userId, userId, userId, userId, userId, classId],
         (err, result) => {
           if (err) {
             console.log("get Class by ID", err);
-            onNext(new Class(), err);
+            onNext(new Class());
           }
 
           const classData: Class = result[0].class as Class;
@@ -295,13 +297,8 @@ export default class SClass {
           classData.author_accepted = result[0].class.author_accepted  === 1
           classData.paid = result[0].class.paid  === 1
 
-          this.getconflictingLessonsWithClassUsers(
-            id,
-            ["089204000001"],
-            (data) => {
-              onNext(classData, data);
-            }
-          );
+          onNext(classData);
+
         }
       );
     });
@@ -311,38 +308,65 @@ export default class SClass {
 
   public static getconflictingLessonsWithClassUsers(
     classId: number,
-    userIds: string[],
+    userId: string,
     onNext: (data: any[]) => void
   ) {
-    const userPlaceholders = userIds.map(() => "?").join(", ");
+
     const sql = `
-        SELECT 
-        cm.user_id,
-        lessons_user.class_id AS conflicting_class_id,
-        lessons_user.day AS conflicting_day ,
-        lessons_current.started_at,
-        lessons_current.class_id AS current_class_id,
-        lessons_current.day AS current_day ,
-        CASE 
-            WHEN lessons_user.class_id IS NOT NULL THEN TRUE
-            ELSE FALSE
-        END AS is_conflicting
-        FROM class_members AS cm
-        LEFT JOIN lessons AS lessons_current ON lessons_current.class_id = ?
-        INNER JOIN lessons AS lessons_user ON lessons_user.day = lessons_current.day
-            AND lessons_user.class_id = cm.class_id
-            AND (
-                lessons_user.started_at BETWEEN lessons_current.started_at 
-                    AND (lessons_current.started_at + lessons_current.duration) OR 
-                (lessons_user.started_at + lessons_user.duration) BETWEEN lessons_current.started_at 
-                    AND (lessons_current.started_at + lessons_current.duration)
+    WITH parent_children AS (
+    SELECT *
+    FROM users AS parent
+    WHERE parent.id = ?
+    
+    UNION ALL
+    
+    SELECT *
+    FROM users AS child
+    WHERE child.parent_id = ?
+),
+distinct_lessons AS (
+    SELECT
+        lessons_user.class_id,
+        lessons_user.day,
+        lessons_user.started_at,
+        cm.user_id
+    FROM lessons AS lessons_user
+    LEFT JOIN class_members AS cm ON cm.class_id = lessons_user.class_id
+    LEFT JOIN lessons AS lessons_current ON lessons_current.class_id = ?
+    WHERE lessons_user.day = lessons_current.day
+    AND (
+        lessons_user.started_at BETWEEN lessons_current.started_at 
+            AND (lessons_current.started_at + lessons_current.duration)
+        OR (lessons_user.started_at + lessons_user.duration) BETWEEN lessons_current.started_at 
+            AND (lessons_current.started_at + lessons_current.duration)
+    )
+    AND lessons_user.class_id != lessons_current.class_id
+)
+SELECT 
+	 JSON_OBJECT(
+            'id', parent_children.id,
+            'full_name', parent_children.full_name,
+            'avatar', parent_children.avatar
+        ) AS all_user,
+    CASE
+        WHEN COUNT(distinct_lessons.class_id) > 0 THEN 
+            JSON_ARRAYAGG(
+                JSON_OBJECT(
+                    'class_id', distinct_lessons.class_id,
+                    'day', distinct_lessons.day,
+                    'started_at', distinct_lessons.started_at
+                )
             )
-        WHERE cm.user_id IN (${userPlaceholders}) AND lessons_user.class_id != lessons_current.class_id
-        GROUP BY cm.user_id,  lessons_user.day;
-    `;
+        ELSE NULL
+    END AS conflicts
+FROM parent_children
+LEFT JOIN class_members AS cm ON cm.user_id = parent_children.id
+LEFT JOIN distinct_lessons ON distinct_lessons.user_id = parent_children.id 
+GROUP BY parent_children.id;
+    `
 
     SMySQL.getConnection((connection) => {
-      connection?.query<any>(sql, [classId, ...userIds], (err, result) => {
+      connection?.query<any>(sql, [userId, userId, classId], (err, result) => {
         if (err) {
           SLog.log(
             LogType.Error,
@@ -353,7 +377,26 @@ export default class SClass {
           onNext([]);
         }
 
-        onNext(result);
+        const removeDuplicates = (conflicts) => {
+          const seen = {};
+          return conflicts.filter(conflict => {
+            if (!seen[conflict.day]) {
+              seen[conflict.day] = true;
+              return true; // Keep this conflict
+            }
+            return false; // Remove duplicates
+          });
+        };
+        
+        // Process data
+        const groupedData = result.map(user => {
+          return {
+            ...user.all_user,
+            conflicts: user.conflicts ?  removeDuplicates(user.conflicts) : null
+          };
+        });
+
+        onNext(groupedData);
       });
     });
   }
@@ -1435,7 +1478,7 @@ export default class SClass {
         }
         SFirebase.push(
           FirebaseNode.Classes,
-          [{ key: FirebaseNode.ClassId, value: classId }],
+          [{ key: FirebaseNode.Id, value: classId }],
           () => {
             onNext(`Join in class id: ${classId} successful!`, true);
           }
@@ -1481,8 +1524,12 @@ export default class SClass {
             }
 
             if (updateResults && updateResults.affectedRows > 0) {
-              onNext("Class accepted by tutor successfully", true);
-              console.log(">>> Class accepted by tutor successfully");
+              SFirebase.push(FirebaseNode.Classes,
+                [{ key: FirebaseNode.Id, value: classId }],
+                () => {
+                  onNext("Class accepted by tutor successfully", true);
+                }
+              );
             } else {
               const errorMessage =
                 "No class was updated. Possibly invalid class ID.";
@@ -1525,6 +1572,64 @@ export default class SClass {
               onNext('No matching record found', false);
             } else {
                   onNext(`Payment update successful for ID: ${classId}`, true);
+            }
+  
+          });
+      })
+  
+  
+  }
+
+  public static acceptTutorForClass(
+    classId: number, 
+    authorAccepted: boolean,
+    onNext: (message: string, result: boolean) => void
+    ) {
+  
+    console.log("class id: ", classId);
+      
+     // Tạo placeholders cho danh sách userIds
+     let sql = "";
+     let values: any[] = [];
+     const updatedAT = new Date().getTime();
+     
+     if(authorAccepted == true) {
+        sql =  `
+        UPDATE classes SET author_accepted = ?, updated_at = ? WHERE id = ?
+      `;
+      values = [authorAccepted, updatedAT ,classId];
+      console.log("Chấp nhận gia sư");
+      
+     }
+     else{
+      sql =  `
+      UPDATE classes SET tutor_id = null, updated_at = ? WHERE id = ?
+      `;
+      values =  [updatedAT ,classId];
+      console.log("Từ chối");
+     }
+       
+    
+      SMySQL.getConnection((connection) => {
+          connection?.execute<any>(sql, values, (err, results) => {
+            if (err) {
+              onNext('Update failed', false);
+              console.log('>>> Update failed:', err);
+              return;
+            }
+  
+            // Kiểm tra xem có bản ghi nào được cập nhật không
+            if (results.affectedRows === 0) {
+              onNext('No matching record found', false);
+            } else {
+
+              SFirebase.push(FirebaseNode.Classes,
+                [{ key: FirebaseNode.Id, value: classId }],
+                () => {
+                  onNext(` Update successful for ID: ${classId}`, true);
+                }
+              );
+                 
             }
   
           });
