@@ -19,11 +19,12 @@ export default class PermissionController {
 
         if (!user || !user.id) {
             SLog.log(LogType.Error, "getPermissionsOfUser", "user not found");
-            return response.json(SResponse.getResponse(ResponseStatus.Internal_Server_Error, null, "Invalid user", response));
+            SResponse.getResponse(ResponseStatus.Internal_Server_Error, null, "Invalid user", response);
         }
 
         SPermission.getPermissionsOfUser(user.id, (permissions) => {
-            return response.json(SResponse.getResponse(ResponseStatus.OK, permissions, "get permissions of user", response));
+            SLog.log(LogType.Info, "getPermissionsOfUser", "successfully");
+            SResponse.getResponse(ResponseStatus.OK, permissions, "get permissions of user", response);
         });
     }
 
