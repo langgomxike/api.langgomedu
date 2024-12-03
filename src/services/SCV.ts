@@ -262,7 +262,7 @@ WHERE cvs.id = ?;`
         })
         const pagination: Pagination = {
           page: page,
-          perPage: perPage,
+          per_page: perPage,
           total_pages: Math.ceil(totalCount / perPage),
           total_items: totalCount,
         };
@@ -355,7 +355,7 @@ WHERE cvs.id = ?;`
         })
         const pagination: Pagination = {
           page: page,
-          perPage: perPage,
+          per_page: perPage,
           total_pages: Math.ceil(totalCount / perPage),
           total_items: totalCount,
         };
@@ -451,7 +451,7 @@ WHERE cvs.id = ?;`
 
               const pagination: Pagination = {
                 page: page,
-                perPage: perPage,
+                per_page: perPage,
                 total_pages: Math.ceil(totalCount / perPage),
                 total_items: totalCount,
               };
