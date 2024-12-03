@@ -5,172 +5,75 @@ import db from "../configs/knex";
 import mysql from "mysql2";
 import Filters from "../models/Filters";
 import Pagination from "../models/Pagination";
-import { cvJoin } from "../models/User";
+import { cvJoin, tempCvJoin } from "../models/User";
+import SEducation from "./SEducation";
+import SExperience from "./SExperience";
+import SCertificate from "./SCertificate";
 
 
 export default class SCV {
 
-  //get User CV
-  public static getUserCV( user_id: string ,onNext: (cv: any) => void) {
-    const sql = `SELECT JSON_OBJECT(
-    'id', cvs.id,
-    'user', JSON_OBJECT(
-        'id', u.id,
-        'username', u.user_name,
-        'fullname', u.full_name,
-        'email', u.email,
-        'phone_number', u.phone_number,
-        'avatar', u.avatar,
-        'hometown', u.hometown,
-        'address', JSON_OBJECT(
-            'id', ad.id,
-            'province', ad.province,
-            'district', ad.district,
-            'ward', ad.ward,
-            'detail', ad.detail
-        ),
-        'gender', JSON_OBJECT(
-            'id', g.id,
-            'vn_name', g.vn_name,
-            'en_name', g.en_name,
-            'ja_name', g.ja_name
-        ),
-        'birthday', u.birthday,
-        'point', u.point
-    ),
-    'biography', cvs.biography,
-    'title', cvs.title,
-    'approved_at', cvs.approved_at,
-    'updated_at', cvs.updated_at,
-    -- Subquery for educations
-    'educations', (
-        SELECT JSON_ARRAYAGG(JSON_OBJECT(
-            'id', edu.id,
-            'name', edu.name,
-            'note', edu.note,
-            'address', JSON_OBJECT(
-                'id', ad_edu.id,
-                'province', ad_edu.province,
-                'district', ad_edu.district,
-                'ward', ad_edu.ward,
-                'detail', ad_edu.detail
-            ),
-            'started_at', edu.started_at,
-            'ended_at', edu.ended_at,
-            'evidence', JSON_OBJECT(
-                'id', edu_evi.id,
-                'name', edu_evi.name,
-                'path', edu_evi.path,
-                'ratio', edu_evi.ratio,
-                'created_at', edu_evi.created_at,
-                'updated_at', edu_evi.updated_at
-            )
-        ))
-        FROM educations edu
-        LEFT JOIN addresses ad_edu ON ad_edu.id = edu.address_id
-        LEFT JOIN files edu_evi ON edu_evi.id = edu.evidence_id
-        WHERE edu.cv_id = cvs.id
-    ),
-    -- Subquery for experiences
-    'experiences', (
-        SELECT JSON_ARRAYAGG(JSON_OBJECT(
-            'id', exp.id,
-            'name', exp.name,
-            'note', exp.note,
-            'address', JSON_OBJECT(
-                'id', ad_exp.id,
-                'province', ad_exp.province,
-                'district', ad_exp.district,
-                'ward', ad_exp.ward,
-                'detail', ad_exp.detail
-            ),
-            'started_at', exp.started_at,
-            'ended_at', exp.ended_at,
-            'evidence', JSON_OBJECT(
-                'id', exp_evi.id,
-                'name', exp_evi.name,
-                'path', exp_evi.path,
-                'ratio', exp_evi.ratio,
-                'created_at', exp_evi.created_at,
-                'updated_at', exp_evi.updated_at
-            )
-        ))
-        FROM experiences exp
-        LEFT JOIN addresses ad_exp ON ad_exp.id = exp.address_id
-        LEFT JOIN files exp_evi ON exp_evi.id = exp.evidence_id
-        WHERE exp.cv_id = cvs.id
-    ),
-    -- Subquery for certificates
-    'certificates', (
-        SELECT JSON_ARRAYAGG(JSON_OBJECT(
-            'id', cer.id,
-            'name', cer.name,
-            'score', cer.score,
-            'valid_at', cer.valid_at,
-            'expired_at', cer.expired_at,
-            'evidence', JSON_OBJECT(
-                'id', cer_evi.id,
-                'name', cer_evi.name,
-                'path', cer_evi.path,
-                'ratio', cer_evi.ratio,
-                'created_at', cer_evi.created_at,
-                'updated_at', cer_evi.updated_at
-            )
-        ))
-        FROM certificates cer
-        LEFT JOIN files cer_evi ON cer_evi.id = cer.evidence_id
-        WHERE cer.cv_id = cvs.id
-    )
-) AS cv
-FROM cvs
-LEFT JOIN users u ON u.id = cvs.id
-LEFT JOIN addresses ad ON ad.id = u.address_id
-LEFT JOIN genders g ON g.id = u.gender_id
-WHERE cvs.id = ?;`
-    SMySQL.getConnection((connection)=>{
-      connection?.query<any[]>(sql, [user_id], (err, result)=>{
-        if(err){
-          SLog.log(LogType.Error, "fail to fetch cv", "can't fetch user cv", err),
-          onNext(undefined)
-          return;
-        }
-
-        onNext(result)
-        return;
-
-      })
-    })
-  }
-
-  //get User CV ver 2
-  public static async getUserCV3(user_id: string, onNext: (cv: any)=> void) {
-    await cvJoin('cvs', 'user', 'address', 'gender', 'icl', 'im', 
-        db('cvs').
+  //get User CV ver 
+  public static async getUserCV(user_id: string, onNext: (cv: any) => void) {
+    await cvJoin('cvs', 'user', 'address', 'gender', 'icl', 'im',
+      db('cvs').
         select(db.raw(cvJson2('cvs', 'user', 'address', 'gender', 'icl', 'im')))
         .where('cvs.id', user_id)
         .groupBy('user.id')
     )
-    .then((results)=>{
+      .then((results) => {
         onNext(results[0])
-    })
-    .catch((err)=>{
+      })
+      .catch((err) => {
         SLog.log(LogType.Error, "getUserCV3", "ERR", err);
-    })
+      })
 
-    
+
+  }
+  public static async getAllUserCVs(user_id: string, onNext: (cv: any) => void) {
+    const mainId = user_id;
+    const subId = `${user_id}_t`
+    const results: any[] = [];
+    await cvJoin('cvs', 'user', 'address', 'gender', 'icl', 'im',
+      db('cvs').
+        select(db.raw(cvJson2('cvs', 'user', 'address', 'gender', 'icl', 'im')))
+        .where('cvs.id', mainId)
+        .groupBy('user.id')
+    )
+      .then((response) => {
+        results.push(response[0].cv);
+      })
+      .catch((err) => {
+        SLog.log(LogType.Error, "getUserCV3", "ERR", err);
+      })
+    await tempCvJoin('cvs', 'user', 'address', 'gender', 'icl', 'im',
+      db('cvs').
+        select(db.raw(cvJson2('cvs', 'user', 'address', 'gender', 'icl', 'im')))
+        .where('cvs.id', subId)
+        .groupBy('user.id')
+      )
+      .then((response) => {
+        results.push(response[0].cv);
+      })
+      .catch((err) => {
+        SLog.log(LogType.Error, "getUserCV3", "ERR", err);
+
+      })
+
+    onNext(results)
   }
 
-  public static async getAllCVs(onNext: (cv: CV[])=> void){
+  public static async getAllCVs(onNext: (cv: CV[]) => void) {
     const results = await db('cvs')
-    .select(db.raw(cvJson('cvs')))
-    .leftJoin('users as user', 'user.id', 'cvs.id')
-    .leftJoin('addresses as address', 'address.id', 'user.address_id')
-    .leftJoin('genders as gender', 'gender.id', 'user.gender_id')
-    
+      .select(db.raw(cvJson('cvs')))
+      .leftJoin('users as user', 'user.id', 'cvs.id')
+      .leftJoin('addresses as address', 'address.id', 'user.address_id')
+      .leftJoin('genders as gender', 'gender.id', 'user.gender_id')
+
     const cvs: CV[] = [];
     results.forEach(result => {
-        const cv = result.cv
-        cvs.push(cv);
+      const cv = result.cv
+      cvs.push(cv);
     });
     onNext(cvs)
   }
@@ -207,7 +110,7 @@ WHERE cvs.id = ?;`
     page: number, perPage: number,
     province: string | undefined, district: string | undefined, ward: string | undefined,
     onNext: (cvs: CV[], pagination: Pagination) => void,
-  ){
+  ) {
     const sql = `
         WITH SuggestedCVs AS (
         SELECT
@@ -371,30 +274,30 @@ WHERE cvs.id = ?;`
     page: number, perPage: number,
     filter: Filters,
     onNext: (cvs: CV[], pagination: Pagination) => void
-){
-    
+  ) {
+
     // Build SQL query dynamically based on provided filters
     let filterConditions = "1=1";
-    let queryParams: any[] = []; 
+    let queryParams: any[] = [];
 
     // Add filter conditions if they are provided
-  if (filter.province) {
-    const provinces = filter.province.split(",").map((p) => `%${p.trim()}%`);
-    filterConditions += ` AND (${provinces.map(() => "ad.province LIKE ?").join(" OR ")})`;
-    queryParams.push(...provinces);
-  }
+    if (filter.province) {
+      const provinces = filter.province.split(",").map((p) => `%${p.trim()}%`);
+      filterConditions += ` AND (${provinces.map(() => "ad.province LIKE ?").join(" OR ")})`;
+      queryParams.push(...provinces);
+    }
 
-  if (filter.district) {
-    const districts = filter.district.split(",").map((d) => `%${d.trim()}%`);
-    filterConditions += ` AND (${districts.map(() => "ad.district LIKE ?").join(" OR ")})`;
-    queryParams.push(...districts); 
-  }
+    if (filter.district) {
+      const districts = filter.district.split(",").map((d) => `%${d.trim()}%`);
+      filterConditions += ` AND (${districts.map(() => "ad.district LIKE ?").join(" OR ")})`;
+      queryParams.push(...districts);
+    }
 
-  if (filter.ward) {
-    const wards = filter.ward.split(",").map((w) => `%${w.trim()}%`);
-    filterConditions += ` AND (${wards.map(() => "ad.ward LIKE ?").join(" OR ")})`;
-    queryParams.push(...wards);
-  }
+    if (filter.ward) {
+      const wards = filter.ward.split(",").map((w) => `%${w.trim()}%`);
+      filterConditions += ` AND (${wards.map(() => "ad.ward LIKE ?").join(" OR ")})`;
+      queryParams.push(...wards);
+    }
 
     // Full SQL query with dynamic filter conditions
     const sql = `
@@ -426,28 +329,28 @@ WHERE cvs.id = ?;`
 
     // Execute the query
     SMySQL.getConnection((connection) => {
-        connection?.execute<any[]>(sql, queryParams ,(err, results) => {
-            if (err) {
-                SLog.log(LogType.Error, "fail to fetch cv", "can't fetch user cv", err);
-                onNext([], new Pagination);
-                return;
-            }
+      connection?.execute<any[]>(sql, queryParams, (err, results) => {
+        if (err) {
+          SLog.log(LogType.Error, "fail to fetch cv", "can't fetch user cv", err);
+          onNext([], new Pagination);
+          return;
+        }
 
-            const cvs: CV[] = []
-            results.forEach((result) => {
-              const cv = result.user_data
-              cvs.push(cv)
-    
-            })
-  
-            connection.execute<any>(totalSql, queryParams, (err, result) => {
-              if (err) {
-                SLog.log(LogType.Error, "fail to fetch total count", "can't fetch total count", err);
-                onNext([], new Pagination);
-                return;
-              }
+        const cvs: CV[] = []
+        results.forEach((result) => {
+          const cv = result.user_data
+          cvs.push(cv)
 
-              const totalCount = result[0].totalCount;
+        })
+
+        connection.execute<any>(totalSql, queryParams, (err, result) => {
+          if (err) {
+            SLog.log(LogType.Error, "fail to fetch total count", "can't fetch total count", err);
+            onNext([], new Pagination);
+            return;
+          }
+
+          const totalCount = result[0].totalCount;
 
               const pagination: Pagination = {
                 page: page,
@@ -459,14 +362,62 @@ WHERE cvs.id = ?;`
               onNext(cvs, pagination);
             } )
 
-        });
+      });
     });
-}
+  }
 
-  
+  public static async UpdateCV(cvData: any, onNext: (response: any) => void) {
+    // console.log(JSON.stringify(cvData));
+    const cvId = cvData.userId;
+    const cvIdnew = `${cvData.userId}_t`;
+    const title = cvData.title;
+    const biography = cvData.biography;
+    const oldEducations = cvData.oldEducations;
+    const newEducations = cvData.newEducations;
+    const oldExperiences = cvData.oldExperiences;
+    const newExperiences = cvData.newExperiences;
+    const oldCertificates = cvData.oldCertificates;
+    const newCertificates = cvData.newCertificates;
+    const updatedAt = Date.now();
+
+    const oldEduIds = await SEducation.storeOldEducations(cvIdnew, oldEducations);
+    const newEduIds = await SEducation.storeNewEducations(cvIdnew, newEducations);
+    const oldExpIds = await SExperience.storeOldExperiences(cvIdnew, oldExperiences);
+    const newExpIds = await SExperience.storeNewExperiences(cvIdnew, newExperiences);
+    const oldCerIds = await SCertificate.storeOldCertificates(cvIdnew, oldCertificates);
+    const newCerIds = await SCertificate.storeNewCertificates(cvIdnew, newCertificates);
+    // console.log(oldEduIds);
+
+    return await db('cvs').insert({
+      id: cvIdnew,
+      biography: biography,
+      title: title,
+      updated_at: updatedAt,
+      approved_at: null,
+    })
+      .then((results) => {
+        console.log(results);
+        onNext({
+          cvId: cvIdnew,
+          title: title,
+          bio: biography,
+          oldEdu: oldEduIds,
+          newEdu: newEduIds,
+          oldExp: oldExpIds,
+          newExp: newExpIds,
+          oldCer: oldCerIds,
+          newCer: newCerIds,
+        });
+      })
+      .catch((err) => {
+        console.log("fail to update cv", err.message);
+        onNext(null)
+      })
+  }
 
 
-  
+
+
   //end service
 }
 

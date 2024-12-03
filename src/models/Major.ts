@@ -40,7 +40,7 @@ export const arrayMajorJson = (alias: string): string => {
 
 export const majorsSubquery = (reference: string) => {
     return db('interested_majors as im')
-    .select(db.raw(arrayMajorJson('majors')))
+    .select(db.raw(`COALESCE(${arrayMajorJson('majors')}, JSON_ARRAY())`))
     .join('majors', 'majors.id', 'im.major_id')
     .where('im.user_id', db.raw(`${reference}.id`))
     .as('majorsSubquery')

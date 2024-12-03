@@ -51,6 +51,21 @@ export const cvJson = (asName: string): string => {
 
 export const cvJson2 = (alias: string, userAlias: string, addressAlias: string, genderAlias: string, classLevelAlias: string, majorAlias:string): string => {
     return `JSON_OBJECT(
+        'id', ${alias}.id,
+        'user', ${userForCVJSON(userAlias, addressAlias, genderAlias, )},
+        'biography', ${alias}.biography,
+        'title', ${alias}.title,
+        'certificates', (${certificatesSubquery}), 
+        'educations', (${educationsSubquery}),
+        'experiences', (${experiencesSubquery}),
+        'approve_at', ${alias}.approved_at,
+        'updated_at', ${alias}.updated_at 
+    ) as cv `;
+}
+
+export const cvTempJson = (alias: string, userAlias: string, addressAlias: string, genderAlias: string, classLevelAlias: string, majorAlias: string) : string => {
+    return `JSON_OBJECT(
+        'id', ${alias}.id,
         'user', ${userForCVJSON(userAlias, addressAlias, genderAlias, )},
         'biography', ${alias}.biography,
         'title', ${alias}.title,
