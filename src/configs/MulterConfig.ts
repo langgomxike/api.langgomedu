@@ -2,6 +2,7 @@ import multer from 'multer';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs';
+import { storage } from 'firebase-admin';
 
 // Đường dẫn đến thư mục uploads
 const uploadsBaseDir = path.join(__dirname, '../../public/uploads');
@@ -51,3 +52,6 @@ const multerOptions = {
 export const uploadPayment = multer({ storage: createStorage('payments'), ...multerOptions });
 export const uploadAvatar = multer({ storage: createStorage('avatars'), ...multerOptions });
 export const uploadReport = multer({ storage: createStorage('reports'), ...multerOptions });
+export const uploadEducation = multer({ storage: createStorage('educations'), ...multerOptions });
+export const uploadExperience = multer({ storage: createStorage('experiences'), ...multerOptions});
+export const uploadCertificate = multer({ storage: createStorage('certificates'), ...multerOptions});

@@ -165,3 +165,12 @@ export const cvJoin = (reference: string, alias: string, addressAlias: string, g
     .leftJoin(`interested_class_levels as ${classLevelAlias}`, `${classLevelAlias}.user_id`, `${alias}.id`)
     .leftJoin(`interested_majors as ${majorsAlias}`, `${majorsAlias}.user_id`, `${alias}.id`)
 }
+
+export const tempCvJoin = (reference: string, alias: string, addressAlias: string, genderAlias: string, classLevelAlias:string, majorsAlias: string, query : Knex.QueryBuilder): Knex.QueryBuilder => {
+    return query
+    .leftJoin(`users as ${alias}`, `${alias}.id`, db.raw(`SUBSTRING_INDEX(${reference}.id, '_', 1)`))
+    .leftJoin(`addresses as ${addressAlias}`, `${addressAlias}.id`, `${alias}.address_id`)
+    .leftJoin(`genders as ${genderAlias}`, `${genderAlias}.id`, `${alias}.gender_id`)
+    .leftJoin(`interested_class_levels as ${classLevelAlias}`, `${classLevelAlias}.user_id`, `${alias}.id`)
+    .leftJoin(`interested_majors as ${majorsAlias}`, `${majorsAlias}.user_id`, `${alias}.id`)
+}

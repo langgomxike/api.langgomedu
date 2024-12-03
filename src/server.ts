@@ -26,11 +26,12 @@ import PermissionList, {setUpPermissions} from "./configs/PermissionConfig";
 import {setUpGenders} from "./configs/GenderConfig";
 import SFirebase, {FirebaseNode} from "./services/SFirebase";
 import AdminController from "./controllers/admin/AdminController";
-import {uploadPayment} from "./configs/MulterConfig";
+import {uploadCertificate, uploadEducation, uploadPayment} from "./configs/MulterConfig";
 import SResponse, {ResponseStatus} from "./services/SResponse";
 import {ClassLevelController} from "./controllers/ClassLevelController";
 import {setUpRoles} from "./configs/RoleConfig";
 import {setUpUsers} from "./configs/UserConfig";
+import UploadFileController from "./controllers/UploadFileController";
 
 dotenv.config();
 
@@ -90,22 +91,7 @@ app.get(CLASS_BASE_URL + "/:class_id", ClassController.getClass);
 app.post(CLASS_BASE_URL + "/create", ClassController.createClass);
 app.put(CLASS_BASE_URL, ClassController.updateClass);
 app.patch(CLASS_BASE_URL, ClassController.updateClass);
-app.delete(CLASS_BASE_URL,
-    (req, res, onNext) => SAuthentication.checkAuthorization(
-        req, res, onNext,
-        OWNING_REF_TABLES.PERSONAL_CLASS,
-        OWNING_REF_COLUMNS.AUTHOR_ID,
-        OWNING_KEY_COLUMNS.iD
-    ),
-    (req, res, onNext) => SAuthentication.checkAuthentication(
-        req, res, onNext,
-        [
-            PermissionList.DELETE_PERSONAL_CLASS,
-            PermissionList.DELETE_OTHER_USER_CLASS,
-        ]
-    ),
-    ClassController.deleteClass
-);
+app.delete(CLASS_BASE_URL,ClassController.deleteClass);
 app.post(CLASS_BASE_URL + "/:class_id/join", ClassController.requestToAttendClass);
 app.post(CLASS_BASE_URL + "/:class_id/accept_to_teach", ClassController.acceptClassToTeach);
 app.post(CLASS_BASE_URL + "/approve/:id", ClassController.approveToAttendClass);
@@ -153,10 +139,12 @@ app.post(REPORT_BASE_URL + "/created_report", ReportController.createReport);
 
 const CV_BASE_URL = Config.PREFIX + "/cvs";
 app.get(CV_BASE_URL, CVController.getAllCVs);
+app.post(CV_BASE_URL+ "/uploadCV", CVController.createCV);
+// app.get(CV_BASE_URL+ "/test", CVController.test);
 app.get(CV_BASE_URL + "/suggests", CVController.getSuggestedCVs);
 app.get(CV_BASE_URL + "/suggests/filters", CVController.getSuggestedCVsFilter);
+app.post(CV_BASE_URL + "/send", CVController.updateCV);
 app.get(CV_BASE_URL + "/:id", CVController.getCV);
-app.post(CV_BASE_URL, CVController.createCV);
 app.put(CV_BASE_URL + "/:id", CVController.updateCV);
 app.patch(CV_BASE_URL + "/:id", CVController.updateCV);
 app.delete(CV_BASE_URL + "/:id", CVController.deleteCV);
@@ -180,13 +168,6 @@ app.patch(MESSAGE_BASE_URL + "/two-users/reply", MessageController.updateMessage
 app.put(MESSAGE_BASE_URL + "/two-users/delete", MessageController.updateMessage);
 app.patch(MESSAGE_BASE_URL + "/two-users/delete", MessageController.updateMessage);
 app.post(MESSAGE_BASE_URL, MessageController.createMessage);
-
-const OTHER_SKILL_BASE_URL = Config.PREFIX + "/skills";
-app.get(OTHER_SKILL_BASE_URL, OtherSkillController.getAllSkills);
-app.post(OTHER_SKILL_BASE_URL, OtherSkillController.createSkill);
-app.put(OTHER_SKILL_BASE_URL, OtherSkillController.updateSkill);
-app.patch(OTHER_SKILL_BASE_URL, OtherSkillController.updateSkill);
-app.delete(OTHER_SKILL_BASE_URL, OtherSkillController.deleteSkill);
 
 const PERMISSION_BASE_URL = Config.PREFIX + "/permissions";
 app.get(PERMISSION_BASE_URL, PermissionController.getAllPermissions);
@@ -236,14 +217,24 @@ app.get(ADMIN_USER_BASE_URL + "/users/:user_id/reports", AdminController.getAllR
 app.get(ADMIN_USER_BASE_URL + "/classes", AdminController.getAllClasses);
 app.get(ADMIN_USER_BASE_URL + "/classes/:class_id", AdminController.getDetailClass);
 
+//Upload CV files
+const EDUCATION_URL = Config.PREFIX + "/educations";
+app.post(EDUCATION_URL + "/uploads", uploadEducation.array("files"), UploadFileController.uploadEducationsFiles)
+
+const EXPERIENCE_URL = Config.PREFIX + "/experiences";
+app.post(EXPERIENCE_URL + "/uploads", uploadCertificate.array("files"),UploadFileController.uploadExperienceFiles)
+
+const CERTIFICATE_URL = Config.PREFIX + "/certificates";
+app.post(CERTIFICATE_URL + "/uploads", uploadCertificate.array("files"), UploadFileController.uploadCertificateFiles)
+
 app.listen(port, () => {
     SLog.log(LogType.Info, "Listen to the port", "server is running at http://127.0.0.1", port);
 });
 
 SMySQL.connect();
 setUpPermissions();
-// setUpRoles();
-// setUpGenders();
-// setUpUsers();
+setUpRoles();
+setUpGenders();
+setUpUsers();
 
 export default app;

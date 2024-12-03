@@ -4,6 +4,9 @@ import SCV from "../services/SCV";
 import SResponse, {ResponseStatus} from "../services/SResponse";
 import { parseQueryString } from "../configs/QueryHelpers";
 import Filters from "../models/Filters";
+import SEducation from "../services/SEducation";
+import SAddress from "../services/SAddress";
+
 
 export default class CVController {
     public static getAllCVs(request: express.Request, response: express.Response) {
@@ -59,7 +62,7 @@ export default class CVController {
         // console.log(user_id);
         
         if(userId){
-            SCV.getUserCV3(userId, (cv)=>{
+            SCV.getAllUserCVs(userId, (cv)=>{
                 SResponse.getResponse(ResponseStatus.OK, cv, "get User CV", response);
             })
         }else{
@@ -69,18 +72,36 @@ export default class CVController {
     }
 
     public static createCV(request: express.Request, response: express.Response) {
-
+        const body = request.body;
+        // console.log(body);
+        SCV.UpdateCV(body, (data)=> {
+            console.log("successfully", data);
+            if(data){
+                SResponse.getResponse(ResponseStatus.OK, [data], "Update CV", response);
+            }
+            SResponse.getResponse(ResponseStatus.Forbidden, [data], "Update CV", response);
+        })
     }
 
     public static updateCV(request: express.Request, response: express.Response) {
-
+        
     }
 
     public static deleteCV(request: express.Request, response: express.Response) {
 
     }
-
     public static approveCV(request: express.Request, response: express.Response) {
 
     }
+
+    public static test(request: express.Request, response: express.Response){
+        const param = request.query.detail;
+        const detail = param ? param.toString() : "";
+        console.log(detail);
+        SAddress.getAddressByDetail(detail , (data)=> {
+            SResponse.getResponse(ResponseStatus.OK, [data], "", response);
+        })
+    }
+
+    
 }
