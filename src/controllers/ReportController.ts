@@ -2,6 +2,7 @@ import express from "express";
 import SUserReport from "../services/SUserReport";
 import SResponse, { ResponseStatus } from "../services/SResponse";
 import SClassReport from "../services/SClassReport";
+import SUser from "../services/SUser";
 
 export default class ReportController {
   public static getAllClassReports(
@@ -212,4 +213,68 @@ export default class ReportController {
       }
     });
   }
+  public static updateUserProfile(
+  request: express.Request,
+  response: express.Response
+) {
+  console.log("Request Body:", request.body);
+
+  // Lấy dữ liệu từ body của request
+  const {
+    id,
+    full_name,
+    hometown,
+    birthday,
+    gender_id,
+    province,
+    district,
+    ward,
+    detail,
+    majors,
+  } = request.body;
+
+  // Lấy file được tải lên từ request.file (chỉ 1 file)
+  const file = (request as any).file;
+  let avatarPath: string | null = null;
+
+  if (file) {
+    avatarPath = `uploads/users/${file.filename}`; // Lưu đường dẫn file vào avatarPath
+    console.log("Uploaded file path:", avatarPath);
+  }
+
+  // Kiểm tra tham số bắt buộc
+  if (!id) {
+    return response
+      .status(400)
+      .json({ success: false, message: "Missing required user ID." });
+  }
+
+  // Gọi phương thức SUser.updateUserProfile để cập nhật thông tin người dùng
+  SUser.updateUserProfile(
+    id,
+    (result) => {
+      if (result) {
+        // Nếu thành công, trả về phản hồi JSON
+        response
+          .status(200)
+          .json({ success: true, message: "User profile updated successfully." });
+      } else {
+        // Nếu thất bại, trả về lỗi
+        response
+          .status(500)
+          .json({ success: false, message: "Failed to update user profile." });
+      }
+    },
+    full_name, // Tên đầy đủ
+    avatarPath, // Đường dẫn file avatar
+    hometown, // Quê quán
+    birthday ? parseInt(birthday) : undefined, // Ngày sinh (số)
+    gender_id ? parseInt(gender_id) : undefined, // Giới tính (số)
+    province, // Tỉnh
+    district, // Huyện
+    ward, // Xã
+    detail, // Địa chỉ chi tiết
+    majors ? JSON.parse(majors) : undefined // Mảng majors (parse từ JSON nếu là chuỗi)
+  );
+}
 }

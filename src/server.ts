@@ -3,6 +3,7 @@
 import express, { Express, Request, Response } from "express";
 // @ts-ignore
 import dotenv from "dotenv";
+import multer from "multer";
 import SLog, { LogType } from "./services/SLog";
 import SMySQL from "./services/SMySQL";
 import UserController from "./controllers/UserController";
@@ -26,7 +27,7 @@ import PermissionList, {setUpPermissions} from "./configs/PermissionConfig";
 import {setUpGenders} from "./configs/GenderConfig";
 import SFirebase, {FirebaseNode} from "./services/SFirebase";
 import AdminController from "./controllers/admin/AdminController";
-import {uploadPayment, uploadReports} from "./configs/MulterConfig";
+import {uploadAvatar, uploadPayment, uploadReports} from "./configs/MulterConfig";
 import SResponse, { ResponseStatus } from "./services/SResponse";
 import { ClassLevelController } from "./controllers/ClassLevelController";
 import {setUpRoles} from "./configs/RoleConfig";
@@ -48,7 +49,7 @@ app.get("/api", (req: Request, res: Response) => {
 });
 
 app.use('/', express.static('public'));
-
+const upload = multer();
 
 // ClassLevel routes
 const CLASSLEVEL_BASE_URL = Config.PREFIX + "/class-levels";
@@ -225,6 +226,12 @@ app.post(USER_BASE_URL + "/password/change/:id", UserController.changePassword);
 app.put(USER_BASE_URL, UserController.updateUserInfo);
 app.patch(USER_BASE_URL, UserController.updateUserInfo);
 app.delete(USER_BASE_URL + "/:id", UserController.deleteAccount);
+//lấy user profile
+app.get(USER_BASE_URL + "/profile/:id", UserController.getUserProfile);
+//Cap nhat profile
+app.post(USER_BASE_URL + "/update_profile/:id", upload.none(), UserController.updateUserProfile);
+app.post(USER_BASE_URL + "/update_avatar/:id", uploadAvatar.single('file') ,UserController.updateAvatar);
+
 
 // Define the base URL for user-related routes
 const ADMIN_USER_BASE_URL = Config.PREFIX + "/admin";
