@@ -1,5 +1,5 @@
 import { response } from "express";
-import Class from "./../models/Class";
+import Class, { classJson } from "./../models/Class";
 import SLog, { LogType } from "./SLog";
 import SMySQL from "./SMySQL";
 import User from "../models/User";

@@ -7,13 +7,22 @@ export default class File {
     public created_at: number;
     public updated_at: number;
 
-    constructor(id = -1, name = "", path = "",ratio = 0, created_at = new Date().getTime(), updated_at = new Date().getTime()) {
+    constructor(id = -1, name = "", path = "", ratio = 0, created_at = new Date().getTime(), updated_at = new Date().getTime()) {
         this.id = id;
         this.name = name;
         this.path = path;
         this.ratio = ratio;
         this.created_at = created_at;
         this.updated_at = updated_at;
+    }
+    public toInsertObject() {
+        return {
+            name: this.name,
+            path: this.path,
+            ratio: this.ratio,
+            created_at: this.created_at,
+            updated_at: this.updated_at,
+        };
     }
 }
 export const fileJson = (asName: string): string => {

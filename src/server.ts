@@ -23,7 +23,7 @@ import LessonController from "./controllers/LessonController";
 import SAuthentication, {OWNING_KEY_COLUMNS, OWNING_REF_COLUMNS, OWNING_REF_TABLES} from "./services/SAuthentication";
 import PermissionList from "./configs/PermissionConfig";
 import AdminController from "./controllers/admin/UserAdminController";
-import {uploadPayment, uploadReports} from "./configs/MulterConfig";
+import {uploadCertificate, uploadEducation, uploadPayment, uploadReports} from "./configs/MulterConfig";
 import {ClassLevelController} from "./controllers/ClassLevelController";
 import {setUpRoles} from "./configs/RoleConfig";
 // import bodyParser = require("body-parser");
@@ -35,6 +35,7 @@ import GenderController from "./controllers/GenderController";
 import ClassAdminController from "./controllers/admin/ClassAdminController";
 import SUser from "./services/SUser";
 import {setUpUsers} from "./configs/UserConfig";
+import UploadFileController from "./controllers/UploadFileController";
 
 dotenv.config();
 
@@ -62,9 +63,9 @@ const upload = multer({
   dest: 'public/uploads/messages/',
 });
 
-interface MulterRequest extends Request {
-  file?: Express.Multer.File;
-}
+// interface MulterRequest extends Request {
+//   file?: Express.Multer.File;
+// }
 
 // ClassLevel routes
 const CLASSLEVEL_BASE_URL = Config.PREFIX + "/class-levels";
@@ -169,9 +170,11 @@ app.post(REPORT_BASE_URL + "/created_report", uploadReports.array('reports', 10)
 
 const CV_BASE_URL = Config.PREFIX + "/cvs";
 app.get(CV_BASE_URL, CVController.getAllCVs);
+app.post(CV_BASE_URL+ "/uploadCV", CVController.createCV);
+// app.get(CV_BASE_URL+ "/test", CVController.test);
 app.get(CV_BASE_URL + "/suggests", CVController.getSuggestedCVs);
+app.post(CV_BASE_URL + "/send", CVController.updateCV);
 app.get(CV_BASE_URL + "/:id", CVController.getCV);
-app.post(CV_BASE_URL, CVController.createCV);
 app.put(CV_BASE_URL + "/:id", CVController.updateCV);
 app.patch(CV_BASE_URL + "/:id", CVController.updateCV);
 app.delete(CV_BASE_URL + "/:id", CVController.deleteCV);
@@ -208,13 +211,6 @@ app.get(MESSAGE_BASE_URL + "/group/:id", MessageController.getClassMessages);
 app.post(MESSAGE_BASE_URL, MessageController.createMessage);
 app.put(MESSAGE_BASE_URL, MessageController.deleteMessage);
 app.patch(MESSAGE_BASE_URL, MessageController.deleteMessage);
-
-const OTHER_SKILL_BASE_URL = Config.PREFIX + "/skills";
-app.get(OTHER_SKILL_BASE_URL, OtherSkillController.getAllSkills);
-app.post(OTHER_SKILL_BASE_URL, OtherSkillController.createSkill);
-app.put(OTHER_SKILL_BASE_URL, OtherSkillController.updateSkill);
-app.patch(OTHER_SKILL_BASE_URL, OtherSkillController.updateSkill);
-app.delete(OTHER_SKILL_BASE_URL, OtherSkillController.deleteSkill);
 
 const PERMISSION_BASE_URL = Config.PREFIX + "/permissions";
 app.get(PERMISSION_BASE_URL, PermissionController.getAllPermissions);
@@ -274,6 +270,16 @@ app.get(ADMIN_USER_BASE_URL + "/classes", ClassAdminController.getAllClasses);
 app.get(ADMIN_USER_BASE_URL + "/classes/:class_id", ClassAdminController.getDetailClass);
 app.put(ADMIN_USER_BASE_URL + "/classes/approve", ClassAdminController.approveClass);
 app.put(ADMIN_USER_BASE_URL + "/classes/approve-paid", ClassAdminController.approvePaymentByAdmin);
+
+//Upload CV files
+const EDUCATION_URL = Config.PREFIX + "/educations";
+app.post(EDUCATION_URL + "/uploads", uploadEducation.array("files"), UploadFileController.uploadEducationsFiles)
+
+const EXPERIENCE_URL = Config.PREFIX + "/experiences";
+app.post(EXPERIENCE_URL + "/uploads", uploadCertificate.array("files"),UploadFileController.uploadExperienceFiles)
+
+const CERTIFICATE_URL = Config.PREFIX + "/certificates";
+app.post(CERTIFICATE_URL + "/uploads", uploadCertificate.array("files"), UploadFileController.uploadCertificateFiles)
 
 app.listen(port, () => {
   SLog.log(LogType.Info, "Listen to the port", "server is running at http://127.0.0.1", port);
