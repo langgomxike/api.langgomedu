@@ -555,6 +555,32 @@ export default class SUser {
     });
   }
 
+  public static minusUserPoint(
+    user_id: string,
+    point: number,
+    onNext: (result: boolean) => void
+  ) {
+    const updateUserPointsSql = `UPDATE users
+                                 SET point = point - ?
+                                 WHERE id = ?`;
+
+    SMySQL.getConnection((connection) => {
+      // Thực hiện trừ điểm cho người dùng
+      connection?.execute(updateUserPointsSql, [point, user_id], (error, result) => {
+        if (error) {
+          console.error("Error subtracting points in database:", error);
+          onNext(false);
+          return;
+        }
+
+        console.log("Subtracted points successfully for user", user_id);
+        SFirebase.push(FirebaseNode.Users, [{key: FirebaseNode.Id, value: user_id}], () => {
+          onNext(true);
+        });
+      });
+    });
+  }
+
 
   //tạo admin
   public static CreateAdminUser(

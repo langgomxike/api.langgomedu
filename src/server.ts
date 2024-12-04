@@ -34,6 +34,7 @@ import path from "path";
 import GenderController from "./controllers/GenderController";
 import ClassAdminController from "./controllers/admin/ClassAdminController";
 import SUser from "./services/SUser";
+import {setUpUsers} from "./configs/UserConfig";
 import UploadFileController from "./controllers/UploadFileController";
 
 dotenv.config();
@@ -153,7 +154,6 @@ app.get(REPORT_BASE_URL + "/class/:id", ReportController.getClassReport);
 app.post(REPORT_BASE_URL + "/class/:id", ReportController.approveClassReport);
 app.get(REPORT_BASE_URL + "/user", ReportController.getAllUserReports);
 app.get(REPORT_BASE_URL + "/user/:id", ReportController.getUserReport);
-// app.post(REPORT_BASE_URL + "/user", ReportController.createUserReport);
 app.post(REPORT_BASE_URL + "/user/:id", ReportController.approveUserReport);
 
 //trừ điểm uy tín của người dùng
@@ -163,7 +163,7 @@ app.post(REPORT_BASE_URL + "/lockUserAccount", UserController.LockUserAccount);
 //khoá lớp học của người dùng
 app.post(REPORT_BASE_URL + "/lockClass", ClassController.LockClass);
 //khoá reports
-app.post(REPORT_BASE_URL + "/lockReport", ReportController.LockReport);
+app.post(REPORT_BASE_URL + "/perform-report", ReportController.performReport); 
 //tạo report
 app.post(REPORT_BASE_URL + "/created_report", uploadReports.array('reports', 10), ReportController.createReport);
 
@@ -214,7 +214,7 @@ app.patch(MESSAGE_BASE_URL, MessageController.deleteMessage);
 
 const PERMISSION_BASE_URL = Config.PREFIX + "/permissions";
 app.get(PERMISSION_BASE_URL, PermissionController.getAllPermissions);
-app.get(PERMISSION_BASE_URL + "/of-user", PermissionController.getPermissionsOfUser);
+app.post(PERMISSION_BASE_URL + "/of-user", PermissionController.getPermissionsOfUser);
 app.get(PERMISSION_BASE_URL + "/of-role/:id", PermissionController.getPermissionsOfRole);
 
 const RATING_BASE_URL = Config.PREFIX + "/ratings";
@@ -223,6 +223,7 @@ app.post(RATING_BASE_URL, RatingController.createRating);
 
 const ROLE_BASE_URL = Config.PREFIX + "/roles";
 app.get(ROLE_BASE_URL, RoleController.getAllRoles);
+app.post(ROLE_BASE_URL + "/of-user", RoleController.getAllRolesOfUser);
 app.post(ROLE_BASE_URL, RoleController.createRole);
 app.delete(ROLE_BASE_URL + "/:id", RoleController.deleteRole);
 app.put(ROLE_BASE_URL + "/permissions", RoleController.updatePermissionsOfRole);
@@ -262,7 +263,9 @@ app.delete(USER_BASE_URL + "/:id", UserController.deleteAccount);
 // Define the base URL for user-related routes
 const ADMIN_USER_BASE_URL = Config.PREFIX + "/admin";
 app.get(ADMIN_USER_BASE_URL + "/users", AdminController.getAllUsers);
-app.get(ADMIN_USER_BASE_URL + "/users/:user_id/reports", AdminController.getAllReportUserOfUser);
+app.post(ADMIN_USER_BASE_URL + "/users/reports", AdminController.getAllReportUserOfUser);
+app.get(ADMIN_USER_BASE_URL + "/users/reports/evidences/:id", AdminController.getReportEvidences);
+app.get(ADMIN_USER_BASE_URL + "/users/reports/:id", AdminController.getReport);
 app.get(ADMIN_USER_BASE_URL + "/classes", ClassAdminController.getAllClasses);
 app.get(ADMIN_USER_BASE_URL + "/classes/:class_id", ClassAdminController.getDetailClass);
 app.put(ADMIN_USER_BASE_URL + "/classes/approve", ClassAdminController.approveClass);
@@ -286,9 +289,6 @@ SMySQL.connect();
 // setUpPermissions();
 setUpRoles();
 // setUpGenders();
-// setUpUsers();
+setUpUsers();
 
-SLog.log(LogType.Info, "check verify", "",
-  SUser.verifyPassword("123456", "c2e118335dc43d6665abb66314612a76:44a2a47666c7b883c3770e202dc647bd94f467bf5e72d44ca3ae7c00cf2a3ba3f092700e46e4678cf60ab8e395438b19bd4687b6dffbccc0514514afc57251bb")
-);
 export default app;
