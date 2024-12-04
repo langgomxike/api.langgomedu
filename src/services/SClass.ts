@@ -180,41 +180,40 @@ export default class SClass {
   ) {
     //get class
     const sql = `SELECT JSON_OBJECT(
-                    'id', c.id,
-                    'title', c.title,
-                    'description', c.description,
-                    'price', c.price,
-                    'class_creation_fee', c.class_creation_fee,
-                    'tutor', JSON_OBJECT(
-                        'id', tutor.id,
-                        'full_name', tutor.full_name,
-                        'email', tutor.email,
-                        'phone_number', tutor.phone_number,
-                        'avatar', tutor.avatar
-                    ),
-                    'author', JSON_OBJECT(
-                        'id', author.id,
-                        'full_name', author.full_name,
-                        'email', author.email,
-                        'phone_number', author.phone_number,
-                        'avatar', author.avatar
-                    ),
-                    'major', JSON_OBJECT(
-                        'id', majors.id,
-                        'icon', majors.icon,
-                        'vn_name', majors.vn_name,
-                        'en_name', majors.en_name,
-                        'ja_name', majors.ja_name
-                    ),
-                    'class_level', JSON_OBJECT(
-                    	'id', cl.id,
-                        'vn_name', cl.vn_name,
-                        'en_name', cl.en_name,
-                        'ja_name', cl.ja_name
-                    ),
-                    'class_creaton_fee', c.class_creation_fee,
-                    'type', GROUP_CONCAT(
-                        DISTINCT CASE 
+                                'id', c.id,
+                                'title', c.title,
+                                'description', c.description,
+                                'price', c.price,
+                                'class_creation_fee', c.class_creation_fee,
+                                'tutor', JSON_OBJECT(
+                                        'id', tutor.id,
+                                        'full_name', tutor.full_name,
+                                        'email', tutor.email,
+                                        'phone_number', tutor.phone_number,
+                                        'avatar', tutor.avatar
+                                         ),
+                                'author', JSON_OBJECT(
+                                        'id', author.id,
+                                        'full_name', author.full_name,
+                                        'email', author.email,
+                                        'phone_number', author.phone_number,
+                                        'avatar', author.avatar
+                                          ),
+                                'major', JSON_OBJECT(
+                                        'id', majors.id,
+                                        'icon', majors.icon,
+                                        'vn_name', majors.vn_name,
+                                        'en_name', majors.en_name,
+                                        'ja_name', majors.ja_name
+                                         ),
+                                'class_level', JSON_OBJECT(
+                                        'id', cl.id,
+                                        'vn_name', cl.vn_name,
+                                        'en_name', cl.en_name,
+                                        'ja_name', cl.ja_name
+                                               ),
+                                'type', GROUP_CONCAT(
+                                    DISTINCT CASE 
                             WHEN lessons.is_online = 1 THEN 'online'
                             ELSE 'offline'
                         END
@@ -224,70 +223,65 @@ export default class SClass {
                         END ASC
                         SEPARATOR ', '
                     ),
-                    'duration', lessons.duration,
-                    'max_learners', c.max_learners,
-                    'started_at', c.started_at,
-                    'ended_at', c.ended_at,
-                    'created_at', c.created_at,
-                    'updated_at', c.updated_at,
-                    'address', JSON_OBJECT (
-                        "id", addresses.id,
-                        "province", addresses.province,
-                        "district", addresses.district,
-                        "ward", addresses.ward,
-                        "detail", addresses.detail
-                    ),
-                    'author_accepted', c.author_accepted,
-                    'admin_accepted', c.admin_accepted,
-                    'paid', c.paid,
-                    'paid_path', c.paid_path,
-                    'created_at', c.created_at,
-                    'updated_at', c.updated_at,
-                    'user_status', CASE 
-                        WHEN c.author_id = ? AND c.tutor_id = ? THEN 'author_and_tutor'
-                        WHEN c.author_id = ? THEN 'author'
-                        WHEN c.tutor_id = ? THEN 'tutor'
-                        WHEN class_members.user_id IS NOT NULL THEN 'member'
-                        ELSE 'not_joined'
-                    END,
-                    'lessons', (
-                      SELECT JSON_ARRAYAGG(
-                          JSON_OBJECT(
-                              'id', l.id,
-                              'day', l.day,
-                              'started_at', l.started_at,
-                              'duration', l.duration,
-                              'is_online', l.is_online,
-                              'note', l.note
-                          )
-                      )
-                      FROM (
-                          SELECT * 
-                          FROM lessons 
-                          WHERE lessons.class_id = c.id
-                          GROUP BY lessons.day
-                          ORDER BY lessons.day ASC
-                      ) l
-                  )
-                    ) as class
-                FROM classes c
-                LEFT JOIN users tutor ON tutor.id = c.tutor_id
-                LEFT JOIN users author ON author.id = c.author_id
-                LEFT JOIN majors ON majors.id = c.major_id
-                LEFT JOIN class_levels cl ON cl.id = c.class_level_id
-                LEFT JOIN lessons ON lessons.class_id = c.id
-                LEFT JOIN addresses ON addresses.id = c.address_id
-                LEFT JOIN class_members ON class_members.class_id = c.id AND class_members.user_id = ?
-                WHERE c.id = ?
-                GROUP BY c.id;`;
-                
+                                'duration', lessons.duration,
+                                'max_learners', c.max_learners,
+                                'started_at', c.started_at,
+                                'ended_at', c.ended_at,
+                                'created_at', c.created_at,
+                                'updated_at', c.updated_at,
+                                'address', JSON_OBJECT(
+                                        "id", addresses.id,
+                                        "province", addresses.province,
+                                        "district", addresses.district,
+                                        "ward", addresses.ward,
+                                        "detail", addresses.detail
+                                           ),
+                                'author_accepted', c.author_accepted,
+                                'admin_accepted', c.admin_accepted,
+                                'paid', c.paid,
+                                'paid_path', c.paid_path,
+                                'created_at', c.created_at,
+                                'updated_at', c.updated_at,
+                                'user_status', CASE
+                                                   WHEN c.author_id = ? AND c.tutor_id = ? THEN 'author_and_tutor'
+                                                   WHEN c.author_id = ? THEN 'author'
+                                                   WHEN c.tutor_id = ? THEN 'tutor'
+                                                   WHEN class_members.user_id IS NOT NULL THEN 'member'
+                                                   ELSE 'not_joined'
+                                    END,
+                                'lessons', (SELECT JSON_ARRAYAGG(
+                                                           JSON_OBJECT(
+                                                                   'id', l.id,
+                                                                   'day', l.day,
+                                                                   'started_at', l.started_at,
+                                                                   'duration', l.duration,
+                                                                   'is_online', l.is_online,
+                                                                   'note', l.note
+                                                           )
+                                                   )
+                                            FROM (SELECT *
+                                                  FROM lessons
+                                                  WHERE lessons.class_id = c.id
+                                                  GROUP BY lessons.day
+                                                  ORDER BY lessons.day ASC) l)
+                        ) as class
+                 FROM classes c
+                          LEFT JOIN users tutor ON tutor.id = c.tutor_id
+                          LEFT JOIN users author ON author.id = c.author_id
+                          LEFT JOIN majors ON majors.id = c.major_id
+                          LEFT JOIN class_levels cl ON cl.id = c.class_level_id
+                          LEFT JOIN lessons ON lessons.class_id = c.id
+                          LEFT JOIN addresses ON addresses.id = c.address_id
+                          LEFT JOIN class_members ON class_members.class_id = c.id AND class_members.user_id = ?
+                 WHERE c.id = ?
+                 GROUP BY c.id;`;
 
     SMySQL.getConnection((connection) => {
-      connection?.query<any>(
+      connection?.query<any[]>(
         sql,
         [userId, userId, userId, userId, userId, classId],
         (err, result) => {
-          if (err) {
+          if (err || !result || result.length < 1) {
             console.log("get Class by ID", err);
             onNext(new Class());
           }
