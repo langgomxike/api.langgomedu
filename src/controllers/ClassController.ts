@@ -1,13 +1,12 @@
-import express, { Response } from "express";
+import express from "express";
 import moment from "moment"; // Thư viện hỗ trợ xử lý thời gian
-import SResponse, { ResponseStatus } from "../services/SResponse";
-import SLog, { LogType } from "../services/SLog";
+import SResponse, {ResponseStatus} from "../services/SResponse";
+import SLog, {LogType} from "../services/SLog";
 import Class from "../models/Class";
 import SClass from "../services/SClass";
-import { UserType } from "../configs/UserType";
-import { Filter } from "firebase-admin/firestore";
+import {UserType} from "../configs/UserType";
 import Filters from "../models/Filters";
-import { parseQueryBoolean, parseQueryNumber, parseQueryString } from "../configs/QueryHelpers";
+import {parseQueryBoolean, parseQueryNumber, parseQueryString} from "../configs/QueryHelpers";
 import SAddress from "../services/SAddress";
 
 
@@ -128,6 +127,8 @@ export default class ClassController {
   public static getClass(request: express.Request, response: express.Response) {
     const classId: number = Number(request.params.class_id) ?? -1;
     const userId: string = String(request.query.user_id) ?? "";
+
+    SLog.log(LogType.Info, "getClass", "check params: " , {classId, userId});
 
     if (classId <= 0) {
       SResponse.getResponse(

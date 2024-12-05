@@ -12,10 +12,19 @@ export class ClassLevelController {
         })
     }
 
+    public static getInterestedClassLevels(request: express.Request, response: express.Response) {
+        const userId: string = request.body?.user_id ?? "-1";
+
+        SClassLevel.getInterestedClassLevels(userId, (classLevels) => {
+            SResponse.getResponse(ResponseStatus.OK, classLevels, "get interested class level", response);
+            return;
+        })
+    }
+
     public static updateClasslevel(request: express.Request, response: express.Response) {
         const classLevel: ClassLevel = request?.body?.class_level;
 
-        if (!classLevel ||!classLevel.id || (!classLevel.vn_name && !classLevel.en_name && !classLevel.jp_name)) {
+        if (!classLevel ||!classLevel.id || (!classLevel.vn_name && !classLevel.en_name && !classLevel.ja_name)) {
             SResponse.getResponse(ResponseStatus.Internal_Server_Error, null, "Invalid class level", response);
             return;
         }
@@ -32,7 +41,7 @@ export class ClassLevelController {
     public static createClassLevel(request: express.Request, response: express.Response) {
         const classLevel: ClassLevel = request?.body?.class_level;
 
-        if (!classLevel || !classLevel.vn_name || !classLevel.en_name || !classLevel.jp_name) {
+        if (!classLevel || !classLevel.vn_name || !classLevel.en_name || !classLevel.ja_name) {
             SResponse.getResponse(ResponseStatus.Internal_Server_Error, null, "Invalid class level", response);
             return;
         }
