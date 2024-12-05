@@ -1,7 +1,7 @@
 // @ts-ignore
-import express, { Response } from "express";
+import express, {Response} from "express";
 import SUser from "../services/SUser";
-import SResponse, { ResponseStatus } from "../services/SResponse";
+import SResponse, {ResponseStatus} from "../services/SResponse";
 import User from "../models/User";
 import {v4} from "uuid";
 import SLog, {LogType} from "../services/SLog";
@@ -10,8 +10,8 @@ import RoleList from "../configs/RoleConfig";
 import Role from "../models/Role";
 import SStudent from "../services/SStudent";
 import SFirebase, {FirebaseNode} from "../services/SFirebase";
+import axios = require("axios");
 import OTP from "../models/OTP";
-import { log } from "node:console";
 
 export default class UserController {
   public static login(request: express.Request, response: express.Response) {
@@ -73,7 +73,7 @@ export default class UserController {
         return;
       }
 
-      SRole.getRolesByUserId(user.id, (roles) => {
+      SRole.getRolesByUserId(user.id, roles => {
         SLog.log(LogType.Info, "Login", "login successfully");
 
         user.password = user.password.replace(/^.$/, "*");
@@ -137,8 +137,7 @@ export default class UserController {
         ResponseStatus.Internal_Server_Error,
         null,
         "Token not found",
-        response
-      );
+        response);
       return;
     }
 
@@ -154,7 +153,7 @@ export default class UserController {
         return;
       }
 
-      SRole.getRolesByUserId(user.id, (roles) => {
+      SRole.getRolesByUserId(user.id, roles => {
         user.roles = roles;
 
         //update user's token
@@ -184,26 +183,11 @@ export default class UserController {
     const user: User = request?.body?.user;
     const requestCode: number = request.body.code ?? 0;
 
-    SLog.log(LogType.Warning, "regiterUser", "check params", {
-      user,
-      requestCode,
-    });
+    SLog.log(LogType.Warning, "regiterUser", "check params", {user, requestCode});
 
-    if (
-      !user ||
-      !user.id ||
-      !user.password ||
-      !user.phone_number ||
-      !user.full_name ||
-      !requestCode
-    ) {
+    if (!user || !user.id || !user.password || !user.phone_number || !user.full_name || !requestCode) {
       SLog.log(LogType.Error, "registerUser", "Invalid user");
-      SResponse.getResponse(
-        ResponseStatus.Internal_Server_Error,
-        {},
-        "Invalid user",
-        response
-      );
+      SResponse.getResponse(ResponseStatus.Internal_Server_Error, {}, "Invalid user", response);
       return;
     }
 
@@ -338,32 +322,26 @@ export default class UserController {
     });
   }
 
-  public static getUserInfo(
-    request: express.Request,
-    response: express.Response
+  public static
+
+  getUserInfo(request
+                :
+                express.Request, response
+                :
+                express.Response
   ) {
     const id: string = request?.params?.id;
 
     if (!id) {
       SLog.log(LogType.Error, "getUserInfo", "Invalid ID");
-      SResponse.getResponse(
-        ResponseStatus.Internal_Server_Error,
-        {},
-        "Invalid ID",
-        response
-      );
+      SResponse.getResponse(ResponseStatus.Internal_Server_Error, {}, "Invalid ID", response);
       return;
     }
 
     SUser.getUserById(id, (user: User | undefined) => {
       if (!user) {
         SLog.log(LogType.Error, "getUserInfo", "User not found");
-        SResponse.getResponse(
-          ResponseStatus.Not_Found,
-          {},
-          "User not found",
-          response
-        );
+        SResponse.getResponse(ResponseStatus.Not_Found, {}, "User not found", response);
         return;
       }
 
@@ -375,31 +353,19 @@ export default class UserController {
     });
   }
 
-  public static updateUserInfo(
-    request: express.Request,
-    response: express.Response
+  public static
+
+  updateUserInfo(request
+                   :
+                   express.Request, response
+                   :
+                   express.Response
   ) {
     const user: User = request?.body?.user;
 
-    if (
-      !user ||
-      !user.id ||
-      !(
-        user.full_name ||
-        user.username ||
-        user.phone_number ||
-        user.password ||
-        user.avatar ||
-        user.roles
-      )
-    ) {
+    if (!user || !user.id || !(user.full_name || user.username || user.phone_number || user.password || user.avatar || user.roles)) {
       SLog.log(LogType.Error, "updateUserInfo", "Invalid user");
-      SResponse.getResponse(
-        ResponseStatus.Internal_Server_Error,
-        {},
-        "Invalid user",
-        response
-      );
+      SResponse.getResponse(ResponseStatus.Internal_Server_Error, {}, "Invalid user", response);
       return;
     }
 
@@ -407,53 +373,37 @@ export default class UserController {
       SUser.updateUserInfo(user, (result) => {
         if (!result) {
           SLog.log(LogType.Error, "updateUserInfo", "Fail to update user info");
-          SResponse.getResponse(
-            ResponseStatus.Internal_Server_Error,
-            {},
-            "Fail to update user info",
-            response
-          );
+          SResponse.getResponse(ResponseStatus.Internal_Server_Error, {}, "Fail to update user info", response);
           return;
         }
 
-        SResponse.getResponse(
-          ResponseStatus.OK,
-          {},
-          "update user info",
-          response
-        );
+        SResponse.getResponse(ResponseStatus.OK, {}, "update user info", response);
       });
-    };
+    }
 
     mainUpdate();
   }
 
-  public static deleteAccount(
-    request: express.Request,
-    response: express.Response
+  public static
+
+  deleteAccount(request
+                  :
+                  express.Request, response
+                  :
+                  express.Response
   ) {
     const id = request?.params?.id;
 
     if (!id) {
       SLog.log(LogType.Error, "deleteAccount", "Invalid ID");
-      SResponse.getResponse(
-        ResponseStatus.Internal_Server_Error,
-        {},
-        "Invalid ID",
-        response
-      );
+      SResponse.getResponse(ResponseStatus.Internal_Server_Error, {}, "Invalid ID", response);
       return;
     }
 
     SUser.softDeleteUser(id, (result) => {
       if (!result) {
         SLog.log(LogType.Error, "deleteAccount", "Fail to delete user");
-        SResponse.getResponse(
-          ResponseStatus.Internal_Server_Error,
-          {},
-          "Fail to delete user",
-          response
-        );
+        SResponse.getResponse(ResponseStatus.Internal_Server_Error, {}, "Fail to delete user", response);
         return;
       }
 
@@ -461,9 +411,15 @@ export default class UserController {
     });
   }
 
-  public static getAllUsers(
-    request: express.Request,
-    response: express.Response
+  public static
+
+  getAllUsers(
+    request
+      :
+      express.Request,
+    response
+      :
+      express.Response
   ) {
     SUser.getAllUsers((users) => {
       SResponse.getResponse(
@@ -580,9 +536,15 @@ export default class UserController {
       });
   }
 
-  public static MinusUserPoints(
-    request: express.Request,
-    response: express.Response
+  public static
+
+  MinusUserPoints(
+    request
+      :
+      express.Request,
+    response
+      :
+      express.Response
   ) {
     const {user_id, point, report_id} = request.body; // Thêm report_id vào body request
     const pointsToDeduct = point ?? 30; // Mặc định trừ 30 nếu không truyền
@@ -620,7 +582,7 @@ export default class UserController {
     if (!userId) {
       return response
         .status(400)
-        .json({ success: false, message: "User ID is required." });
+        .json({success: false, message: "User ID is required."});
     }
 
     if (!reportId) {
@@ -642,20 +604,24 @@ export default class UserController {
           message: "User account locked successfully.",
         });
       } else {
-        response
-          .status(500)
-          .json({ success: false, message: "Failed to lock user account." });
+        response.status(500).json({success: false, message: "Failed to lock user account."});
       }
     });
   }
 
   //tạo admin
 
-  public static registerAdmin(
-    request: express.Request,
-    response: express.Response
+  public static
+
+  registerAdmin(
+    request
+      :
+      express.Request,
+    response
+      :
+      express.Response
   ) {
-    const { phone, email, password } = request.body;
+    const {phone, email, password} = request.body;
 
     // Kiểm tra các thông số cần thiết
     if (!phone || !email || !password) {
@@ -680,6 +646,9 @@ export default class UserController {
       }
     });
   }
+
+
+
 
   //lấy profile user
   public static getUserProfile(

@@ -3,7 +3,6 @@
 import express, {Express, Request, Response} from "express";
 // @ts-ignore
 import dotenv from "dotenv";
-import multer from "multer";
 import SLog, { LogType } from "./services/SLog";
 import SMySQL from "./services/SMySQL";
 import UserController from "./controllers/UserController";
