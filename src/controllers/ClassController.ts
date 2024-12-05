@@ -25,6 +25,43 @@ export default class ClassController {
 
      // Lấy các giá trị filter từ query parameters
     const filter: Filters = {
+    //Địa chỉ:
+    province: parseQueryString(query.province),
+    district: parseQueryString(query.district),
+    ward: parseQueryString(query.ward),
+
+    // Ngành học (nếu có)
+    major: parseQueryString(query.major),
+    // classLevelId: 
+    classLevelId: parseQueryString(query.classLevelId),
+  };
+
+  const page = Number(request.query.page) || 1;
+  const perPage = Number(request.query.perPage) || 2;
+
+    SClass.getSuggestsClasses(user_id, user_type, filter, page, perPage ,
+      (classes, pagination) => {
+      SResponse.getResponse(
+        ResponseStatus.OK,
+        {classes, pagination} ,
+        "get sugget classes",
+        response
+      );
+    });
+  }
+
+  public static getFilterClasses(
+    request: express.Request,
+    response: express.Response
+  ) {
+    const query = request.query
+
+    const user_id = request.params.user_id;
+
+    const user_type: number =  Number(query.user_type) ?? UserType.LEANER;
+
+     // Lấy các giá trị filter từ query parameters
+    const filter: Filters = {
     // Giá lớp học tối thiểu
     minPrice: parseQueryNumber(query.minPrice),
 
@@ -52,13 +89,12 @@ export default class ClassController {
   };
 
   // Lấy các tham số sắp xếp từ query parameters
-  // Trường sắp xếp mặc định: 'started_at'
   const sortBy = parseQueryString(request.query.sort) ?? "started_at"; 
 
   const page = Number(request.query.page) || 1;
   const perPage = Number(request.query.perPage) || 2;
 
-    SClass.getSuggestsClasses(user_id, user_type, filter, sortBy, page, perPage ,
+    SClass.getFilterClasses(user_id, user_type, filter, sortBy, page, perPage ,
       (classes, pagination) => {
       SResponse.getResponse(
         ResponseStatus.OK,

@@ -10,4 +10,5 @@ export default class Filters {
       maxLearners?: number;
       startedAtMin?: number; // Ngày bắt đầu (từ)
       endedAtMax?: number; // Ngày kết thúc (đến)
+      genders?: string;
 }

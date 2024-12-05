@@ -13,42 +13,45 @@ export default class CVController {
         })
     }
 
-    // public static getSuggestedCVs(request: express.Request, response: express.Response) {
-    //     const query = request.query
-    //     //Địa chỉ:
-    //     const province =  parseQueryString(query.province);
-    //     const district =  parseQueryString(query.district);
-    //     const ward = parseQueryString(query.ward);
-
-    //     const page = Number(request.query.page) || 1;
-    //     const perPage = Number(request.query.perPage) || 2;
-
-    //     SCV.getSugestedCVs(page, perPage, province, district, ward,(cvs, pagination)=>{
-    //         SResponse.getResponse(ResponseStatus.OK, {cvs, pagination}, "get sugests CVs", response);
-    //         return;
-    //     })
-    // }
 
     public static getSuggestedCVs(request: express.Request, response: express.Response) {
         const query = request.query
+
+        const userId = request.params.user_id;
+        console.log(userId);
+
+        const address = String(request.query.address);
+        console.log(typeof request.query.address );
+        
+        const page = Number(request.query.page) || 1;
+        const perPage = Number(request.query.perPage) || 2;
+
+        SCV.getSugestedCVs(userId ,page, perPage, address ,(cvs, pagination)=>{
+            SResponse.getResponse(ResponseStatus.OK, {cvs, pagination}, "get sugests CVs", response);
+            return;
+        })
+    }
+
+    public static getFilterCVs(request: express.Request, response: express.Response) {
+        const query = request.query
+
+        const userId = request.params.user_id;
+        console.log(userId);
+        
 
         const filter: Filters = {
             //Địa chỉ:
             province: parseQueryString(query.province),
             district: parseQueryString(query.district),
             ward: parseQueryString(query.ward),
-        
-            // Ngành học (nếu có)
-            major: parseQueryString(query.major),
-            // classLevelId: 
-            classLevelId: parseQueryString(query.classLevelId),
+            genders: parseQueryString(query.genders),
           };
 
         const page = Number(request.query.page) || 1;
         const perPage = Number(request.query.perPage) || 2;
 
-        SCV.getSugestedCVs(page, perPage, filter ,(cvs, pagination)=>{
-            SResponse.getResponse(ResponseStatus.OK, {cvs, pagination}, "get sugests CVs", response);
+        SCV.getFilterCVs(userId ,page, perPage, filter ,(cvs, pagination)=>{
+            SResponse.getResponse(ResponseStatus.OK, {cvs, pagination}, "get filter CVs", response);
             return;
         })
     }
