@@ -99,6 +99,30 @@ export default class UserController {
     });
   }
 
+  public static getUserAddress(request: express.Request, response: express.Response) {
+    const userId: string = request.body.user_id ?? "-1";
+
+    SUser.getUserAddress(userId, (adress) => {
+      if (!adress) {
+        SLog.log(LogType.Error, "getUserAddress", "User adress not found");
+        SResponse.getResponse(
+          ResponseStatus.Internal_Server_Error,
+          null,
+          "User adress not found",
+          response
+        );
+        return;
+      }
+
+      SResponse.getResponse(
+        ResponseStatus.OK,
+        adress,
+        "User adress successfully fetched",
+        response
+      );
+    });
+  }
+
   public static implicitLogin(
     request: express.Request,
     response: express.Response

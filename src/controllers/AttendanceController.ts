@@ -1,16 +1,20 @@
-import express, { Request } from "express";
+import express, {Request} from "express";
 import SAttendance from "../services/SAttendance";
-import SResponse, { ResponseStatus } from "../services/SResponse";
+import SResponse, {ResponseStatus} from "../services/SResponse";
+import SLog, {LogType} from "../services/SLog";
+
 export default class AttendanceController {
   public static getAttendanceHistories(
     request: express.Request,
     response: express.Response
   ) {
-    SAttendance.getAttendanceHistoriesInClass(1, (attendances) => {
+    const userId: string = request.body.user_id ?? "-1";
+
+    SAttendance.getAttendanceHistoriesOfUser(userId, (attendances) => {
       SResponse.getResponse(
         ResponseStatus.OK,
         attendances,
-        "get attendances with the class id " + 1,
+        "get attendances",
         response
       );
     });
@@ -27,7 +31,7 @@ export default class AttendanceController {
     SAttendance.requestAttendance(learnerAttendance, (message, result) => {
       SResponse.getResponse(
         ResponseStatus.OK,
-        { message, result },
+        {message, result},
         "request attendances for class in lesson",
         response
       );
@@ -39,7 +43,7 @@ export default class AttendanceController {
     response: express.Response
   ) {
     // Chấp nhận điểm danh (Phụ huynh, học sinh)
-    const { lesson_id, user_id, confirm_attendance, attended_at } =
+    const {lesson_id, user_id, confirm_attendance, attended_at} =
       request.body;
     console.log(">>> acceptAttendance", request.body);
     SAttendance.acceptAttendance(
@@ -50,7 +54,7 @@ export default class AttendanceController {
       (message, result) => {
         SResponse.getResponse(
           ResponseStatus.OK,
-          { message, result },
+          {message, result},
           "accept attendances for class in lesson",
           response
         );
@@ -63,7 +67,7 @@ export default class AttendanceController {
     request: express.Request,
     response: express.Response
   ) {
-    let { lesson_id, user_id, paid, type, deferred } = request.body;
+    let {lesson_id, user_id, paid, type, deferred} = request.body;
 
     // console.log("data:", request.body);
 
@@ -76,9 +80,9 @@ export default class AttendanceController {
     deferred = deferred === "true";
 
     SAttendance.updatePaymentOfLearner(
-      lesson_id, user_id, paid, filePath,  type, deferred,
+      lesson_id, user_id, paid, filePath, type, deferred,
       (message, result) => {
-        SResponse.getResponse(ResponseStatus.OK, { message, result }, "update payment of leaner", response);
+        SResponse.getResponse(ResponseStatus.OK, {message, result}, "update payment of leaner", response);
       }
     );
   }
@@ -87,10 +91,10 @@ export default class AttendanceController {
     request: express.Request,
     response: express.Response
   ) {
-    const { lesson_id, user_id, action ,value } = request.body;
-  
+    const {lesson_id, user_id, action, value} = request.body;
+
     console.log("Request body:", request.body);
-  
+
     // Cập nhật thanh toán xác nhận từ tutor
     SAttendance.confirmPaymentByTutor(
       lesson_id,
@@ -100,7 +104,7 @@ export default class AttendanceController {
       (message, result) => {
         SResponse.getResponse(
           ResponseStatus.OK,
-          { message, result },
+          {message, result},
           "Confirm payment by tutor",
           response
         );
@@ -124,7 +128,7 @@ export default class AttendanceController {
         // Xử lý thành công
         SResponse.getResponse(
           ResponseStatus.OK,
-          { lesson, learner },
+          {lesson, learner},
           `Get attendance for user id: ${userId} in class id: ${classId} of lesson: ${lessonId}`,
           response
         );
@@ -150,7 +154,7 @@ export default class AttendanceController {
         // Xử lý thành công
         SResponse.getResponse(
           ResponseStatus.OK,
-          { attendance },
+          {attendance},
           `Get attendance for user id: ${userId} in lesson: ${lessonId}`,
           response
         );
@@ -172,7 +176,7 @@ export default class AttendanceController {
         // Xử lý thành công
         SResponse.getResponse(
           ResponseStatus.OK,
-          {learners },
+          {learners},
           `Get attendance for tutor class id: ${classId} of lesson: ${lessonId}`,
           response
         );

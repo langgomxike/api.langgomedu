@@ -1,5 +1,5 @@
 import * as mysql from "mysql2";
-import dotenv from "dotenv";
+import * as dotenv from "dotenv";
 import { Connection } from "mysql2";
 import SLog, { LogType } from "./SLog";
 

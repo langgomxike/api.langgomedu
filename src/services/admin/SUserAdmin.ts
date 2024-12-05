@@ -1,10 +1,9 @@
-
-import User, { userJson } from "../../models/User";
+import User from "../../models/User";
 import SMySQL from "../SMySQL";
 import "reflect-metadata";
-import db from "../../configs/knex";
 import Pagination from "../../models/Pagination";
-import mysql from "mysql2";
+import Report from "../../models/Report";
+import SLog, {LogType} from "../SLog";
 
 const userJsonSql = `
 JSON_OBJECT(
@@ -33,7 +32,7 @@ JSON_OBJECT(
                 WHEN reports.reportee_id IS NOT NULL THEN true 
                 ELSE false 
             END,
-            'cv_id', cvs.id
+            'cv_id', MAX(cvs.id)
         ) AS user
 `;
 export default class SUserAdmin {
@@ -144,57 +143,112 @@ export default class SUserAdmin {
 
 
   public static getAllReportUserOfUser(
-    userId: number,
-    onNext: (user: User[] | undefined) => void
+    userId: string,
+    onNext: (reports: Report[]) => void
   ) {
     const sql = `
-        SELECT 
-        JSON_OBJECT(
-            'id', from_user.id,
-            'full_name', from_user.full_name,
-            'email', from_user.email,
-            'phone_number', from_user.phone_number,
-            'avatar', (
-                SELECT JSON_OBJECT(
-                    'id', ffu.id,
-                    'name', ffu.name,
-                    'path', ffu.path
-                )
-                FROM files AS ffu
-                WHERE ffu.id = from_user.avatar_id
-            )
-        ) as user
-FROM user_reports AS ur 
-LEFT JOIN users AS from_user ON from_user.id = ur.from_user_id
-WHERE ur.to_user_id = 089204010902;
-        `;
+        SELECT reports.*,
+               reports.level_id as report_level,
+               JSON_OBJECT(
+                       'id', users.id,
+                       'full_name', users.full_name,
+                       'avatar', users.avatar,
+                       'point', users.point
+               )                as reporter
+        FROM reports
+                 INNER JOIN users ON reports.reporter_id = users.id
+                 LEFT JOIN classes ON reports.class_id = classes.id
+        WHERE reports.reportee_id = ?;
+    `;
 
     SMySQL.getConnection((connection) => {
       connection?.execute<any[]>(sql, [userId], (err, results) => {
         if (err) {
+          SLog.log(LogType.Error, "getAllReportUserOfUser", "found error: ", err);
           onNext([]);
           return;
         }
 
-        const users: User[] = [];
-        //  console.log(">>> user_reports", JSON.stringify(results[0].user, null, 2));
+        const reports: Report[] = results ?? [];
 
-        results.forEach((result) => {
-          const user = result.user;
-          users.push(user);
-        });
-
-        onNext(users);
+        onNext(reports);
       });
     });
   }
 
-  public static async getAllUsers2(onNext: (users: User[]) => void) {
-    const results = await db("users")
-      .join("addresses as ad", "ad.id", "=", "users.address_id")
-      .join("genders", "genders.id", "=", "users.gender_id")
-      .select(db.raw(userJson("users", "ad", "genders")));
+  public static getReportById(
+    reportId: number,
+    onNext: (report: Report | undefined) => void
+  ) {
+    const sql = `
+        SELECT reports.*,
+               reports.level_id as report_level,
+               JSON_OBJECT(
+                       'id', users.id,
+                       'full_name', users.full_name,
+                       'avatar', users.avatar,
+                       'point', users.point
+               )                as reportee,
+               JSON_OBJECT(
+                       'id', classes.id,
+                       'title', classes.title,
+                       'major', JSON_OBJECT(
+                               'vn_name', majors.vn_name,
+                               'en_name', majors.en_name,
+                               'ja_name', majors.ja_name
+                                ),
+                       'tutor', JSON_OBJECT(
+                               'id', classes.author_id
+                                 )
+               )                as class
+        FROM reports
+                 INNER JOIN users ON reports.reportee_id = users.id
+                 LEFT JOIN classes ON reports.class_id = classes.id
+                 LEFT JOIN majors ON majors.id = classes.major_id
+        WHERE reports.id = ?;
+    `;
 
-    onNext(results as User[]);
+    SMySQL.getConnection((connection) => {
+      connection?.execute<any[]>(sql, [reportId], (err, result) => {
+        if (err) {
+          SLog.log(LogType.Error, "getAllReportUserOfUser", "found error: ", err);
+          onNext(undefined);
+          return;
+        }
+
+        const report: Report = (result.length > 0 && result[0] as Report) ?? undefined;
+        onNext(report);
+      });
+    });
   }
+
+  public static getReportEvidences(reportId: number, onNext: (files: string[]) => void) {
+    const sql = `
+        SELECT files.path as file_path
+        FROM files INNER JOIN report_files ON report_files.file_id = files.id
+        WHERE report_files.report_id =?;
+    `;
+
+    SMySQL.getConnection((connection) => {
+      connection?.execute<any[]>(sql, [reportId], (err, result) => {
+        if (err) {
+          SLog.log(LogType.Error, "getReportEvidences", "found error: ", err);
+          onNext([]);
+          return;
+        }
+
+        const files: string[] = result.map((item) => item.file_path);
+        onNext(files);
+      });
+    });
+  }
+
+  // public static async getAllUsers2(onNext: (users: User[]) => void) {
+  //   const results = await db("users")
+  //     .join("addresses as ad", "ad.id", "=", "users.address_id")
+  //     .join("genders", "genders.id", "=", "users.gender_id")
+  //     .select(db.raw(userJson("users", "ad", "genders")));
+  //
+  //   onNext(results as User[]);
+  // }
 }

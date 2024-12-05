@@ -8,6 +8,7 @@ import * as dotenv from "dotenv";
 import OTP from "../models/OTP";
 import SMessage from "./SMessage";
 import {pbkdf2Sync, randomBytes} from "node:crypto";
+import Address from "../models/Address";
 
 export default class SUser {
 
@@ -164,6 +165,31 @@ export default class SUser {
 
           SLog.log(LogType.Info, "getUserByToken", "", user);
           onNext(user);
+        }
+      });
+    });
+  }
+
+  public static getUserAddress(
+    userId: string,
+    onNext: (address: Address | undefined) => void
+  ) {
+    const sql = `SELECT addresses.*
+                 FROM addresses
+                 INNER JOIN users ON users.address_id = addresses.id
+                 WHERE users.id = ?`;
+
+    SMySQL.getConnection((connection) => {
+      connection?.execute<any>(sql, [userId], (error, result) => {
+        if (error) {
+          onNext(undefined);
+          SLog.log(LogType.Error, "getUserAddress", "", error);
+          return;
+        } else {
+          const address: Address | undefined = (result && result[0]) || undefined;
+
+          SLog.log(LogType.Info, "getUserAddress", "successfully");
+          onNext(address);
         }
       });
     });
@@ -549,6 +575,32 @@ export default class SUser {
           console.log("Updated desc_point in reports for report_id", report_id);
 
           // Cuối cùng, gọi callback với kết quả thành công
+          onNext(true);
+        });
+      });
+    });
+  }
+
+  public static minusUserPoint(
+    user_id: string,
+    point: number,
+    onNext: (result: boolean) => void
+  ) {
+    const updateUserPointsSql = `UPDATE users
+                                 SET point = point - ?
+                                 WHERE id = ?`;
+
+    SMySQL.getConnection((connection) => {
+      // Thực hiện trừ điểm cho người dùng
+      connection?.execute(updateUserPointsSql, [point, user_id], (error, result) => {
+        if (error) {
+          console.error("Error subtracting points in database:", error);
+          onNext(false);
+          return;
+        }
+
+        console.log("Subtracted points successfully for user", user_id);
+        SFirebase.push(FirebaseNode.Users, [{key: FirebaseNode.Id, value: user_id}], () => {
           onNext(true);
         });
       });
