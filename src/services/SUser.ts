@@ -8,6 +8,7 @@ import * as dotenv from "dotenv";
 import OTP from "../models/OTP";
 import SMessage from "./SMessage";
 import {pbkdf2Sync, randomBytes} from "node:crypto";
+import Address from "../models/Address";
 
 export default class SUser {
 
@@ -164,6 +165,31 @@ export default class SUser {
 
           SLog.log(LogType.Info, "getUserByToken", "", user);
           onNext(user);
+        }
+      });
+    });
+  }
+
+  public static getUserAddress(
+    userId: string,
+    onNext: (address: Address | undefined) => void
+  ) {
+    const sql = `SELECT addresses.*
+                 FROM addresses
+                 INNER JOIN users ON users.address_id = addresses.id
+                 WHERE users.id = ?`;
+
+    SMySQL.getConnection((connection) => {
+      connection?.execute<any>(sql, [userId], (error, result) => {
+        if (error) {
+          onNext(undefined);
+          SLog.log(LogType.Error, "getUserAddress", "", error);
+          return;
+        } else {
+          const address: Address | undefined = (result && result[0]) || undefined;
+
+          SLog.log(LogType.Info, "getUserAddress", "successfully");
+          onNext(address);
         }
       });
     });

@@ -1,6 +1,5 @@
-import File from "../models/File";
 import Major from "./../models/Major";
-import SLog, { LogType } from "./SLog";
+import SLog, {LogType} from "./SLog";
 import SMySQL from "./SMySQL";
 
 export default class SMajor {
@@ -14,7 +13,7 @@ export default class SMajor {
   //         onNext([]);
   //         return;
   //       }
-        
+
   //       const majors:Major[] = [];
   //       result.forEach((row) => {
   //         const file = new File(row.icon_id, row.name, row.path, row.capacity, row.image_width, row.image_height, row.created_at,row.updated_at )
@@ -27,8 +26,29 @@ export default class SMajor {
   //   });
   // }
 
+  public static getInterestedMajorOfUser(userId: string, onNext: (majors: Major[]) => void) {
+    const sql = `SELECT *
+                 FROM majors
+                          INNER JOIN interested_majors ON majors.id = interested_majors.major_id
+                 WHERE interested_majors.user_id = ?`;
+
+    SMySQL.getConnection((connection) => {
+      connection.execute<any[]>(sql, [userId], (err, rows) => {
+        if (err) {
+          SLog.log(LogType.Error, "getInterestedMajorOfUser", "found error: ", err);
+          onNext([]);
+          return;
+        }
+        SLog.log(LogType.Error, "getInterestedMajorOfUser", "successfully");
+        const majors: Major[] = rows as Major[] ?? [];
+        onNext(majors);
+      });
+    });
+  }
+
   public static getAllMajors(onNext: (majors: Major[]) => void) {
-    const sql = `SELECT * FROM majors`;
+    const sql = `SELECT *
+                 FROM majors`;
 
     SMySQL.getConnection((connection) => {
       connection?.execute<any[]>(sql, (err, result) => {
@@ -36,8 +56,8 @@ export default class SMajor {
           onNext([]);
           return;
         }
-        
-        const majors:Major[] = result;
+
+        const majors: Major[] = result;
 
         onNext(majors);
       });
@@ -52,22 +72,23 @@ export default class SMajor {
     icon: string,
     onNext: (result: boolean) => void
   ) {
-    const majorSql = `INSERT INTO majors (vn_name, en_name, ja_name, icon) VALUES (?,?,?,?)`;
-  
+    const majorSql = `INSERT INTO majors (vn_name, en_name, ja_name, icon)
+                      VALUES (?, ?, ?, ?)`;
+
     SMySQL.getConnection((connection) => {
       if (!connection) {
         console.error("Không thể kết nối database.");
         onNext(false);
         return;
       }
-  
+
       connection.beginTransaction((transactionErr) => {
         if (transactionErr) {
           console.error("Lỗi khi bắt đầu transaction:", transactionErr);
           onNext(false);
           return;
         }
-  
+
         connection.execute(
           majorSql,
           [vn_name, ja_name, en_name, icon],
@@ -79,7 +100,7 @@ export default class SMajor {
               });
               return;
             }
-  
+
             connection.commit((commitErr) => {
               if (commitErr) {
                 console.error("Lỗi khi commit transaction:", commitErr);
@@ -88,7 +109,7 @@ export default class SMajor {
                 });
                 return;
               }
-  
+
               // Thành công
               console.log("Major được thêm thành công:", majorResult);
               onNext(true);
@@ -98,5 +119,5 @@ export default class SMajor {
       });
     });
   }
-  
+
 }

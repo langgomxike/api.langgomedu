@@ -67,8 +67,9 @@ interface MulterRequest extends Request {
 }
 
 // ClassLevel routes
-const CLASSLEVEL_BASE_URL = Config.PREFIX + "/class-levels";
-app.get(CLASSLEVEL_BASE_URL, ClassLevelController.getAllClassLevels);
+const CLASS_LEVEL_BASE_URL = Config.PREFIX + "/class-levels";
+app.post(CLASS_LEVEL_BASE_URL + "/interested", ClassLevelController.getInterestedClassLevels); //
+app.get(CLASS_LEVEL_BASE_URL, ClassLevelController.getAllClassLevels);
 
 // Attendance routes
 const ATTENDANCE_BASE_URL = Config.PREFIX + "/attendances";
@@ -182,6 +183,7 @@ app.get(GENDER_BASE_URL, GenderController.getAllGender);
 
 const MAJOR_BASE_URL = Config.PREFIX + "/majors";
 app.get(MAJOR_BASE_URL, MajorController.getAllMajors);
+app.post(MAJOR_BASE_URL + "/interested", MajorController.getInterestedMajorOfUser);
 app.post(MAJOR_BASE_URL + "/create", MajorController.createMajor);
 app.put(MAJOR_BASE_URL + "/:id", MajorController.updateMajor);
 app.patch(MAJOR_BASE_URL + "/:id", MajorController.updateMajor);
@@ -244,6 +246,7 @@ app.patch(STUDENT_BASE_URL + "/:id", StudentController.updateStudent);
 app.delete(STUDENT_BASE_URL + "/:id", StudentController.deleteStudent);
 
 const USER_BASE_URL = Config.PREFIX + "/users";
+app.post(USER_BASE_URL + "/address", UserController.getUserAddress);
 app.get(USER_BASE_URL, UserController.getAllUsers);
 app.get(USER_BASE_URL + "/:id", UserController.getUserInfo);
 app.post(USER_BASE_URL + "/register/child", UserController.registerChild);
@@ -283,6 +286,6 @@ SMySQL.connect();
 // setUpPermissions();
 setUpRoles();
 // setUpGenders();
-setUpUsers();
+// setUpUsers();
 
 export default app;

@@ -6,7 +6,7 @@ import Attendance from "./../models/Attendance";
 import SFirebase, {FirebaseNode} from "./SFirebase";
 import SLog, {LogType} from "./SLog";
 import SMySQL from "./SMySQL";
-import mysql from "mysql2";
+import * as mysql from "mysql2";
 
 export default class SAttendance {
   public static getAttendanceHistoriesInClass(
@@ -54,18 +54,26 @@ export default class SAttendance {
     userId: string,
     onNext: (attendances: Attendance[]) => void
   ) {
-    const sql = `SELECT attendances.attended,
-                        attendances.paid,
+    const sql = `SELECT attendances.*,
                         JSON_OBJECT(
                                 'id', lessons.id,
                                 'started_at', lessons.started_at
                         ) as lesson,
                         JSON_OBJECT(
                                 'title', classes.title,
+                                'tutor', JSON_OBJECT(
+                                        'id', classes.tutor_id
+                                         ),
+                                'price', classes.price,
                                 'major', JSON_ObJECT(
                                         'icon', majors.icon
                                          )
-                        ) as class
+                        ) as class,
+                        JSON_OBjECT(
+                                'id', users.id,
+                                'full_name', users.full_name,
+                                'avatar', users.avatar
+                        ) as 'user'
                  FROM attendances
                           INNER JOIN lessons
                                      ON attendances.lesson_id = lessons.id
@@ -73,13 +81,16 @@ export default class SAttendance {
                                      ON classes.id = lessons.class_id
                           INNER JOIN majors
                                      ON majors.id = classes.major_id
+                          INNER JOIN users
+                                     ON users.id = attendances.user_id
                  WHERE attendances.user_id = ?
+                    OR classes.tutor_id = ?
                  ORDER BY lessons.started_at DESC;`;
 
 
 
     SMySQL.getConnection((connection) => {
-      connection?.execute<any[]>(sql, [userId], (error, result) => {
+      connection?.execute<any[]>(sql, [userId, userId], (error, result) => {
         if (error) {
           SLog.log(LogType.Error, "getAttendanceHistoriesOfUser", "get attendances error", error);
           onNext([]);
