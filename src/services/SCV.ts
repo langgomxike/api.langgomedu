@@ -79,292 +79,286 @@ export default class SCV {
   }
 
   public static cvJsonSQL = `JSON_OBJECT(
-        'id', cvs.id,
-        'user', JSON_OBJECT(
-            'id', users.id,
-            'username', users.user_name,
-            'fullname', users.full_name,
-            'phone_number', users.phone_number,
-            'avatar', users.avatar,
-            'hometown', users.hometown,
-            'address', JSON_OBJECT(
-                'id', ad.id,
-                'province', ad.province,
-                'district', ad.district,
-                'ward', ad.ward,
-                'detail', ad.detail
-            ),
-            'gender', JSON_OBJECT(
-                'id', g.id,
-                'vn_name', g.vn_name,
-                'en_name', g.en_name,
-                'ja_name', g.ja_name
-            ),
-            'birthday', users.birthday,
-            'point', users.point
-        )
-    ) AS user_data
-  `
-
-  public static getSugestedCVs2(
-    page: number, perPage: number,
-    province: string | undefined, district: string | undefined, ward: string | undefined,
-    onNext: (cvs: CV[], pagination: Pagination) => void,
-  ) {
-    const sql = `
-        WITH SuggestedCVs AS (
-        SELECT
-          ${this.cvJsonSQL}
-        FROM cvs
-        LEFT JOIN users ON users.id = cvs.id
-        LEFT JOIN addresses ad ON ad.id = users.address_id
-        LEFT JOIN genders g ON g.id = users.gender_id
-        WHERE
-          ad.province LIKE "%?%" AND ad.district LIKE "%?%" 
+    'id', cvs.id,
+    'user', JSON_OBJECT(
+        'id', users.id,
+        'username', users.user_name,
+        'full_name', users.full_name,
+        'phone_number', users.phone_number,
+        'avatar', users.avatar,
+        'hometown', users.hometown,
+        'address', JSON_OBJECT(
+            'id', ad.id,
+            'province', ad.province,
+            'district', ad.district,
+            'ward', ad.ward,
+            'detail', ad.detail
         ),
-        RandomCVs AS (
-        SELECT
-          ${this.cvJsonSQL}
-        FROM cvs
-        LEFT JOIN users ON users.id = cvs.id
-        LEFT JOIN addresses ad ON ad.id = users.address_id
-        LEFT JOIN genders g ON g.id = users.gender_id
-        WHERE cvs.id NOT IN (SELECT cvs.id FROM SuggestedCVs)
+        'gender', JSON_OBJECT(
+            'id', g.id,
+            'vn_name', g.vn_name,
+            'en_name', g.en_name,
+            'ja_name', g.ja_name
         ),
-        CombinedCVs AS (
-        SELECT * FROM SuggestedCVs
-        UNION ALL
-        SELECT * FROM RandomCVs
-        )
-        -- Lấy dữ liệu phân trang
-        SELECT (SELECT COUNT(*) FROM CombinedCVs) AS totalCount,
-        CombinedCVs.*
-        FROM CombinedCVs
-        ORDER BY RAND()
-        LIMIT ${perPage} OFFSET ${(page - 1) * perPage};
-    `;
+        'birthday', users.birthday,
+        'point', users.point
+    )
+) AS user_data
+`;
 
-    console.log("getSugestedCVs");
-    
-    // console.log(mysql.format(sql, [province, district]));
-
-    SMySQL.getConnection((connection)=>{
-      connection?.query<any[]>(sql, [province, district], (err, results)=>{
-        if(err){
-          SLog.log(LogType.Error, "fail to fetch cv", "can't fetch user cv", err),
-          onNext([], new Pagination)
-          return;
-        }
-
-        const totalCount = results[0]?.totalCount
-        const cvs: CV[] = []
-        results.forEach((result) => {
-          const cv = result.user_data
-          cvs.push(cv)
-
-        })
-        const pagination: Pagination = {
-          page: page,
-          per_page: perPage,
-          total_pages: Math.ceil(totalCount / perPage),
-          total_items: totalCount,
-        };
-
-        onNext(cvs, pagination)
-        return;
-
-      })
-    })
-  }
-
+// Lấy danh sách CV gợi ý
   public static getSugestedCVs(
-    page: number, perPage: number,
-    filter: Filters,
-    onNext: (cvs: CV[], pagination: Pagination) => void,
-  ){
-
-    // Build SQL query dynamically based on provided filters
-    let filterConditions = "1=1 AND cvs.approved_at IS NOT NULL";
-    let queryParams: any[] = []; 
-
-    // Add filter conditions if they are provided
-  if (filter.province) {
-    const provinces = filter.province.split(",").map((p) => `%${p.trim()}%`);
-    filterConditions += ` AND (${provinces.map(() => "ad.province LIKE ?").join(" OR ")})`;
-    queryParams.push(...provinces);
-  }
-
-  if (filter.district) {
-    const districts = filter.district.split(",").map((d) => `%${d.trim()}%`);
-    filterConditions += ` AND (${districts.map(() => "ad.district LIKE ?").join(" OR ")})`;
-    queryParams.push(...districts); 
-  }
-
-  if (filter.ward) {
-    const wards = filter.ward.split(",").map((w) => `%${w.trim()}%`);
-    filterConditions += ` AND (${wards.map(() => "ad.ward LIKE ?").join(" OR ")})`;
-    queryParams.push(...wards);
-  }
-
-    const sql = `
-        WITH SuggestedCVs AS (
-        SELECT
-          ${this.cvJsonSQL}
-        FROM cvs
-        LEFT JOIN users ON users.id = cvs.id
-        LEFT JOIN addresses ad ON ad.id = users.address_id
-        LEFT JOIN genders g ON g.id = users.gender_id
-        WHERE ${filterConditions}
-        ),
-        RandomCVs AS (
-        SELECT
-          ${this.cvJsonSQL}
-        FROM cvs
-        LEFT JOIN users ON users.id = cvs.id
-        LEFT JOIN addresses ad ON ad.id = users.address_id
-        LEFT JOIN genders g ON g.id = users.gender_id
-        WHERE cvs.approved_at IS NOT NULL AND cvs.id NOT IN (SELECT cvs.id FROM SuggestedCVs)
-        ),
-        CombinedCVs AS (
-        SELECT * FROM SuggestedCVs
-        UNION ALL
-        SELECT * FROM RandomCVs
-        )
-        -- Lấy dữ liệu phân trang
-        SELECT (SELECT COUNT(*) FROM CombinedCVs) AS totalCount,
-        CombinedCVs.*
-        FROM CombinedCVs
-        LIMIT ${perPage} OFFSET ${(page - 1) * perPage};
-    `;
-
-    console.log("getSugestedCVs", mysql.format(sql, queryParams));
-    
-    // console.log(mysql.format(sql, [province, district]));
-
-    SMySQL.getConnection((connection)=>{
-      connection?.query<any[]>(sql, queryParams, (err, results)=>{
-        if(err){
-          SLog.log(LogType.Error, "fail to fetch cv", "can't fetch user cv", err),
-          onNext([], new Pagination)
-          return;
-        }
-
-        const totalCount = results[0]?.totalCount
-        const cvs: CV[] = []
-        results.forEach((result) => {
-          const cv = result.user_data
-          cvs.push(cv)
-
-        })
-        const pagination: Pagination = {
-          page: page,
-          per_page: perPage,
-          total_pages: Math.ceil(totalCount / perPage),
-          total_items: totalCount,
-        };
-
-        onNext(cvs, pagination)
-        return;
-
-      })
-    })
-  }
-
-  public static getSugestedCVsFilter(
-    page: number, perPage: number,
-    filter: Filters,
-    onNext: (cvs: CV[], pagination: Pagination) => void
+  userId: string,
+  page: number,
+  perPage: number,
+  address: string,
+  onNext: (cvs: CV[], pagination: Pagination) => void
   ) {
+  // Khởi tạo mảng queryParams
+  const queryParams = [userId];
 
-    // Build SQL query dynamically based on provided filters
-    let filterConditions = "1=1";
-    let queryParams: any[] = [];
+  // Tách chuỗi address
+  let condition = "";
 
-    // Add filter conditions if they are provided
-    if (filter.province) {
-      const provinces = filter.province.split(",").map((p) => `%${p.trim()}%`);
-      filterConditions += ` AND (${provinces.map(() => "ad.province LIKE ?").join(" OR ")})`;
-      queryParams.push(...provinces);
+  const [province, district, ward] = address
+    .split(",")
+    .map((part) => part.trim())
+    .filter(
+      (part) => part !== "" && part !== "undefined" && part !== undefined
+    );
+
+  if (province || district || ward) {
+    // Bắt đầu một điều kiện AND nếu có address
+
+    if (province) {
+      condition += `
+    AND (
+      ad.province LIKE ? 
+      OR ? LIKE CONCAT('%', ad.province, '%')
+    )
+  `;
+      queryParams.push(`%${province}%`, province);
     }
-
-    if (filter.district) {
-      const districts = filter.district.split(",").map((d) => `%${d.trim()}%`);
-      filterConditions += ` AND (${districts.map(() => "ad.district LIKE ?").join(" OR ")})`;
-      queryParams.push(...districts);
-    }
-
-    if (filter.ward) {
-      const wards = filter.ward.split(",").map((w) => `%${w.trim()}%`);
-      filterConditions += ` AND (${wards.map(() => "ad.ward LIKE ?").join(" OR ")})`;
-      queryParams.push(...wards);
-    }
-
-    // Full SQL query with dynamic filter conditions
-    const sql = `
-        SELECT
-          ${this.cvJsonSQL}
-        FROM cvs
-        LEFT JOIN users ON users.id = cvs.id
-        LEFT JOIN addresses ad ON ad.id = users.address_id
-        LEFT JOIN genders g ON g.id = users.gender_id
-        LEFT JOIN interested_majors im ON im.user_id = users.id
-        LEFT JOIN interested_class_levels icl ON icl.user_id = users.id
-        WHERE ${filterConditions}
-        LIMIT ${perPage} OFFSET ${(page - 1) * perPage};
+    if (district) {
+      condition += `
+      AND (
+        ad.district LIKE ? 
+        OR ? LIKE CONCAT('%', ad.district, '%')
+      )
     `;
+    queryParams.push(`%${district}%`, district);
+    }
+    if (ward) {
+      condition += `
+      AND (
+        ad.ward LIKE ? 
+        OR ? LIKE CONCAT('%', ad.ward, '%')
+      )
+    `;
+    queryParams.push(`%${ward}%`, ward);
+    }
 
-    const totalSql = `
-     SELECT COUNT(*) as totalCount
-    FROM cvs
-    LEFT JOIN users ON users.id = cvs.id
-    LEFT JOIN addresses ad ON ad.id = users.address_id
-    LEFT JOIN genders g ON g.id = users.gender_id
-    LEFT JOIN interested_majors im ON im.user_id = users.id
-    LEFT JOIN interested_class_levels icl ON icl.user_id = users.id
-    WHERE ${filterConditions}
-    `
+    // Kết thúc điều kiện AND với dấu ngoặc
+  }
 
-    console.log("getSugestedCVs with filters:", filter);
-    console.log(mysql.format(sql, queryParams));
+  // Cuối cùng, thêm userId lần nữa nếu cần
+  queryParams.push(userId);
 
-    // Execute the query
-    SMySQL.getConnection((connection) => {
-      connection?.execute<any[]>(sql, queryParams, (err, results) => {
-        if (err) {
-          SLog.log(LogType.Error, "fail to fetch cv", "can't fetch user cv", err);
-          onNext([], new Pagination);
-          return;
-        }
+  const sql = `
+      WITH SuggestedCVs AS (
+      SELECT
+        ${this.cvJsonSQL},
+        cvs.id AS cv_id
+      FROM cvs
+      LEFT JOIN users ON users.id = cvs.id
+      LEFT JOIN addresses ad ON ad.id = users.address_id
+      LEFT JOIN genders g ON g.id = users.gender_id
+      WHERE cvs.approved_at IS NOT NULL 
+      AND cvs.id != ? 
+      ${condition}
+      ),
+      RandomCVs AS (
+      SELECT
+        ${this.cvJsonSQL},
+        cvs.id AS cv_id
+      FROM cvs
+      LEFT JOIN users ON users.id = cvs.id
+      LEFT JOIN addresses ad ON ad.id = users.address_id
+      LEFT JOIN genders g ON g.id = users.gender_id
+      LEFT JOIN SuggestedCVs sc ON cvs.id = sc.cv_id
+      WHERE cvs.approved_at IS NOT NULL AND cvs.id != ?  AND sc.cv_id IS NULL
+      ),
+      CombinedCVs AS (
+      SELECT * FROM SuggestedCVs
+      UNION ALL
+      SELECT * FROM RandomCVs
+      )
+      -- Lấy dữ liệu phân trang
+      SELECT (SELECT COUNT(*) FROM CombinedCVs) AS totalCount,
+      CombinedCVs.*
+      FROM CombinedCVs
+      LIMIT ${perPage} OFFSET ${(page - 1) * perPage};
+  `;
 
-        const cvs: CV[] = []
-        results.forEach((result) => {
-          const cv = result.user_data
-          cvs.push(cv)
+  console.log("queryParams: ", queryParams);
 
-        })
+  console.log("getSugestedCVs", mysql.format(sql, queryParams));
 
-        connection.execute<any>(totalSql, queryParams, (err, result) => {
-          if (err) {
-            SLog.log(LogType.Error, "fail to fetch total count", "can't fetch total count", err);
-            onNext([], new Pagination);
-            return;
-          }
+  // console.log(mysql.format(sql, [province, district]));
 
-          const totalCount = result[0].totalCount;
+  SMySQL.getConnection((connection) => {
+    connection?.query<any[]>(sql, queryParams, (err, results) => {
+      if (err) {
+        SLog.log(
+          LogType.Error,
+          "fail to fetch cv",
+          "can't fetch user cv",
+          err
+        ),
+          onNext([], new Pagination());
+        return;
+      }
 
-              const pagination: Pagination = {
-                page: page,
-                per_page: perPage,
-                total_pages: Math.ceil(totalCount / perPage),
-                total_items: totalCount,
-              };
-              
-              onNext(cvs, pagination);
-            } )
-
+      const totalCount = results[0]?.totalCount;
+      const cvs: CV[] = [];
+      results.forEach((result) => {
+        const cv = result.user_data;
+        cvs.push(cv);
       });
+      const pagination: Pagination = {
+        page: page,
+        per_page: perPage,
+        total_pages: Math.ceil(totalCount / perPage),
+        total_items: totalCount,
+      };
+
+      onNext(cvs, pagination);
+      return;
+    });
+  });
+  }
+
+  // Lấy cvs theo filter
+  public static getFilterCVs(
+  userId: string,
+  page: number,
+  perPage: number,
+  filter: Filters,
+  onNext: (cvs: CV[], pagination: Pagination) => void
+  ) {
+  // Build SQL query dynamically based on provided filters
+  let queryParams: any[] = [];
+  let filterConditions =
+    "1=1 AND cvs.approved_at IS NOT NULL AND cvs.id != ?";
+  queryParams.push(userId);
+
+  // Add filter conditions if they are provided
+  if (filter.province) {
+    const province = filter.province.trim();
+    filterConditions += `
+      AND (ad.province LIKE ? OR ? LIKE CONCAT('%', CONCAT(ad.province, '%')))
+    `;
+    queryParams.push(`%${province}%`, province);
+  }
+ 
+  if (filter.district) {
+    const districts = filter.district.split(",").map((d) => d.trim());
+    filterConditions += ` AND (${districts
+      .map(() => "(ad.district LIKE ? OR ? LIKE CONCAT('%', CONCAT(ad.district, '%')))")
+      .join(" OR ")})`;
+    districts.forEach((d) => {
+     queryParams.push(`%${d}%`, d); 
     });
   }
+ 
+  if (filter.ward) {
+    const wards = filter.ward.split(",").map((w) => w.trim());
+    filterConditions += ` AND (${wards
+      .map(() => "(ad.ward LIKE ? OR ? LIKE CONCAT('%', CONCAT(ad.ward, '%')))") // Tương tự
+      .join(" OR ")})`;
+    wards.forEach((w) => {
+     queryParams.push(`%${w}%`, w);
+    });
+  }
+
+  if (filter.genders) {
+    const genders = filter.genders.split(",").map((g) => g.trim());
+    filterConditions += ` AND g.id IN (${genders.map(() => "?").join(",")})`;
+    queryParams.push(...genders);
+  }
+
+  // Full SQL query with dynamic filter conditions
+  const sql = `
+      SELECT
+        ${this.cvJsonSQL}
+      FROM cvs
+      LEFT JOIN users ON users.id = cvs.id
+      LEFT JOIN addresses ad ON ad.id = users.address_id
+      LEFT JOIN genders g ON g.id = users.gender_id
+      LEFT JOIN interested_majors im ON im.user_id = users.id
+      LEFT JOIN interested_class_levels icl ON icl.user_id = users.id
+      WHERE ${filterConditions}
+      LIMIT ${perPage} OFFSET ${(page - 1) * perPage};
+  `;
+
+  const totalSql = `
+  SELECT COUNT(*) as totalCount
+  FROM cvs
+  LEFT JOIN users ON users.id = cvs.id
+  LEFT JOIN addresses ad ON ad.id = users.address_id
+  LEFT JOIN genders g ON g.id = users.gender_id
+  LEFT JOIN interested_majors im ON im.user_id = users.id
+  LEFT JOIN interested_class_levels icl ON icl.user_id = users.id
+  WHERE ${filterConditions}
+  `;
+
+
+// console.log(mysql.format(sql, queryParams));
+
+// Execute the query
+  SMySQL.getConnection((connection) => {
+    connection?.execute<any[]>(sql, queryParams, (err, results) => {
+      if (err) {
+        console.log("fail to fetch cv", err);
+      
+        onNext([], new Pagination());
+        return;
+      }
+
+      const cvs: CV[] = [];
+      results.forEach((result) => {
+        const cv = result.user_data;
+        cvs.push(cv);
+      });
+
+      connection.execute<any>(totalSql, queryParams, (err, result) => {
+        if (err) {
+          SLog.log(
+            LogType.Error,
+            "fail to fetch total count",
+            "can't fetch total count",
+            err
+          );
+          onNext([], new Pagination());
+          return;
+        }
+
+        const totalCount = result[0].totalCount;
+
+        const pagination: Pagination = {
+          page: page,
+          per_page: perPage,
+          total_pages: Math.ceil(totalCount / perPage),
+          total_items: totalCount,
+        };
+
+        onNext(cvs, pagination);
+      });
+    });
+  });
+  }
+
+
 
   public static async UpdateCV(cvData: any, onNext: (response: any) => void) {
     // console.log(JSON.stringify(cvData));
@@ -420,4 +414,3 @@ export default class SCV {
 
   //end service
 }
-

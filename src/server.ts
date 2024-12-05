@@ -100,6 +100,7 @@ app.get(CERTIFICATE_BASE_URL + "/:id/levels", CertificateController.getAllLevels
 const CLASS_BASE_URL = Config.PREFIX + "/classes";
 app.get(CLASS_BASE_URL, ClassController.getAllClasses);
 app.get(CLASS_BASE_URL + "/suggests/:user_id", ClassController.getSuggestsClasses);
+app.get(CLASS_BASE_URL + "/filter/:user_id", ClassController.getFilterClasses);
 app.get(CLASS_BASE_URL + "/:user_id", ClassController.getClassesByUserId);
 app.get(CLASS_BASE_URL + "/detail/:class_id", ClassController.getClass);
 app.post(CLASS_BASE_URL + "/conflicting", ClassController.getconflictingLessonsWithClassUsers);
@@ -171,9 +172,9 @@ app.post(REPORT_BASE_URL + "/created_report", uploadReports.array('reports', 10)
 
 const CV_BASE_URL = Config.PREFIX + "/cvs";
 app.get(CV_BASE_URL, CVController.getAllCVs);
+app.get(CV_BASE_URL + "/suggests/:user_id", CVController.getSuggestedCVs);
+app.get(CV_BASE_URL + "/filter/:user_id", CVController.getFilterCVs);
 app.post(CV_BASE_URL+ "/uploadCV", CVController.createCV);
-// app.get(CV_BASE_URL+ "/test", CVController.test);
-app.get(CV_BASE_URL + "/suggests", CVController.getSuggestedCVs);
 app.post(CV_BASE_URL + "/send", CVController.updateCV);
 app.get(CV_BASE_URL + "/:id", CVController.getCV);
 app.put(CV_BASE_URL + "/:id", CVController.updateCV);
