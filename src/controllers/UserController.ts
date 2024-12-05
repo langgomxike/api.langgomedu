@@ -3,18 +3,14 @@ import express, { Response } from "express";
 import SUser from "../services/SUser";
 import SResponse, { ResponseStatus } from "../services/SResponse";
 import User from "../models/User";
-import Message from "../models/Message";
-import * as dotenv from "dotenv";
-import SMessage from "../services/SMessage";
-import { v4 } from "uuid";
-import SLog, { LogType } from "../services/SLog";
-import SInformation from "../services/SInformation";
-import PermissionList from "../configs/PermissionConfig";
-import SPermission from "../services/SPermission";
-import Permission from "../models/Permission";
+import {v4} from "uuid";
+import SLog, {LogType} from "../services/SLog";
 import SRole from "../services/SRole";
 import RoleList from "../configs/RoleConfig";
 import Role from "../models/Role";
+import SStudent from "../services/SStudent";
+import SFirebase, {FirebaseNode} from "../services/SFirebase";
+import OTP from "../models/OTP";
 import { log } from "node:console";
 
 export default class UserController {
@@ -23,36 +19,36 @@ export default class UserController {
     const phoneNumber = request.body.phone_number ?? "";
     const password = request.body.password ?? "";
 
-    if (
-      !username &&
-      !/^\s*(?:\+?(\d{1,3}))?[-. (]*(\d{3})[-. )]*(\d{3})[-. ]*(\d{4})(?: *x(\d+))?\s*$/.test(
-        phoneNumber
-      )
-    ) {
-      SLog.log(
-        LogType.Error,
-        "login",
-        "Login failed. Invalid Username or Phone Number"
-      );
-      SResponse.getResponse(
-        ResponseStatus.Internal_Server_Error,
-        null,
-        "Login failed. Invalid Username or Phone Number",
-        response
-      );
-      return;
-    }
-
-    if (!password) {
-      SLog.log(LogType.Error, "login", "Login failed. Invalid password");
-      SResponse.getResponse(
-        ResponseStatus.Internal_Server_Error,
-        null,
-        "Login failed. Invalid password",
-        response
-      );
-      return;
-    }
+    // if (
+    //   !username &&
+    //   !/^\s*(?:\+?(\d{1,3}))?[-. (]*(\d{3})[-. )]*(\d{3})[-. ]*(\d{4})(?: *x(\d+))?\s*$/.test(
+    //     phoneNumber
+    //   )
+    // ) {
+    //   SLog.log(
+    //     LogType.Error,
+    //     "login",
+    //     "Login failed. Invalid Username or Phone Number"
+    //   );
+    //   SResponse.getResponse(
+    //     ResponseStatus.Internal_Server_Error,
+    //     null,
+    //     "Login failed. Invalid Username or Phone Number",
+    //     response
+    //   );
+    //   return;
+    // }
+    //
+    // if (!password) {
+    //   SLog.log(LogType.Error, "login", "Login failed. Invalid password");
+    //   SResponse.getResponse(
+    //     ResponseStatus.Internal_Server_Error,
+    //     null,
+    //     "Login failed. Invalid password",
+    //     response
+    //   );
+    //   return;
+    // }
 
     SUser.getUserByPhoneNumberOrUsername(phoneNumber, username, (user) => {
       if (!user) {
@@ -66,7 +62,7 @@ export default class UserController {
         return;
       }
 
-      if (user.password !== password) {
+      if (!SUser.verifyPassword(password, user.password)) {
         SLog.log(LogType.Error, "Login", "login failed. Password incorrect");
         SResponse.getResponse(
           ResponseStatus.Internal_Server_Error,
@@ -100,6 +96,30 @@ export default class UserController {
           );
         });
       });
+    });
+  }
+
+  public static getUserAddress(request: express.Request, response: express.Response) {
+    const userId: string = request.body.user_id ?? "-1";
+
+    SUser.getUserAddress(userId, (adress) => {
+      if (!adress) {
+        SLog.log(LogType.Error, "getUserAddress", "User adress not found");
+        SResponse.getResponse(
+          ResponseStatus.Internal_Server_Error,
+          null,
+          "User adress not found",
+          response
+        );
+        return;
+      }
+
+      SResponse.getResponse(
+        ResponseStatus.OK,
+        adress,
+        "User adress successfully fetched",
+        response
+      );
     });
   }
 
@@ -188,46 +208,134 @@ export default class UserController {
     }
 
     //check request code
-    if (requestCode === 123456) {
-      SUser.storeUser(user, (result) => {
-        if (!result) {
-          SLog.log(LogType.Error, "registerUser", "Fail to store user");
-          SResponse.getResponse(
-            ResponseStatus.Internal_Server_Error,
-            {},
-            "Fail to store user",
-            response
-          );
+    SFirebase.getData(FirebaseNode.OTPs, [{
+        key: FirebaseNode.PhoneNumber,
+        value: user.phone_number,
+      }],
+      (value) => {
+        const otp: OTP = value;
+
+        SLog.log(LogType.Info, "registerUser", "check otp", otp);
+
+        if (otp.code !== requestCode || otp.expired_at < new Date().getTime()) {
+          SLog.log(LogType.Error, "registerUser", "Invalid otp");
+          SResponse.getResponse(ResponseStatus.Internal_Server_Error, {}, "Invalid otp", response);
           return;
         }
 
-        SRole.addRolesToUser(
-          user.id,
-          [
+        SUser.storeUser(user, (result) => {
+          if (!result) {
+            SLog.log(LogType.Error, "registerUser", "Fail to store user");
+            SResponse.getResponse(ResponseStatus.Internal_Server_Error, {}, "Fail to store user", response);
+            return;
+          }
+
+          SRole.addRolesToUser(user.id, [
             new Role(RoleList.USER, RoleList[RoleList.USER]),
-            new Role(RoleList.BANNED_USER, RoleList[RoleList.BANNED_USER]),
-          ],
-          () => {
+          ], () => {
             request.body.username = user.username;
             request.body.password = user.password;
 
             UserController.login(request, response);
-          }
-        );
+          });
+        });
       });
-    } else {
-      SLog.log(LogType.Error, "registerUser", "Invalid otp");
-      SResponse.getResponse(
-        ResponseStatus.Internal_Server_Error,
-        {},
-        "Invalid otp",
-        response
-      );
-    }
   }
 
-  public static auth(request: express.Request, response: express.Response) {
-    return response.send("login");
+
+  public static registerChild(
+    request: express.Request,
+    response: express.Response
+  ) {
+    const user: User = request?.body?.user;
+    const parent: User = request?.body?.parent;
+    const requestCode: number = request?.body?.otp ?? -1;
+
+    SLog.log(LogType.Warning, "registerChild", "check params", {user, parent});
+
+    if (!user || !user.password || !user.username || !user.full_name || !parent || !parent.username || !parent.full_name || !parent.id || !parent.phone_number) {
+      SLog.log(LogType.Error, "registerChild", "Invalid user or parent");
+      SResponse.getResponse(ResponseStatus.Internal_Server_Error, {}, "Invalid user or parent", response);
+      return;
+    }
+
+    SFirebase.getData(FirebaseNode.OTPs, [{
+        key: FirebaseNode.PhoneNumber,
+        value: parent.phone_number,
+      }],
+      (value) => {
+        const otp: OTP = value;
+
+        SLog.log(LogType.Info, "registerUser", "check otp", otp);
+
+        if (otp.code !== requestCode || otp.expired_at < new Date().getTime()) {
+          SLog.log(LogType.Error, "registerUser", "Invalid otp");
+          SResponse.getResponse(ResponseStatus.Internal_Server_Error, {}, "Invalid otp", response);
+          return;
+        }
+
+        SStudent.getStudentByUserId(parent.id, (students) => {
+          const quantity = students.length;
+
+          SLog.log(LogType.Warning, "registerChild", "check children quantity", quantity);
+
+          user.id = parent.id + "|c:" + quantity;
+          user.phone_number = parent.phone_number + "|c:" + quantity;
+          user.parent = parent;
+
+          //check request code
+          SUser.storeUser(user, (result) => {
+            if (!result) {
+              SLog.log(LogType.Error, "registerChild", "Fail to store child");
+              SResponse.getResponse(ResponseStatus.Internal_Server_Error, {}, "Fail to store child", response);
+              return;
+            }
+
+            SLog.log(LogType.Info, "registerChild", "Fail to store child");
+            SResponse.getResponse(ResponseStatus.OK, {}, "Store child successfully", response);
+          });
+        });
+      });
+  }
+
+  public static auth(
+    request: express.Request,
+    response: express.Response
+  ) {
+    const user: User = request?.body?.user;
+
+    SLog.log(LogType.Info, "auth", "check params", user);
+
+    if (!user || !user.phone_number) {
+      SLog.log(LogType.Error, "auth", "invalid user");
+      SResponse.getResponse(ResponseStatus.Internal_Server_Error, null, "Invalid user", response);
+      return;
+    }
+
+    SUser.sendOTP(user.phone_number, (otp) => {
+      SFirebase.getData(FirebaseNode.AppInfos, [],
+        (value) => {
+          const key: string = value?.otp_service_key ?? "";
+          const appName: string = value?.app_name ?? "langgomedu";
+          const phoneNumber = user.phone_number.replace(/^0/, "84");
+          const text = `Your OTP for ${appName} App is: [${otp}]`
+          const url = `http://v31mye.api.infobip.com/sms/3/text/query?to=${phoneNumber}&text=${text}`;
+
+          axios.default.post(url, {}, {
+            headers: {
+              Authorization: `App ${key}`,
+            }
+          })
+            .then((r) => {
+              SLog.log(LogType.Error, "auth", "set otp successfully", r.data);
+              SResponse.getResponse(ResponseStatus.OK, true, "set otp successfully", response);
+            })
+            .catch(error => {
+              SLog.log(LogType.Error, "auth", "cannot set otp", error);
+              SResponse.getResponse(ResponseStatus.Internal_Server_Error, null, "Cannot set otp", response);
+            });
+        });
+    });
   }
 
   public static getUserInfo(
@@ -259,7 +367,11 @@ export default class UserController {
         return;
       }
 
-      SResponse.getResponse(ResponseStatus.OK, user, "get user info", response);
+      SRole.getRolesByUserId(user.id, (roles) => {
+        user.roles = roles;
+
+        SResponse.getResponse(ResponseStatus.OK, user, "get user info", response);
+      });
     });
   }
 
@@ -363,49 +475,130 @@ export default class UserController {
     });
   }
 
-  public static getUser(request: express.Request, response: express.Response) {}
-
-  public static changeUserPermissions(
+  public static changeUserRoles(
     request: express.Request,
     response: express.Response
-  ) {}
+  ) {
+    const user: User = request?.body?.user;
+    const roles: number[] = request?.body?.roles;
 
-  public static resetPassword(
-    request: express.Request,
-    response: express.Response
-  ) {}
+    if (!user || !user.id || roles.length < 1) {
+      SLog.log(LogType.Error, "changeUserRoles", "Invalid user or roles");
+      SResponse.getResponse(ResponseStatus.Internal_Server_Error, {}, "Invalid user or roles", response);
+      return;
+    }
+
+    SRole.addRolesToUser(user.id, roles.map(r => new Role(r)), () => {
+      SLog.log(LogType.Info, "changeUserRoles", "Added roles to user");
+      SResponse.getResponse(ResponseStatus.OK, {}, "Added roles to user", response);
+    });
+  }
 
   public static changePassword(
     request: express.Request,
     response: express.Response
-  ) {}
+  ) {
+    const user: User = request?.body?.user;
+    const newPassword: string = request?.body?.new_password;
+    const requestCode: number = request?.body?.otp ?? -1;
+
+    if (!user || !user.phone_number || !user.id || !newPassword || requestCode < 111111 || requestCode > 999999) {
+      SLog.log(LogType.Error, "changePassword", "Invalid user or new password or otp");
+      SResponse.getResponse(ResponseStatus.Internal_Server_Error, {}, "Invalid user or new password or otp", response);
+      return;
+    }
+
+    SFirebase.getData(FirebaseNode.OTPs, [{
+        key: FirebaseNode.PhoneNumber,
+        value: user.phone_number,
+      }],
+      (value) => {
+        const otp: OTP = value ?? new OTP(-1, -1);
+
+        if (otp.code !== requestCode || otp.expired_at < new Date().getTime()) {
+          SLog.log(LogType.Error, "changePassword", "Invalid otp");
+          SResponse.getResponse(ResponseStatus.Internal_Server_Error, {}, "Invalid otp", response);
+          return;
+        }
+
+        SUser.updateUserPassword(user.id, newPassword, (result) => {
+          if (!result) {
+            SLog.log(LogType.Error, "changePassword", "Fail to change password");
+            SResponse.getResponse(ResponseStatus.Internal_Server_Error, {}, "Fail to change password", response);
+            return;
+          }
+
+          SResponse.getResponse(ResponseStatus.OK, {}, "change password", response);
+        });
+      });
+  }
+
+  public static resetPassword(
+    request: express.Request,
+    response: express.Response
+  ) {
+    const user: User = request?.body?.user;
+    const newPassword: string = request?.body?.new_password;
+    const requestCode: number = request?.body?.otp ?? -1;
+
+    if (!user || !user.phone_number || !newPassword || requestCode < 111111 || requestCode > 999999) {
+      SLog.log(LogType.Error, "resetPassword", "Invalid user or new password or otp");
+      SResponse.getResponse(ResponseStatus.Internal_Server_Error, {}, "Invalid user or new password or otp", response);
+      return;
+    }
+
+    SFirebase.getData(FirebaseNode.OTPs, [{
+        key: FirebaseNode.PhoneNumber,
+        value: user.phone_number,
+      }],
+      (value) => {
+        const otp: OTP = value;
+
+        if (otp.code !== requestCode || otp.expired_at < new Date().getTime()) {
+          SLog.log(LogType.Error, "resetPassword", "Invalid otp");
+          SResponse.getResponse(ResponseStatus.Internal_Server_Error, {}, "Invalid otp", response);
+          return;
+        }
+
+        SUser.getUserByPhoneNumberOrUsername(user.phone_number, "", (_user) => {
+          if (!_user) {
+            SLog.log(LogType.Error, "resetPassword", "User not found");
+            SResponse.getResponse(ResponseStatus.Internal_Server_Error, {}, "User not found", response);
+            return;
+          }
+
+          SUser.updateUserPassword(_user.id, newPassword, (result) => {
+            if (!result) {
+              SLog.log(LogType.Error, "resetPassword", "Fail to reset password");
+              SResponse.getResponse(ResponseStatus.Internal_Server_Error, {}, "Fail to reset password", response);
+              return;
+            }
+
+            SResponse.getResponse(ResponseStatus.OK, {}, "Reset password", response);
+          });
+        });
+      });
+  }
 
   public static MinusUserPoints(
     request: express.Request,
     response: express.Response
   ) {
-    const { user_id, point, report_id } = request.body; // Thêm report_id vào body request
+    const {user_id, point, report_id} = request.body; // Thêm report_id vào body request
     const pointsToDeduct = point ?? 30; // Mặc định trừ 30 nếu không truyền
 
     if (!user_id || pointsToDeduct == null || !report_id) {
-      return response.status(400).json({
-        success: false,
-        message: "User ID, point, and report ID are required.",
-      });
+      return response
+        .status(400)
+        .json({success: false, message: "User ID, point, and report ID are required."});
     }
 
     // Thực hiện trừ điểm và cập nhật bảng reports
     SUser.MinusUserPoints(user_id, pointsToDeduct, report_id, (result) => {
       if (result) {
-        response.status(200).json({
-          success: true,
-          message: "Points subtracted and report updated successfully.",
-        });
+        response.status(200).json({success: true, message: "Points subtracted and report updated successfully."});
       } else {
-        response.status(500).json({
-          success: false,
-          message: "Failed to subtract points or update report.",
-        });
+        response.status(500).json({success: false, message: "Failed to subtract points or update report."});
       }
     });
   }
@@ -433,7 +626,7 @@ export default class UserController {
     if (!reportId) {
       return response
         .status(400)
-        .json({ success: false, message: "Report ID is required." });
+        .json({success: false, message: "Report ID is required."});
     }
 
     // Nếu danh sách quyền rỗng, đặt mặc định là quyền `13`

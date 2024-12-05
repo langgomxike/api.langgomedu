@@ -1,3 +1,4 @@
+import db from "../configs/knex";
 import File from "./../models/File";
 export default class Major {
     public id: number;
@@ -23,4 +24,24 @@ export const majorJson = (asName: string): string => {
     'ja_name', ${asName}.ja_name,
     'icon', ${asName}.icon
 )`;
+}
+
+export const arrayMajorJson = (alias: string): string => {
+    return `JSON_ARRAYAGG(
+        JSON_OBJECT(
+            'id', ${alias}.id,
+            'vn_name', ${alias}.vn_name,
+            'en_name', ${alias}.en_name,
+            'ja_name', ${alias}.ja_name,
+            'icon', ${alias}.icon
+        )
+    )`
+}
+
+export const majorsSubquery = (reference: string) => {
+    return db('interested_majors as im')
+    .select(db.raw(`COALESCE(${arrayMajorJson('majors')}, JSON_ARRAY())`))
+    .join('majors', 'majors.id', 'im.major_id')
+    .where('im.user_id', db.raw(`${reference}.id`))
+    .as('majorsSubquery')
 }

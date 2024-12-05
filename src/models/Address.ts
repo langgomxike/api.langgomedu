@@ -15,6 +15,15 @@ export default class Address {
         this.ward = ward
         this.detail = detail
     }
+
+    public toInsertObject() {
+        return {
+            province: this.province,
+            district: this.district,
+            ward: this.ward,
+            detail: this.detail,
+        }
+    }
 }
 
 export const addressJson = (asName) => {

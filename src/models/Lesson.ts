@@ -1,4 +1,4 @@
-import Class from "./Class";
+import Class, { classJson, classWithTutorJson } from "./Class";
 
 export default class Lesson {
     public id: number;
@@ -29,5 +29,17 @@ export const lessonJson = (asName : string) : string => {
     'duration', ${asName}.duration,
     'is_online', ${asName}.is_online,
     'note', ${asName}.note
-    )`;
+    ) as lesson`;
+}
+
+export const scheduleJson = (asName : string,classAlias: string ): string => {
+    return `JSON_OBJECT(
+    'id', ${asName}.id,
+    'class', (${classWithTutorJson(classAlias)}),
+    'day', ${asName}.day,
+    'started_at', ${asName}.started_at,
+    'duration', ${asName}.duration,
+    'is_online', ${asName}.is_online,
+    'note', ${asName}.note
+    ) as lesson`;
 }

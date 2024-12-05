@@ -1,4 +1,6 @@
-import Address from "./Address";
+import db from "../configs/knex";
+import Address, { addressJson } from "./Address";
+import { fileJson } from "./File";
 
 export default class Experience {
     public id: number;
@@ -32,3 +34,26 @@ export const experienceJson =(asName: string): string => {
     'evidence', ${asName}.evidence_id
 )`;
 }
+
+export const experiencesSubquery = db('experiences as exp')
+  .select(
+    db.raw(`
+      JSON_ARRAYAGG(
+        JSON_OBJECT(
+          'id', exp.id,
+          'name', exp.name,
+          'note', exp.note,
+          'address', ${addressJson('exp_ad')},
+          'started_at', exp.started_at,
+          'ended_at', exp.ended_at,
+          'evidence', ${fileJson('exp_evi')}
+        )
+      )
+    `)
+  )
+  .leftJoin('addresses as exp_ad', 'exp_ad.id', 'exp.address_id' )
+  .leftJoin('files as exp_evi', 'exp_evi.id', 'exp.evidence_id')
+  .whereRaw('exp.cv_id = cvs.id')
+  .as('experiencesSubquery');
+
+

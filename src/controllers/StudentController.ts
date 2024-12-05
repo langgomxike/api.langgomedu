@@ -12,7 +12,6 @@ export default class StudentController {
     }
     public static getStudentsBelongToUser(request: express.Request, response: express.Response) {
         const userId = request.params.user_id;
-        console.log("getStudentsBelongToUser");
         
         SStudent.getStudentByUserId(userId, (students) => {
             SResponse.getResponse(ResponseStatus.OK, students, "get student by user id", response);

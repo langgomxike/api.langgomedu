@@ -8,6 +8,9 @@ import SLog, {LogType} from "./SLog";
 import firebaseNodeProps from "../../firebase_node_props.json";
 
 export enum FirebaseNode {
+  AppInfos = "general_infos",
+  PhoneNumber = "phone_number",
+  OTPServiceKey = "otp_service_key",
   Addresses = "addresses",
   Attendances = "attendances",
   Certificates = "certificates",
@@ -24,6 +27,7 @@ export enum FirebaseNode {
   Lessons = "lessons",
   Majors = "majors",
   Messages = "messages",
+  Notifications = "notifications",
   OTPs = "otps",
   Permissions = "permissions",
   Ratings = "ratings",
@@ -85,15 +89,15 @@ export default class SFirebase {
 
   public static push(parentNode: FirebaseNode, keyNodes: {
     key: FirebaseNode,
-    value: string | number
-  }[], onNext: () => void) {
+    value: string | number | any
+  }[], onNext: () => void, value?: string | number | any) {
     this.init();
 
     let node = `${parentNode}/${keyNodes.map((keyNode) => `${keyNode.key}:${keyNode.value}`).join("|")}`;
     const firebaseReference = this.dbRef.ref(node);
     const currentTime = new Date().getTime();
 
-    firebaseReference.set(currentTime, (error) => {
+    firebaseReference.set(value ?? currentTime, (error) => {
       if (error) {
         SLog.log(
           LogType.Error,
@@ -141,4 +145,36 @@ export default class SFirebase {
       onNext();
     });
   }
+
+  public static getData(
+    parentNode: FirebaseNode, keyNodes: {
+      key: FirebaseNode,
+      value: string | number
+    }[], onNext: (data: any) => void) {
+    this.init();
+
+    let node = `${parentNode}/${keyNodes.map((keyNode) => `${keyNode.key}:${keyNode.value}`).join("|")}`;
+    const firebaseReference = this.dbRef.ref(node);
+
+    firebaseReference.get<number>()
+      .then((value) => {
+        SLog.log(
+          LogType.Info,
+          `get data from node in firebase`,
+          `get data from the node ${parentNode} with key ${node} successfully`,
+        );
+
+        onNext(value?.val());
+
+      })
+      .catch(error => {
+        SLog.log(
+          LogType.Error,
+          `get data from node in firebase`,
+          `get data from the node ${parentNode} with key ${node} found error`,
+          error
+        );
+      });
+  }
+
 }

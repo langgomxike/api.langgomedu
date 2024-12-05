@@ -32,11 +32,44 @@ export default class SClassLevel {
         });
     }
 
+    public static getInterestedClassLevels(userId: string, onNext: (classLevel: ClassLevel[]) => void) {
+        const sql = `SELECT *
+                     FROM class_levels
+                              INNER JOIN interested_class_levels
+                                         ON interested_class_levels.class_level_id = class_levels.id
+                     WHERE interested_class_levels.user_id = ?`;
+
+        SMySQL.getConnection((connection) => {
+            connection?.query<any[]>(sql, [userId], (err, result) => {
+                // kiem tra xem co err khong
+                if (err) {
+                    SLog.log(
+                      LogType.Error,
+                      "getInterestedClassLevels",
+                      "found error",
+                      err
+                    );
+                    onNext([]);
+                    return;
+                }
+
+                SLog.log(
+                  LogType.Info,
+                  "getInterestedClassLevels",
+                  "successfully",
+                );
+
+                const classLevels: ClassLevel[] = result as ClassLevel[] ?? [];
+                onNext(classLevels);
+            });
+        });
+    }
+
     public static storeClassLevel(level: ClassLevel, onNext: (result: boolean) => void) {
         const sql = "INSERT INTO class_levels (vn_name, en_name, ja_name) VALUES (?,?,?)";
 
         SMySQL.getConnection((connection) => {
-            connection?.query(sql, [level.vn_name, level.en_name, level.jp_name], (err, result) => {
+            connection?.query(sql, [level.vn_name, level.en_name, level.ja_name], (err, result) => {
                 if (err) {
                     SLog.log(
                         LogType.Error,
@@ -54,7 +87,7 @@ export default class SClassLevel {
                     "success to store class level in database"
                 );
 
-                SFirebase.push(FirebaseNode.CLASS_LEVEL, (result as any)?.insertId, () => {
+                SFirebase.push(FirebaseNode.ClassLevels, (result as any)?.insertId, () => {
                     onNext(true);
                 });
             });
@@ -75,9 +108,9 @@ export default class SClassLevel {
             values.push(level.en_name);
         }
 
-        if (level.jp_name) {
+        if (level.ja_name) {
             sql += " ja_name =?,";
-            values.push(level.jp_name);
+            values.push(level.ja_name);
         }
 
         sql += " id = id WHERE id = ?";
@@ -101,7 +134,7 @@ export default class SClassLevel {
                     "success to update class level in database"
                 );
 
-                SFirebase.push(FirebaseNode.CLASS_LEVEL, level.id, () => {
+                SFirebase.push(FirebaseNode.ClassLevels, [{key: FirebaseNode.Id, value: level.id}], () => {
                     onNext(true);
                 });
             });
@@ -130,7 +163,7 @@ export default class SClassLevel {
                     "success to delete class level in database"
                 );
 
-                SFirebase.delete(FirebaseNode.CLASS_LEVEL, level.id, () => {
+                SFirebase.delete(FirebaseNode.ClassLevels, [{key: FirebaseNode.Id, value: level.id}], () => {
                     onNext(true);
                 });
             });

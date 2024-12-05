@@ -7,7 +7,8 @@ export default class SPermission {
 
   public static getAllPermissions(onNext: (permissions: Permission[]) => void) {
     const sql = `SELECT *
-                 FROM permissions ORDER BY permissions.name ASC`;
+                 FROM permissions
+                 ORDER BY permissions.name ASC`;
 
     SMySQL.getConnection((connection) => {
       connection?.execute<any[]>(sql, (err, results) => {
@@ -24,10 +25,12 @@ export default class SPermission {
   }
 
   public static getPermissionsOfUser(id: string, onNext: (permissions: Permission[]) => void) {
-    const sql = `SELECT permissions.*
+    const sql = `SELECT DISTINCT permissions.*
                  FROM permissions
-                          INNER JOIN user_permissions ON permissions.id = user_permissions.permission_id
-                 WHERE user_permissions.user_id = ?`;
+                          INNER JOIN role_permission ON permissions.id = role_permission.permission_id
+                 WHERE role_permission.role_id IN (SELECT user_role.role_id
+                                                   FROM user_role
+                                                   WHERE user_role.user_id = ?)`;
 
     SMySQL.getConnection((connection) => {
       connection?.execute<any[]>(sql, [id], (err, results) => {
@@ -37,7 +40,8 @@ export default class SPermission {
           return;
         }
 
-        const permissions: Permission[] = results;
+        const permissions: Permission[] = results ?? [];
+        SLog.log(LogType.Error, "getPermissionsOfUser", "getPermissionsOfUser successfully", permissions.length);
         onNext(permissions);
       });
     });
@@ -47,7 +51,8 @@ export default class SPermission {
     const sql = `SELECT permissions.*
                  FROM permissions
                           INNER JOIN role_permission ON permissions.id = role_permission.permission_id
-                 WHERE role_permission.role_id = ? ORDER BY permissions.name ASC`;
+                 WHERE role_permission.role_id = ?
+                 ORDER BY permissions.name ASC`;
 
     SMySQL.getConnection((connection) => {
       connection?.execute<any[]>(sql, [id], (err, results) => {
@@ -63,7 +68,6 @@ export default class SPermission {
       });
     });
   }
-
 
   public static addPermissionsToUser(id: string, permissions: Permission[], onNext: (result: boolean) => void) {
     const sql = `INSERT INTO user_permission (user_id, permission_id)
@@ -84,7 +88,9 @@ export default class SPermission {
         }
 
         SLog.log(LogType.Info, "addPermissionsToUser", "addPermissionsToUser successfully");
-        onNext(true);
+        SFirebase.push(FirebaseNode.Permissions, [], () => {
+          onNext(true);
+        });
       });
     });
   }
@@ -101,7 +107,9 @@ export default class SPermission {
         }
 
         SLog.log(LogType.Info, "removePermissionsOfUser", "removePermissionsOfUser successfully");
-        onNext(true);
+        SFirebase.push(FirebaseNode.Permissions, [], () => {
+          onNext(true);
+        });
       });
     });
   }
@@ -127,9 +135,9 @@ export default class SPermission {
           }
 
           SLog.log(LogType.Info, "updatePermissionsOfRole", "Update permissions of role successfully");
-          SFirebase.push(FirebaseNode.Roles, [{key: FirebaseNode.Id, value: id}], () => {
+          SFirebase.push(FirebaseNode.Permissions, [], () => {
             onNext(true);
-          })
+          });
         });
       });
     });

@@ -1,7 +1,10 @@
 import express from "express";
 import SUserReport from "../services/SUserReport";
-import SResponse, { ResponseStatus } from "../services/SResponse";
+import SResponse, {ResponseStatus} from "../services/SResponse";
 import SClassReport from "../services/SClassReport";
+import SLog, {LogType} from "../services/SLog";
+import User from "../models/User";
+import SMessage from "../services/SMessage";
 import SUser from "../services/SUser";
 
 export default class ReportController {
@@ -18,6 +21,7 @@ export default class ReportController {
       );
     });
   }
+
   public static getClassReport(
     request: express.Request,
     response: express.Response
@@ -82,7 +86,8 @@ export default class ReportController {
   public static approveClassReport(
     request: express.Request,
     response: express.Response
-  ) {}
+  ) {
+  }
 
   public static getAllUserReports(
     request: express.Request,
@@ -129,14 +134,14 @@ export default class ReportController {
     // In ra dữ liệu nhận được từ request để kiểm tra
     console.log("Request Body:", request.body);
     // console.log("Files:", request.files);
-  
+
     // Lấy dữ liệu từ body của request (không cần truy cập qua report nếu không có trường này)
-    const { reporter, reportee, class_id, content } = request.body;
-  
+    const {reporter, reportee, class_id, content} = request.body;
+
     // Lấy đường dẫn file để upload từ request.files
     const files = (request as any).files;
     const filePaths: string[] = [];
-  
+
     // Kiểm tra và lưu đường dẫn các file
     if (files && Array.isArray(files)) {
       files.forEach((file: any) => {
@@ -147,14 +152,14 @@ export default class ReportController {
         }
       });
     }
-  
+
     // Kiểm tra các tham số cần thiết
     if (!reporter || !reportee || !content) {
       return response
         .status(400)
-        .json({ success: false, message: "Missing required fields." });
+        .json({success: false, message: "Missing required fields."});
     }
-  
+
     // Gọi phương thức CreatedReport để tạo báo cáo
     SUserReport.CreatedReport(
       reporter,
@@ -167,12 +172,12 @@ export default class ReportController {
           // Nếu thành công, trả về phản hồi JSON
           response
             .status(201)
-            .json({ success: true, message: "Report created successfully." });
+            .json({success: true, message: "Report created successfully."});
         } else {
           // Nếu thất bại, trả về lỗi
           response
             .status(500)
-            .json({ success: false, message: "Failed to create report." });
+            .json({success: false, message: "Failed to create report."});
         }
       }
     );
@@ -181,100 +186,50 @@ export default class ReportController {
   public static approveUserReport(
     request: express.Request,
     response: express.Response
-  ) {}
+  ) {
+  }
 
   // Khóa báo cáo
-  public static LockReport(
+  public static performReport(
     request: express.Request,
     response: express.Response
   ) {
-    const { reportId, reason } = request.body;
-
-    console.log("Payload received:", request.body);
+    const id: number = request.body?.id ?? -1;
+    const reason: string = request.body?.reason ?? "";
+    const level: number = request.body?.level ?? -1;
+    const point: number = request.body?.point ?? 0;
+    const reporterId: string = request.body?.reporter_id;
+    const reporteeId: string = request.body?.reportee_id;
 
     // Kiểm tra nếu `reportId` hoặc `reason` không tồn tại
-    if (!reportId || !reason) {
-      return response.status(400).json({
-        success: false,
-        message: "Report ID and reason are required.",
-      });
+    if (!id || !level || !point) {
+      SLog.log(LogType.Error, "performReport", "Invalid parameters");
+      SResponse.getResponse(ResponseStatus.Internal_Server_Error, null, "Invalid parameters", response);
+      return;
     }
 
     // Gọi phương thức LockUserReport để xử lý
-    SUserReport.LockReport(reportId, reason, (result) => {
+    SUserReport.performReport(id, reason, level, (result) => {
       if (result) {
-        response
-          .status(200)
-          .json({ success: true, message: "User report locked successfully." });
+        const onNext = () => {
+          SLog.log(LogType.Info, "performReport", "Performed report");
+          SResponse.getResponse(ResponseStatus.OK, null, "Performed report", response);
+        }
+
+        // Cập nhật điểm cho user
+        if (reason) {
+          SMessage.createNotification(reason, reporterId, onNext);
+        } else {
+          SMessage.createNotification("Mot bao cao ve ban da duoc duyet. Do do, ban da bi tru mot so diem uy tin nhat dinh. Xn cam on", reporteeId, () => {
+            SMessage.createNotification("Mot bao cao cua ban da duoc duyet. Cam on dong gop cua ban voi ung dung. Xn cam on", reporterId, () => {
+              SUser.minusUserPoint(reporteeId, point, onNext);
+            });
+          });
+        }
       } else {
-        response
-          .status(500)
-          .json({ success: false, message: "Failed to lock user report." });
+        SLog.log(LogType.Error, "performReport", "Cannot perform report");
+        SResponse.getResponse(ResponseStatus.Internal_Server_Error, null, "Cannot perform report", response);
       }
     });
   }
-  public static updateUserProfile(
-  request: express.Request,
-  response: express.Response
-) {
-  console.log("Request Body:", request.body);
-
-  // Lấy dữ liệu từ body của request
-  const {
-    id,
-    full_name,
-    hometown,
-    birthday,
-    gender_id,
-    province,
-    district,
-    ward,
-    detail,
-    majors,
-  } = request.body;
-
-  // Lấy file được tải lên từ request.file (chỉ 1 file)
-  const file = (request as any).file;
-  let avatarPath: string | null = null;
-
-  if (file) {
-    avatarPath = `uploads/users/${file.filename}`; // Lưu đường dẫn file vào avatarPath
-    console.log("Uploaded file path:", avatarPath);
-  }
-
-  // Kiểm tra tham số bắt buộc
-  if (!id) {
-    return response
-      .status(400)
-      .json({ success: false, message: "Missing required user ID." });
-  }
-
-  // Gọi phương thức SUser.updateUserProfile để cập nhật thông tin người dùng
-  SUser.updateUserProfile(
-    id,
-    (result) => {
-      if (result) {
-        // Nếu thành công, trả về phản hồi JSON
-        response
-          .status(200)
-          .json({ success: true, message: "User profile updated successfully." });
-      } else {
-        // Nếu thất bại, trả về lỗi
-        response
-          .status(500)
-          .json({ success: false, message: "Failed to update user profile." });
-      }
-    },
-    full_name, // Tên đầy đủ
-    avatarPath, // Đường dẫn file avatar
-    hometown, // Quê quán
-    birthday ? parseInt(birthday) : undefined, // Ngày sinh (số)
-    gender_id ? parseInt(gender_id) : undefined, // Giới tính (số)
-    province, // Tỉnh
-    district, // Huyện
-    ward, // Xã
-    detail, // Địa chỉ chi tiết
-    majors ? JSON.parse(majors) : undefined // Mảng majors (parse từ JSON nếu là chuỗi)
-  );
-}
 }

@@ -2,7 +2,6 @@ import Role from "../models/Role";
 import SLog, {LogType} from "./SLog";
 import SMySQL from "./SMySQL";
 import SFirebase, {FirebaseNode} from "./SFirebase";
-import {QueryResult} from "mysql2";
 
 export default class SRole {
   public static getRolesByIds(ids: number[], onNext: (roles: Role[] | []) => void) {
@@ -91,7 +90,9 @@ export default class SRole {
           }
 
           SLog.log(LogType.Info, "addRolesToUser", "addRolesToUser successfully");
-          onNext();
+          SFirebase.push(FirebaseNode.Roles, [],
+            onNext
+          );
         });
       });
     });
@@ -107,6 +108,7 @@ export default class SRole {
         }
 
         SLog.log(LogType.Info, "removeAllRolesOfUser", "removeAllRolesOfUser successfully");
+
         onNext();
       });
     });
@@ -124,7 +126,7 @@ export default class SRole {
         }
 
         SLog.log(LogType.Info, "createRole", "createRole successfully");
-        SFirebase.push(FirebaseNode.Roles, [{key: FirebaseNode.Id, value: result?.insertId}], () => {
+        SFirebase.push(FirebaseNode.Roles, [], () => {
           onNext(true);
         });
       });
@@ -146,7 +148,7 @@ export default class SRole {
 
         connection?.execute(sql, [id], () => {
           SLog.log(LogType.Info, "deleteRole", "deleteRole successfully");
-          SFirebase.delete(FirebaseNode.Roles, [{key: FirebaseNode.Id, value: id}], () => {
+          SFirebase.delete(FirebaseNode.Roles, [], () => {
             onNext(true);
           });
         });

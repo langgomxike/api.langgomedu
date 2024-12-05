@@ -1,3 +1,4 @@
+import db from "../configs/knex";
 
 export default class ClassLevel {
     public id: number;
@@ -5,7 +6,7 @@ export default class ClassLevel {
     public en_name: string;
     public ja_name: string;
 
-    constructor(id = -1, vn_name = "",  en_name = "", ja_name = "") {
+    constructor(id = -1, vn_name = "", en_name = "", ja_name = "") {
         this.id = id;
         this.vn_name = vn_name;
         this.en_name = en_name;
@@ -20,4 +21,23 @@ export const classLevelJson = (asName: string): string => {
     'en_name', ${asName}.en_name,
     'ja_name', ${asName}.ja_name
 )`;
+}
+
+export const ArrayClassLevelJson = (alias: string): string => {
+    return `JSON_ARRAYAGG(
+        JSON_OBJECT(
+            'id', ${alias}.id,
+            'vn_name', ${alias}.vn_name,
+            'en_name', ${alias}.en_name,
+            'ja_name', ${alias}.ja_name
+        )
+    )`
+}
+
+export const classLevelSubquery = (reference: string) => {
+    return db('interested_class_levels as icl')
+        .select(db.raw(`COALESCE(${ArrayClassLevelJson('cl')}, JSON_ARRAY())`))
+        .join('class_levels as cl', 'cl.id', 'icl.class_level_id')
+        .where('icl.user_id', db.raw(`${reference}.id`))
+        .as('classLevelSubquery')
 }
