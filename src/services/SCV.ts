@@ -56,7 +56,7 @@ export default class SCV {
         results.push(response[0].cv);
       })
       .catch((err) => {
-        SLog.log(LogType.Error, "getUserCV3", "ERR", err);
+        SLog.log(LogType.Error, "getAllUserCVs", "ERR", err.message);
 
       })
 

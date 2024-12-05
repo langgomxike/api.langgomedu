@@ -75,11 +75,12 @@ export default class CVController {
         const body = request.body;
         // console.log(body);
         SCV.UpdateCV(body, (data)=> {
-            console.log("successfully", data);
+            // console.log("successfully", data);
             if(data){
                 SResponse.getResponse(ResponseStatus.OK, [data], "Update CV", response);
+            }else{
+                SResponse.getResponse(ResponseStatus.Forbidden, [data], "Update CV fail", response);
             }
-            SResponse.getResponse(ResponseStatus.Forbidden, [data], "Update CV", response);
         })
     }
 
