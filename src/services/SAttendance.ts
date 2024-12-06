@@ -60,6 +60,7 @@ export default class SAttendance {
                                 'started_at', lessons.started_at
                         ) as lesson,
                         JSON_OBJECT(
+                                'id', classes.id,
                                 'title', classes.title,
                                 'tutor', JSON_OBJECT(
                                         'id', classes.tutor_id
