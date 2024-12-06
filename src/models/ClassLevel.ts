@@ -36,7 +36,7 @@ export const ArrayClassLevelJson = (alias: string): string => {
 
 export const classLevelSubquery = (reference: string) => {
     return db('interested_class_levels as icl')
-        .select(db.raw(ArrayClassLevelJson('cl')))
+        .select(db.raw(`COALESCE(${ArrayClassLevelJson('cl')}, JSON_ARRAY())`))
         .join('class_levels as cl', 'cl.id', 'icl.class_level_id')
         .where('icl.user_id', db.raw(`${reference}.id`))
         .as('classLevelSubquery')

@@ -4,11 +4,27 @@ import SRole from "../services/SRole";
 import SResponse, {ResponseStatus} from "../services/SResponse";
 import Role from "../models/Role";
 import SPermission from "../services/SPermission";
-import RoleList from "../configs/RoleConfig";
+import User from "../models/User";
+import SLog, {LogType} from "../services/SLog";
 
 export default class RoleController {
   public static getAllRoles(request: express.Request, response: express.Response) {
     SRole.getAllRoles(roles => {
+      SResponse.getResponse(ResponseStatus.OK, roles, "Get all roles", response);
+    });
+  }
+
+  public static getAllRolesOfUser(request: express.Request, response: express.Response) {
+    const user: User = request?.body?.user;
+
+    if (!user || !user.id) {
+      SLog.log(LogType.Error, "getAllRolesOfUser", "User not found");
+      SResponse.getResponse(ResponseStatus.Internal_Server_Error, null, "Invalid user", response);
+      return;
+    }
+
+    SRole.getRolesByUserId(user.id ,roles => {
+      SLog.log(LogType.Info, "getAllRolesOfUser", "successfully", roles.length);
       SResponse.getResponse(ResponseStatus.OK, roles, "Get all roles", response);
     });
   }

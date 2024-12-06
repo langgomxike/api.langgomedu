@@ -1,19 +1,55 @@
-import express, { Response } from "express";
+import express from "express";
 import moment from "moment"; // Thư viện hỗ trợ xử lý thời gian
-import SResponse, { ResponseStatus } from "../services/SResponse";
-import SLog, { LogType } from "../services/SLog";
+import SResponse, {ResponseStatus} from "../services/SResponse";
+import SLog, {LogType} from "../services/SLog";
 import Class from "../models/Class";
 import SClass from "../services/SClass";
-import { UserType } from "../configs/UserType";
-import { Filter } from "firebase-admin/firestore";
+import {UserType} from "../configs/UserType";
 import Filters from "../models/Filters";
-import { parseQueryBoolean, parseQueryNumber, parseQueryString } from "../configs/QueryHelpers";
+import {parseQueryBoolean, parseQueryNumber, parseQueryString} from "../configs/QueryHelpers";
 import SAddress from "../services/SAddress";
 
 
 export default class ClassController {
 
   public static getSuggestsClasses(
+    request: express.Request,
+    response: express.Response
+  ) {
+    const query = request.query
+
+    const user_id = request.params.user_id;
+
+    const user_type: number =  Number(query.user_type) ?? UserType.LEANER;
+
+     // Lấy các giá trị filter từ query parameters
+    const filter: Filters = {
+    //Địa chỉ:
+    province: parseQueryString(query.province),
+    district: parseQueryString(query.district),
+    ward: parseQueryString(query.ward),
+
+    // Ngành học (nếu có)
+    major: parseQueryString(query.major),
+    // classLevelId: 
+    classLevelId: parseQueryString(query.classLevelId),
+  };
+
+  const page = Number(request.query.page) || 1;
+  const perPage = Number(request.query.perPage) || 2;
+
+    SClass.getSuggestsClasses(user_id, user_type, filter, page, perPage ,
+      (classes, pagination) => {
+      SResponse.getResponse(
+        ResponseStatus.OK,
+        {classes, pagination} ,
+        "get sugget classes",
+        response
+      );
+    });
+  }
+
+  public static getFilterClasses(
     request: express.Request,
     response: express.Response
   ) {
@@ -52,13 +88,12 @@ export default class ClassController {
   };
 
   // Lấy các tham số sắp xếp từ query parameters
-  // Trường sắp xếp mặc định: 'started_at'
   const sortBy = parseQueryString(request.query.sort) ?? "started_at"; 
 
   const page = Number(request.query.page) || 1;
   const perPage = Number(request.query.perPage) || 2;
 
-    SClass.getSuggestsClasses(user_id, user_type, filter, sortBy, page, perPage ,
+    SClass.getFilterClasses(user_id, user_type, filter, sortBy, page, perPage ,
       (classes, pagination) => {
       SResponse.getResponse(
         ResponseStatus.OK,
@@ -128,6 +163,8 @@ export default class ClassController {
   public static getClass(request: express.Request, response: express.Response) {
     const classId: number = Number(request.params.class_id) ?? -1;
     const userId: string = String(request.query.user_id) ?? "";
+
+    SLog.log(LogType.Info, "getClass", "check params: " , {classId, userId});
 
     if (classId <= 0) {
       SResponse.getResponse(
@@ -548,12 +585,13 @@ export default class ClassController {
     response: express.Response
   ) {
     const classId = Number(request.body.class_id) ?? -1;
+    const classFee = Number(request.body.class_fee) ?? -1;
 
     // Lấy đường dẫn file đã upload
     const file = (request as any).file;
     const paidPath = file ? `/uploads/payments/${file.filename}` : null;
 
-    SClass.payForClass(classId, paidPath, (message, result) => {
+    SClass.payForClass(classId, classFee ,paidPath, (message, result) => {
       // Trả về phản hồi thành công khi lớp học đã được nhận
       SResponse.getResponse(
         ResponseStatus.OK,
