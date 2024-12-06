@@ -3,10 +3,11 @@
 import express, {Express, Request, Response} from "express";
 // @ts-ignore
 import dotenv from "dotenv";
-import SLog, {LogType} from "./services/SLog";
+import SLog, { LogType } from "./services/SLog";
 import SMySQL from "./services/SMySQL";
 import UserController from "./controllers/UserController";
 import AttendanceController from "./controllers/AttendanceController";
+import {uploadAvatar} from "./configs/MulterConfig";
 import Config from "./configs/Config";
 import CertificateController from "./controllers/CertificateController";
 import ClassController from "./controllers/ClassController";
@@ -53,15 +54,13 @@ app.get("/api", (req: Request, res: Response) => {
 });
 
 app.use('/', express.static('public'));
+const upload = multer();
 
 app.use('/avatars', express.static(path.join(__dirname, 'images/avatars')));
 
 
 // app.use(bodyParser.urlencoded({extended: true}));
 
-const upload = multer({
-  dest: 'public/uploads/messages/',
-});
 
 // interface MulterRequest extends Request {
 //   file?: Express.Multer.File;
@@ -263,6 +262,12 @@ app.patch(USER_BASE_URL + "/roles", UserController.changeUserRoles);
 app.put(USER_BASE_URL, UserController.updateUserInfo);
 app.patch(USER_BASE_URL, UserController.updateUserInfo);
 app.delete(USER_BASE_URL + "/:id", UserController.deleteAccount);
+//lấy user profile
+app.get(USER_BASE_URL + "/profile/:id", UserController.getUserProfile);
+//Cap nhat profile
+app.post(USER_BASE_URL + "/update_profile/:id", upload.none(), UserController.updateUserProfile);
+app.post(USER_BASE_URL + "/update_avatar/:id", uploadAvatar.single('file') ,UserController.updateAvatar);
+
 
 // Define the base URL for user-related routes
 const ADMIN_USER_BASE_URL = Config.PREFIX + "/admin";

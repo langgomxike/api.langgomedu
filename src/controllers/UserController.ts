@@ -648,4 +648,168 @@ export default class UserController {
   }
 
 
+
+
+  //lấy profile user
+  public static getUserProfile(
+    request: express.Request,
+    response: express.Response
+  ) {
+    const id: string = request?.params?.id;
+
+    if (!id) {
+      SLog.log(LogType.Error, "getUserInfo", "Invalid ID");
+      SResponse.getResponse(
+        ResponseStatus.Internal_Server_Error,
+        {},
+        "Invalid ID",
+        response
+      );
+      return;
+    }
+
+    // Sử dụng hàm getProfileUserById để lấy thông tin người dùng và interesdMajors
+    SUser.getProfileUserById(id, (userWithMajors) => {
+      if (!userWithMajors) {
+        SLog.log(LogType.Error, "getUserInfo", "User not found");
+        SResponse.getResponse(
+          ResponseStatus.Not_Found,
+          {},
+          "User not found",
+          response
+        );
+        return;
+      }
+
+      SResponse.getResponse(
+        ResponseStatus.OK,
+        userWithMajors,
+        "Get user profile info",
+        response
+      );
+    });
+  }
+
+  //update User profile
+  public static updateUserProfile(
+    request: express.Request,
+    response: express.Response
+  ) {
+    // Lấy dữ liệu từ body của request
+    const {
+      full_name,
+      hometown,
+      birthday,
+      gender,
+      province,
+      district,
+      ward,
+      detail,
+      majors,
+      classes,
+    } = request.body;
+  
+    const id: string = request.params.id;
+  
+    console.log("Request Params:", request.params); // Log ID
+    console.log("Request Body:", request.body);     // Log dữ liệu `FormData`
+  
+    // Phần còn lại không cần thay đổi
+    if (!id) {
+      return response.status(404).json({ success: false, message: "Missing required user ID." });
+    }
+  
+    const parsedMajors = majors ? JSON.parse(majors) : undefined;
+    const parsedClasses = classes ? JSON.parse(classes) : undefined;
+  
+    console.log("Parsed Data:");
+    console.log("Full Name:", full_name);
+    console.log("Majors:", parsedMajors);
+    console.log("Classes:", parsedClasses);
+  
+    SUser.updateUserProfile(
+      id,
+      (result) => {
+        if (result) {
+          console.log("User profile updated successfully for ID:", id);
+          SResponse.getResponse(ResponseStatus.OK, {}, "User profile updated successfully.", response);
+        } else {
+          console.error("Failed to update user profile for ID:", id);
+          SResponse.getResponse(ResponseStatus.Internal_Server_Error, {}, "Failed to update user profile.", response);
+        }
+      },
+      full_name,
+      hometown,
+      birthday ? parseInt(birthday) : undefined,
+      gender ? parseInt(gender) : undefined,
+      province,
+      district,
+      ward,
+      detail,
+      parsedMajors,
+      parsedClasses
+    );
+  }
+  
+
+
+  //
+  public static updateAvatar(
+    request: express.Request,
+    response: express.Response
+  ) {
+    // Lấy id từ body của request
+    console.log(request.body.id);
+    
+    const id : string = request.params.id ?? "-1";
+
+    // Lấy file được tải lên từ request.file (chỉ 1 file)
+    const file = (request as any).file;
+    let avatarPath: string | null = null;
+    console.log("id",id);
+    
+
+    if (file) {
+      avatarPath = `uploads/avatars/${file.filename}`; // Lưu đường dẫn file vào avatarPath
+      console.log("Uploaded file path:", avatarPath);
+    } else {
+      // Nếu không có file tải lên, trả về lỗi
+      return response
+        .status(400)
+        .json({ success: false, message: "Avatar file is missing." });
+    }
+
+    // Kiểm tra tham số bắt buộc
+    if (!id) {
+      return response
+        .status(400)
+        .json({ success: false, message: "Missing required user ID." });
+    }
+    console.log("avatar", avatarPath);
+
+    // Gọi phương thức SUser.updateAvatar để cập nhật avatar người dùng
+    SUser.updateAvatar(
+      id,
+      avatarPath, // Đường dẫn tới avatar
+      (result) => {
+        if (result) {
+          // Nếu thành công, trả về phản hồi JSON
+          SResponse.getResponse(
+            ResponseStatus.OK,
+            {},
+            "User avatar updated successfully.",
+            response
+          );
+        } else {
+          // Nếu thất bại, trả về lỗi
+          SResponse.getResponse(
+            ResponseStatus.Internal_Server_Error,
+            {},
+            "Failed to update user avatar.",
+            response
+          );
+        }
+      }
+    );
+  }
 }
