@@ -67,7 +67,7 @@ export default class AttendanceController {
     request: express.Request,
     response: express.Response
   ) {
-    let {lesson_id, user_id, paid, type, deferred} = request.body;
+    let {lesson_id, user_id, paid, type, deferred, deferred_lessons} = request.body;
 
     // console.log("data:", request.body);
 
@@ -78,9 +78,10 @@ export default class AttendanceController {
     // Chuyển đổi `paid` từ chuỗi sang boolean
     paid = paid === "true";
     deferred = deferred === "true";
+    deferred_lessons = deferred_lessons ? JSON.parse(deferred_lessons) : [];
 
     SAttendance.updatePaymentOfLearner(
-      lesson_id, user_id, paid, filePath, type, deferred,
+      lesson_id, user_id, paid, filePath, type, deferred,deferred_lessons,
       (message, result) => {
         SResponse.getResponse(ResponseStatus.OK, {message, result}, "update payment of leaner", response);
       }
@@ -146,15 +147,17 @@ export default class AttendanceController {
   ) {
     const lessonId = request.params.lesson_id;
     const userId = request.params.user_id;
+    const classId = Number(request.query.class_id);
 
     SAttendance.getAttendanceByLeanerLesson(
       lessonId,
       userId,
-      (attendance) => {
+      classId,
+      (attendance, deferredAttendances) => {
         // Xử lý thành công
         SResponse.getResponse(
           ResponseStatus.OK,
-          {attendance},
+          {attendance, deferredAttendances},
           `Get attendance for user id: ${userId} in lesson: ${lessonId}`,
           response
         );

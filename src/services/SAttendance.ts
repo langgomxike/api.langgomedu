@@ -87,37 +87,39 @@ export default class SAttendance {
                     OR classes.tutor_id = ?
                  ORDER BY lessons.started_at DESC;`;
 
-
-
     SMySQL.getConnection((connection) => {
       connection?.execute<any[]>(sql, [userId, userId], (error, result) => {
         if (error) {
-          SLog.log(LogType.Error, "getAttendanceHistoriesOfUser", "get attendances error", error);
+          SLog.log(
+            LogType.Error,
+            "getAttendanceHistoriesOfUser",
+            "get attendances error",
+            error
+          );
           onNext([]);
           return;
         }
 
-        SLog.log(LogType.Info, "getAttendanceHistoriesOfUser", "get attendance", result);
-        const attendances: Attendance[] = result as Attendance[] ?? [];
+        SLog.log(
+          LogType.Info,
+          "getAttendanceHistoriesOfUser",
+          "get attendance",
+          result
+        );
+        const attendances: Attendance[] = (result as Attendance[]) ?? [];
         onNext(attendances);
       });
-
     });
   }
 
-// Hàm lấy chi tiết lớp học và danh sách học sinh thuộc user (leaner)
-  public static
-
-  getAttendanceByLeanerClassLesson(
-    classId, lessonId, userId,
-    onNext
-      :
-      (lessonDetail: Lesson, leaner: User) => void,
-    onError
-      :
-      (message) => void
+  // Hàm lấy chi tiết lớp học và danh sách học sinh thuộc user (leaner)
+  public static getAttendanceByLeanerClassLesson(
+    classId,
+    lessonId,
+    userId,
+    onNext: (lessonDetail: Lesson, leaner: User) => void,
+    onError: (message) => void
   ) {
-
     // Lấy chi tiết buổi học của lớp học
     const sqlClassDetails = `
         SELECT JSON_OBJECT(
@@ -256,105 +258,139 @@ export default class SAttendance {
         GROUP BY IFNULL(parent.id, learner.id);
     `;
 
-    console.log(mysql.format(sqlStudentAttendance, [lessonId, lessonId, classId, userId, userId]));
-
-
     SMySQL.getConnection((connection) => {
-      connection?.execute<any[]>(sqlClassDetails, [lessonId], (error, resultClass) => {
-        if (error) {
-          // SLog.log(LogType.Error, "getAttendance", "get attendance error", error);
-          console.log(">>> get student Attendance: ", error);
-          onError("Error get detail class!");
-          return;
-        }
-
-        const lessonDetail = resultClass[0].lesson;
-
-        connection.execute<any>(sqlStudentAttendance, [lessonId, lessonId, classId, userId, userId], (err, resultLearner) => {
+      connection?.execute<any[]>(
+        sqlClassDetails,
+        [lessonId],
+        (error, resultClass) => {
           if (error) {
-            console.log(">>> Error fetching student attendance:", error);
-            onError("Error read student attendance!")
+            // SLog.log(LogType.Error, "getAttendance", "get attendance error", error);
+            console.log(">>> get student Attendance: ", error);
+            onError("Error get detail class!");
             return;
           }
 
-          const learner = resultLearner[0].learner;
+          const lessonDetail = resultClass[0].lesson;
 
-          if (learner.children && learner.children.filter(Boolean).length) {
-            learner.children.map((child) => {
-              if (child.attendance) {
-                // Chuyển đổi 0/1 trong attendance thành true/false
-                child.attendance.paid = !!child.attendance.paid;
-                child.attendance.attended = !!child.attendance.attended;
-                child.attendance.deferred = !!child.attendance.deferred;
-                child.attendance.confirm_paid = !!child.attendance.confirm_paid;
+          connection.execute<any>(
+            sqlStudentAttendance,
+            [lessonId, lessonId, classId, userId, userId],
+            (err, resultLearner) => {
+              if (error) {
+                console.log(">>> Error fetching student attendance:", error);
+                onError("Error read student attendance!");
+                return;
               }
-            })
-          }
 
-          // Chuyển đổi attendance của learner chính (nếu có)
-          if (learner.attendance) {
-            learner.attendance.paid = !!learner.attendance.paid;
-            learner.attendance.attended = !!learner.attendance.attended;
-            learner.attendance.deferred = !!learner.attendance.deferred;
-            learner.attendance.confirm_paid = !!learner.attendance.confirm_paid;
-          }
+              const learner = resultLearner[0].learner;
 
-          // Trả kết quả với cấu trúc gồm chi tiết lớp học và danh sách học sinh
-          onNext(lessonDetail, learner);
+              if (learner.children && learner.children.filter(Boolean).length) {
+                learner.children.map((child) => {
+                  if (child.attendance) {
+                    // Chuyển đổi 0/1 trong attendance thành true/false
+                    child.attendance.paid = !!child.attendance.paid;
+                    child.attendance.attended = !!child.attendance.attended;
+                    child.attendance.deferred = !!child.attendance.deferred;
+                    child.attendance.confirm_paid =
+                      !!child.attendance.confirm_paid;
+                  }
+                });
+              }
 
+              // Chuyển đổi attendance của learner chính (nếu có)
+              if (learner.attendance) {
+                learner.attendance.paid = !!learner.attendance.paid;
+                learner.attendance.attended = !!learner.attendance.attended;
+                learner.attendance.deferred = !!learner.attendance.deferred;
+                learner.attendance.confirm_paid =
+                  !!learner.attendance.confirm_paid;
+              }
 
-        })
-      });
+              // Trả kết quả với cấu trúc gồm chi tiết lớp học và danh sách học sinh
+              onNext(lessonDetail, learner);
+            }
+          );
+        }
+      );
     });
   }
 
-  public static
-
-  getAttendanceByLeanerLesson(
-    lessonId, userId,
-    onNext
-      :
-      (attendancce: Attendance) => void,
+  public static getAttendanceByLeanerLesson(
+    lessonId,
+    userId,
+    classId,
+    onNext: (attendance: Attendance, deferredAttendance: Attendance[]) => void
   ) {
+    console.log(`classId: ${classId}, userId: ${userId}, lessonId: ${classId}`);
 
-    const sql = `
-        SELECT *
-        FROM attendances
-        WHERE user_id = ?
-          AND lesson_id = ?;
-    `
+    const currentLessonSql = `
+    SELECT *
+    FROM attendances
+    WHERE user_id = ?
+      AND lesson_id = ?;
+  `;
+
+    const deferredLessonsSql = `
+    SELECT attendances.*, classes.price, lessons.day, lessons.started_at
+    FROM attendances
+    LEFT JOIN lessons ON lessons.id = attendances.lesson_id
+    LEFT JOIN classes ON classes.id = lessons.class_id
+    WHERE attendances.user_id = ? AND classes.id = ? AND attendances.deferred = 1
+    ORDER BY lessons.started_at DESC;
+  `;
 
     SMySQL.getConnection((connection) => {
-      connection?.execute<any[]>(sql, [userId, lessonId], (error, result) => {
-        if (error) {
-          console.log(">>> getAttendanceByLeanerLesson: ", error);
-          return;
+      connection?.execute<any[]>(
+        currentLessonSql,
+        [userId, lessonId],
+        (error1, currentResult) => {
+          if (error1) {
+            console.log(">>> getAttendanceByLeanerLesson: ", error1);
+            return;
+          }
+
+          const currentLesson = currentResult[0] || null;
+          if (currentLesson) {
+            currentLesson.paid = !!currentLesson.paid;
+            currentLesson.attended = !!currentLesson.attended;
+            currentLesson.deferred = !!currentLesson.deferred;
+            currentLesson.confirm_paid = !!currentLesson.confirm_paid;
+          }
+
+          connection.execute<any[]>(
+            deferredLessonsSql,
+            [userId, classId],
+            (error2, deferredResult) => {
+              if (error2) {
+                console.log(
+                  ">>> getAttendanceByLeanerLesson (deferredLessons): ",
+                  error2
+                );
+                return;
+              }
+
+              const deferredLessons = deferredResult.map((attendance) => ({
+                ...attendance,
+                paid: !!attendance.paid,
+                attended: !!attendance.attended,
+                deferred: !!attendance.deferred,
+                confirm_paid: !!attendance.confirm_paid,
+              }));
+
+              onNext(currentLesson, deferredLessons);
+            }
+          );
         }
-
-        const attendance = result[0];
-        if (attendance) {
-          attendance.paid = !!attendance.paid;
-          attendance.attended = !!attendance.attended;
-          attendance.deferred = !!attendance.deferred;
-          attendance.confirm_paid = !!attendance.confirm_paid;
-        }
-        onNext(attendance)
-
-      })
-    })
-
+      );
+    });
   }
 
-// Hàm lấy chi tiết lớp học và danh sách học sinh thuộc user (tutor)
-  public static
-
-  getAttendanceByTutorClassLesson(
-    classId, lessonId,
-    onNext
-      :
-      (learner: User[]) => void
+  // Hàm lấy chi tiết lớp học và danh sách học sinh thuộc user (tutor)
+  public static getAttendanceByTutorClassLesson(
+    classId,
+    lessonId,
+    onNext: (learner: User[]) => void
   ) {
-    
     // Lấy danh sách học sinh đã được điểm danh trong lớp đó nếu có
     const sqlLearner = `
         SELECT JSON_OBJECT(
@@ -392,135 +428,86 @@ export default class SAttendance {
                  LEFT JOIN lessons ON lessons.class_id = classes.id AND lessons.id = ? -- Chỉ lấy bài học cụ thể
         WHERE classes.id = ?;
 
-    `
+    `;
+
+    const deferredLessonsSql = `
+    SELECT attendances.*, classes.price, lessons.day, lessons.started_at
+    FROM attendances
+    LEFT JOIN lessons ON lessons.id = attendances.lesson_id
+    LEFT JOIN classes ON classes.id = lessons.class_id
+    WHERE attendances.user_id IN () AND classes.id = ? AND attendances.deferred = 1
+    ORDER BY lessons.started_at DESC;
+  `;
 
     SMySQL.getConnection((connection) => {
       try {
-        connection?.execute<any[]>(sqlLearner, [lessonId, lessonId, classId], (error, resultLearners) => {
-          if (error) {
-            console.log(">>> getAttendanceByLeanerLesson: ", error);
-            return;
-          }
-
-          const learners: User[] = resultLearners.map((result) => {
-            const learner = result.learner;
-            if (learner && learner.attendance) {
-              return {
-                ...learner, // Giữ nguyên các thông tin khác
-                attendance: {
-                  ...learner.attendance,
-                  paid: Boolean(learner.attendance.paid),
-                  attended: Boolean(learner.attendance.attended),
-                  deferred: Boolean(learner.attendance.deferred),
-                  confirm_paid: Boolean(learner.attendance.confirm_paid),
-                  confirm_deferred: Boolean(learner.attendance.confirm_deferred),
-                },
-              };
+        connection?.execute<any[]>(
+          sqlLearner,
+          [lessonId, lessonId, classId],
+          (error, resultLearners) => {
+            if (error) {
+              console.log(">>> getAttendanceByLeanerLesson: ", error);
+              return;
             }
-            return learner; // Nếu không có attendance, trả về learner gốc
-          });
 
-          // Trả kết quả với cấu trúc gồm chi tiết lớp học và danh sách học sinh
-          onNext(learners);
+            const learnerIds: string[] = []
+            const learners: User[] = resultLearners.map((result) => {
+              const learner = result.learner;
+              if (learner && learner.attendance) {
+                return {
+                  ...learner, // Giữ nguyên các thông tin khác
+                  attendance: {
+                    ...learner.attendance,
+                    paid: Boolean(learner.attendance.paid),
+                    attended: Boolean(learner.attendance.attended),
+                    deferred: Boolean(learner.attendance.deferred),
+                    confirm_paid: Boolean(learner.attendance.confirm_paid),
+                    confirm_deferred: Boolean(
+                      learner.attendance.confirm_deferred
+                    ),
+                  },
+                };
+              }
+              return learner; // Nếu không có attendance, trả về learner gốc
+            });
 
-        })
-
-      } catch (error) {
-
-      }
-    })
-
-
-    // SMySQL.getConnection(async (connection) => {
-    //   try {
-    //     const resultLesson = await new Promise<any>((resolve, reject) =>{
-    //       connection?.execute<any>(sqlLessonDetail, [lessonId, classId], (error, result) => {
-    //         if (error) {
-    //           reject(error);
-    //         } else {
-    //           resolve(result);
-    //         }
-    //       });
-    //     })
-
-    //     const lessonDetail = resultLesson[0].lesson;
-    //     lessonDetail.is_online = lessonDetail.is_online === 1;
-
-    //     const resultLearners = await new Promise<any[]>((resolve, reject) =>{
-    //       connection?.execute<any[]>(sqlLearner, [lessonId, lessonId, classId], (err, result) => {
-    //         if (err) {
-    //           reject(err);
-    //         } else {
-    //           resolve(result);
-    //         }
-    //       });
-    //     })
-
-    //     const learners: User[] = resultLearners.map((result) => {
-    //       const learner = result.learner;
-    //       if (learner && learner.attendance) {
-    //         return {
-    //           ...learner, // Giữ nguyên các thông tin khác
-    //           attendance: {
-    //             ...learner.attendance,
-    //             paid: Boolean(learner.attendance.paid),
-    //             attended: Boolean(learner.attendance.attended),
-    //             deferred: Boolean(learner.attendance.deferred),
-    //             confirm_paid: Boolean(learner.attendance.confirm_paid),
-    //           },
-    //         };
-    //       }
-    //       return learner; // Nếu không có attendance, trả về learner gốc
-    //     });
-
-
-    //      // Trả kết quả với cấu trúc gồm chi tiết lớp học và danh sách học sinh
-    //     onNext(lessonDetail, learners);
-
-    //   } catch (error) {
-    //     console.log("Error: ", error);
-
-    //   }
-
-    // });
+            // Trả kết quả với cấu trúc gồm chi tiết lớp học và danh sách học sinh
+            onNext(learners);
+          }
+        );
+      } catch (error) {}
+    });
   }
 
-// Hàm gửi yêu cầu điểm danh từ tutor đến learner
-  public static
-
-  requestAttendance(
-    learnerAttendance
-      :
-      LearnerAtendance[],
-    onNext
-      :
-      (messages: string, result: boolean) => void
+  // Hàm gửi yêu cầu điểm danh từ tutor đến learner
+  public static requestAttendance(
+    learnerAttendance: LearnerAtendance[],
+    onNext: (messages: string, result: boolean) => void
   ) {
-
-    let lessonId = learnerAttendance[0].lesson_id
+    let lessonId = learnerAttendance[0].lesson_id;
     // Tạo mảng giá trị để chèn vào bảng attendances
     const attendanceValues = learnerAttendance.map((attendance) => {
       return [
         attendance.lesson_id,
         attendance.id,
         attendance.attended,
-        new Date().getTime() // attended_at
-      ]
+        new Date().getTime(), // attended_at
+      ];
     });
 
     const numberOfRecords = learnerAttendance.length;
 
-    const allPlaceholders = new Array(numberOfRecords).fill(`(?, ?, ?, ?)`).join(', ');
+    const allPlaceholders = new Array(numberOfRecords)
+      .fill(`(?, ?, ?, ?)`)
+      .join(", ");
 
     const attendanceSql = `INSERT INTO attendances
                                (lesson_id, user_id, attended, attended_at)
                            VALUES ${allPlaceholders};`;
 
-
     console.log(">>> attendanceValues", attendanceValues.flat());
     console.log(">>> attendanceValues flat", attendanceValues);
     console.log("attendanceSql", attendanceSql);
-
 
     SMySQL.getConnection((connection) => {
       connection?.beginTransaction((err) => {
@@ -547,7 +534,10 @@ export default class SAttendance {
               FirebaseNode.Attendances,
               [{key: FirebaseNode.LessonId, value: lessonId}],
               () => {
-                onNext("All attendance records and payments have been inserted successfully!", true);
+                onNext(
+                  "All attendance records and payments have been inserted successfully!",
+                  true
+                );
               }
             );
           }
@@ -556,27 +546,14 @@ export default class SAttendance {
     });
   }
 
-// Hàm cho phép learner chấp nhận điểm danh của tutor
-  public static
-
-  acceptAttendance(
-    lessonId
-      :
-      number,
-    userId
-      :
-      string,
-    confirmAttendance
-      :
-      boolean,
-    attendedAt
-      :
-      number,
-    onNext
-      :
-      (messages: string, result: boolean) => void
+  // Hàm cho phép learner chấp nhận điểm danh của tutor
+  public static acceptAttendance(
+    lessonId: number,
+    userId: string,
+    confirmAttendance: boolean,
+    attendedAt: number,
+    onNext: (messages: string, result: boolean) => void
   ) {
-
     const confirmedAt = new Date().getTime();
 
     const sql = `
@@ -595,43 +572,33 @@ export default class SAttendance {
         [confirmAttendance, confirmedAt, lessonId, userId, attendedAt],
         (error, result) => {
           if (error) {
-            onNext("Failed to update attendance confirmation for all students", false);
+            onNext(
+              "Failed to update attendance confirmation for all students",
+              false
+            );
             console.log("Error updating attendance confirmation:", error);
             return;
           }
 
-          onNext("Attendance confirmation updated successfully for all students!", true);
+          onNext(
+            "Attendance confirmation updated successfully for all students!",
+            true
+          );
         }
       );
     });
-
   }
 
-// Hàm cập nhật thanh toán cho learner
-  public static
-
-  updatePaymentOfLearner(
-    lessonId
-      :
-      number,
-    userId
-      :
-      string,
-    paid
-      :
-      boolean,
-    paymentPath
-      :
-      string | null,
-    type
-      :
-      string,
-    deferred
-      :
-      boolean,
-    onNext
-      :
-      (message: string, result: boolean) => void
+  // Hàm cập nhật thanh toán cho learner
+  public static updatePaymentOfLearner(
+    lessonId: number,
+    userId: string,
+    paid: boolean,
+    paymentPath: string | null,
+    type: string,
+    deferred: boolean,
+    deferredLessons: number[],
+    onNext: (message: string, result: boolean) => void
   ) {
 
     console.log("lessonId: ", lessonId);
@@ -639,86 +606,102 @@ export default class SAttendance {
     console.log("paid: ", paid);
     console.log("deferred: ", deferred);
     console.log("paymentPath: ", paymentPath);
+    console.log("deferredLessons:", deferredLessons);
+    
 
     // Tạo placeholders cho danh sách userIds
     const sql = `
         UPDATE attendances
-        SET paid         = ?,
-            payment_path = ?,
-            paid_at      = ?,
-            type         = ?,
-            deferred     = ?
-        WHERE lesson_id = ?
-          AND user_id IN (?);
+        SET paid = ?, payment_path = ?, paid_at = ?, type = ?,deferred = ?
+        WHERE lesson_id = ? AND user_id IN (?);
     `;
 
     const paidAt = new Date().getTime();
-    const values = [paid, paymentPath, paidAt, type, deferred, lessonId, userId];
+    const values = [
+      paid,
+      paymentPath,
+      paidAt,
+      type,
+      deferred,
+      lessonId,
+      userId,
+    ];
+
+    // Cập nhật các buổi bị nợ
+    const deferredPlaceholders = deferredLessons.map(() => "?").join(", ");
+    const updateDeferredLessonsSql = `
+    UPDATE attendances
+    SET paid = 1, payment_path = ?, paid_at = ?, type = ?
+    WHERE lesson_id IN (${deferredPlaceholders}) AND user_id = ?;
+  `;
+
+    const deferredValues = [
+      paymentPath,
+      new Date().getTime(),
+      type,
+      ...deferredLessons,
+      userId,
+    ];
 
     SMySQL.getConnection((connection) => {
       connection?.execute<any>(sql, values, (err, results) => {
         if (err) {
-          onNext('Update failed', false);
-          console.log('>>> Update failed:', err);
+          onNext("Update failed", false);
+          console.log(">>> Update failed:", err);
           return;
         }
-
         // Kiểm tra xem có bản ghi nào được cập nhật không
-        if (results.affectedRows === 0) {
-          onNext('No matching record found', false);
-        } else {
-          SFirebase.push(
-            FirebaseNode.Attendances,
-            [{key: FirebaseNode.LessonId, value: lessonId}],
-            () => {
-              onNext(`Payment update successful for ID: ${lessonId}`, true);
+        // Nếu có danh sách buổi nợ
+        if (deferredLessons.length > 0) {
+          connection?.execute<any>(
+            updateDeferredLessonsSql,
+            deferredValues,
+            (deferredErr, deferredResult) => {
+              if (deferredErr) {
+                console.log(">>> Update deferred lessons failed:", deferredErr);
+                onNext("Update deferred lessons failed", false);
+                return;
+              }
+
+              console.log(
+                `Updated deferred lessons: ${deferredResult.affectedRows} rows`
+              );
             }
           );
         }
 
+        SFirebase.push(
+          FirebaseNode.Attendances,
+          [{key: FirebaseNode.LessonId, value: lessonId}],
+          () => {
+            onNext(`Payment update successful for ID: ${lessonId}`, true);
+          }
+        );
       });
-    })
-
-
+    });
   }
 
-// Hàm cập nhật thanh toán cho learner
-  public static
-
-  confirmPaymentByTutor(
-    lessonId
-      :
-      number, userId
-      :
-      string,
-    action
-      :
-      string,
-    value
-      :
-      boolean,
-    onNext
-      :
-      (message: string, result: boolean) => void
+  // Hàm cập nhật thanh toán cho learner
+  public static confirmPaymentByTutor(
+    lessonId: number,
+    userId: string,
+    action: string,
+    value: boolean,
+    onNext: (message: string, result: boolean) => void
   ) {
-
     // Tạo placeholders cho danh sách userId
     let sql = "";
     if (action === "confirm_paid") {
       sql = `
           UPDATE attendances
-          SET confirm_paid    = ?,
-              confirm_paid_at = ?
-          WHERE lesson_id = ?
-            AND user_id = ?;
+          SET confirm_paid = ?, confirm_paid_at = ?
+          WHERE lesson_id = ? AND user_id = ?;
       `;
     } else if (action === "confirm_deferred") {
       sql = `
           UPDATE attendances
-          SET confirm_deferred    = ?,
-              confirm_deferred_at = ?
-          WHERE lesson_id = ?
-            AND user_id = ?;
+          SET confirm_deferred = ?, confirm_deferred_at = ?
+          WHERE lesson_id = ?  AND user_id = ?;
       `;
     }
 
@@ -728,14 +711,14 @@ export default class SAttendance {
     SMySQL.getConnection((connection) => {
       connection?.execute<any>(sql, values, (err, results) => {
         if (err) {
-          onNext('Update failed', false);
-          console.log('>>> Update failed:', err);
+          onNext("Update failed", false);
+          console.log(">>> Update failed:", err);
           return;
         }
 
         // Kiểm tra xem có bản ghi nào được cập nhật không
         if (results.affectedRows === 0) {
-          onNext('No matching record found', false);
+          onNext("No matching record found", false);
         } else {
           SFirebase.push(
             FirebaseNode.Attendances,
@@ -745,8 +728,7 @@ export default class SAttendance {
             }
           );
         }
-
       });
-    })
+    });
   }
 }
