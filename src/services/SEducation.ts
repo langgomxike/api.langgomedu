@@ -86,7 +86,7 @@ export default class SEducation {
                 return ids;
             })
             .catch((error) => {
-                console.log("fail to store old Educations : ", error.message);
+                console.log("fail to store new Educations : ", error.message);
                 return {};
             })
     }
