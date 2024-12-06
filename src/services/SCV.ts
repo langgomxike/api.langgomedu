@@ -200,9 +200,9 @@ export default class SCV {
       LIMIT ${perPage} OFFSET ${(page - 1) * perPage};
   `;
 
-  console.log("queryParams: ", queryParams);
+  // console.log("getSugestedCVs queryParams: ", queryParams);
 
-  console.log("getSugestedCVs", mysql.format(sql, queryParams));
+  // console.log("getSugestedCVs", mysql.format(sql, queryParams));
 
   // console.log(mysql.format(sql, [province, district]));
 
