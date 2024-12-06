@@ -1,7 +1,7 @@
+// @ts-ignore
 import express from "express";
 import SMajor from "../services/SMajor";
-import SResponse, { ResponseStatus } from "../services/SResponse";
-import { messaging } from "firebase-admin";
+import SResponse, {ResponseStatus} from "../services/SResponse";
 
 export default class MajorController {
   public static getAllMajors(
@@ -11,6 +11,17 @@ export default class MajorController {
     SMajor.getAllMajors((majors) => {
       response.json(majors);
       // Response.getResponse(ResponseStatus.OK, attendances, "get attendances with the class id " + 1, response);
+    });
+  }
+
+  public static getInterestedMajorOfUser(
+    request: express.Request,
+    response: express.Response
+  ) {
+    const userId : string = request.body?.user_id ?? "";
+
+    SMajor.getInterestedMajorOfUser(userId, majors => {
+      SResponse.getResponse(ResponseStatus.OK, majors, "get interested majors", response);
     });
   }
 

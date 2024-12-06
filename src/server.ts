@@ -3,10 +3,11 @@
 import express, {Express, Request, Response} from "express";
 // @ts-ignore
 import dotenv from "dotenv";
-import SLog, {LogType} from "./services/SLog";
+import SLog, { LogType } from "./services/SLog";
 import SMySQL from "./services/SMySQL";
 import UserController from "./controllers/UserController";
 import AttendanceController from "./controllers/AttendanceController";
+import {uploadAvatar} from "./configs/MulterConfig";
 import Config from "./configs/Config";
 import CertificateController from "./controllers/CertificateController";
 import ClassController from "./controllers/ClassController";
@@ -53,27 +54,26 @@ app.get("/api", (req: Request, res: Response) => {
 });
 
 app.use('/', express.static('public'));
+const upload = multer();
 
 app.use('/avatars', express.static(path.join(__dirname, 'images/avatars')));
 
 
 // app.use(bodyParser.urlencoded({extended: true}));
 
-const upload = multer({
-  dest: 'public/uploads/messages/',
-});
 
 // interface MulterRequest extends Request {
 //   file?: Express.Multer.File;
 // }
 
 // ClassLevel routes
-const CLASSLEVEL_BASE_URL = Config.PREFIX + "/class-levels";
-app.get(CLASSLEVEL_BASE_URL, ClassLevelController.getAllClassLevels);
+const CLASS_LEVEL_BASE_URL = Config.PREFIX + "/class-levels";
+app.post(CLASS_LEVEL_BASE_URL + "/interested", ClassLevelController.getInterestedClassLevels); //
+app.get(CLASS_LEVEL_BASE_URL, ClassLevelController.getAllClassLevels);
 
 // Attendance routes
 const ATTENDANCE_BASE_URL = Config.PREFIX + "/attendances";
-app.get(ATTENDANCE_BASE_URL + "/histories", AttendanceController.getAttendanceHistories);
+app.post(ATTENDANCE_BASE_URL + "/histories", AttendanceController.getAttendanceHistories);
 app.post(ATTENDANCE_BASE_URL + "/request", AttendanceController.requestAttendance);
 app.put(ATTENDANCE_BASE_URL + "/accept", AttendanceController.acceptAttendance);
 app.get(ATTENDANCE_BASE_URL + "/learner/:lesson_id/:user_id", AttendanceController.getAttendanceByLearnerLesson);
@@ -99,6 +99,7 @@ app.get(CERTIFICATE_BASE_URL + "/:id/levels", CertificateController.getAllLevels
 const CLASS_BASE_URL = Config.PREFIX + "/classes";
 app.get(CLASS_BASE_URL, ClassController.getAllClasses);
 app.get(CLASS_BASE_URL + "/suggests/:user_id", ClassController.getSuggestsClasses);
+app.get(CLASS_BASE_URL + "/filter/:user_id", ClassController.getFilterClasses);
 app.get(CLASS_BASE_URL + "/:user_id", ClassController.getClassesByUserId);
 app.get(CLASS_BASE_URL + "/detail/:class_id", ClassController.getClass);
 app.post(CLASS_BASE_URL + "/conflicting", ClassController.getconflictingLessonsWithClassUsers);
@@ -170,9 +171,9 @@ app.post(REPORT_BASE_URL + "/created_report", uploadReports.array('reports', 10)
 
 const CV_BASE_URL = Config.PREFIX + "/cvs";
 app.get(CV_BASE_URL, CVController.getAllCVs);
+app.get(CV_BASE_URL + "/suggests/:user_id", CVController.getSuggestedCVs);
+app.get(CV_BASE_URL + "/filter/:user_id", CVController.getFilterCVs);
 app.post(CV_BASE_URL+ "/uploadCV", CVController.createCV);
-// app.get(CV_BASE_URL+ "/test", CVController.test);
-app.get(CV_BASE_URL + "/suggests", CVController.getSuggestedCVs);
 app.post(CV_BASE_URL + "/send", CVController.updateCV);
 app.get(CV_BASE_URL + "/:id", CVController.getCV);
 app.put(CV_BASE_URL + "/:id", CVController.updateCV);
@@ -185,6 +186,7 @@ app.get(GENDER_BASE_URL, GenderController.getAllGender);
 
 const MAJOR_BASE_URL = Config.PREFIX + "/majors";
 app.get(MAJOR_BASE_URL, MajorController.getAllMajors);
+app.post(MAJOR_BASE_URL + "/interested", MajorController.getInterestedMajorOfUser);
 app.post(MAJOR_BASE_URL + "/create", MajorController.createMajor);
 app.put(MAJOR_BASE_URL + "/:id", MajorController.updateMajor);
 app.patch(MAJOR_BASE_URL + "/:id", MajorController.updateMajor);
@@ -240,6 +242,7 @@ app.patch(STUDENT_BASE_URL + "/:id", StudentController.updateStudent);
 app.delete(STUDENT_BASE_URL + "/:id", StudentController.deleteStudent);
 
 const USER_BASE_URL = Config.PREFIX + "/users";
+app.post(USER_BASE_URL + "/address", UserController.getUserAddress);
 app.get(USER_BASE_URL, UserController.getAllUsers);
 app.get(USER_BASE_URL + "/:id", UserController.getUserInfo);
 app.post(USER_BASE_URL + "/register/child", UserController.registerChild);
@@ -259,6 +262,12 @@ app.patch(USER_BASE_URL + "/roles", UserController.changeUserRoles);
 app.put(USER_BASE_URL, UserController.updateUserInfo);
 app.patch(USER_BASE_URL, UserController.updateUserInfo);
 app.delete(USER_BASE_URL + "/:id", UserController.deleteAccount);
+//lấy user profile
+app.get(USER_BASE_URL + "/profile/:id", UserController.getUserProfile);
+//Cap nhat profile
+app.post(USER_BASE_URL + "/update_profile/:id", upload.none(), UserController.updateUserProfile);
+app.post(USER_BASE_URL + "/update_avatar/:id", uploadAvatar.single('file') ,UserController.updateAvatar);
+
 
 // Define the base URL for user-related routes
 const ADMIN_USER_BASE_URL = Config.PREFIX + "/admin";
