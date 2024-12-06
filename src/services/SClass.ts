@@ -263,7 +263,8 @@ export default class SClass {
                                                   FROM lessons
                                                   WHERE lessons.class_id = c.id
                                                   GROUP BY lessons.day
-                                                  ORDER BY lessons.day ASC) l)
+                                                  ORDER BY lessons.day ASC) l),
+                        'total_lessons', (SELECT COUNT(*) FROM lessons WHERE lessons.class_id = c.id)
                         ) as class
                  FROM classes c
                           LEFT JOIN users tutor ON tutor.id = c.tutor_id
@@ -1530,20 +1531,22 @@ GROUP BY parent_children.id;
 
   public static payForClass(
     classId: number,
+    classFee: number,
     paidPath: string | null, 
     onNext: (message: string, result: boolean) => void
     ) {
   
     console.log("class id: ", classId);
+    console.log("classFee: ", classFee);
     console.log("paymentPath: ", paidPath);
       
      // Tạo placeholders cho danh sách userIds
     const sql = `
-    UPDATE classes SET paid_path = ?, updated_at = ? WHERE id = ?
+    UPDATE classes SET class_creation_fee = ?,  paid_path = ?, updated_at = ? WHERE id = ?
   `;
   
       const updatedAT = new Date().getTime();
-      const values = [paidPath, updatedAT ,classId];
+      const values = [classFee, paidPath, updatedAT ,classId];
     
       SMySQL.getConnection((connection) => {
           connection?.execute<any>(sql, values, (err, results) => {

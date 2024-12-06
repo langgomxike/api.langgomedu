@@ -581,12 +581,13 @@ export default class ClassController {
     response: express.Response
   ) {
     const classId = Number(request.body.class_id) ?? -1;
+    const classFee = Number(request.body.class_fee) ?? -1;
 
     // Lấy đường dẫn file đã upload
     const file = (request as any).file;
     const paidPath = file ? `/uploads/payments/${file.filename}` : null;
 
-    SClass.payForClass(classId, paidPath, (message, result) => {
+    SClass.payForClass(classId, classFee ,paidPath, (message, result) => {
       // Trả về phản hồi thành công khi lớp học đã được nhận
       SResponse.getResponse(
         ResponseStatus.OK,
