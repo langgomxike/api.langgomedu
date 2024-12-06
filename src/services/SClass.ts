@@ -607,7 +607,7 @@ GROUP BY parent_children.id;
       filter.maxLearners
     ].filter((param) => param !== undefined);
 
-    console.log(mysql.format(sql, params));
+    // console.log(mysql.format(sql, params));
     // console.log(params);
 
     // Get a database connection
@@ -769,7 +769,7 @@ GROUP BY parent_children.id;
       ...(userType === UserType.TUTOR ? [userId, userId] : [userId, userId]),
     ].filter((param) => param !== undefined);
 
-    console.log("suggest: ",mysql.format(sql, params));
+    // console.log("suggest: ",mysql.format(sql, params));
     // console.log(params);
 
     SMySQL.getConnection((connection) => {
