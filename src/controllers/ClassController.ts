@@ -340,6 +340,10 @@ export default class ClassController {
     if (!tutor_id || tutor_id === '') {
       tutor_id = ""; // Nếu tutor_id là chuỗi rỗng, gán giá trị null
     }
+
+    if (!max_learners) {
+      max_learners = 1
+    }
   
     // Tính toán danh sách các buổi học
     const fullLessons = lessons.flatMap((lesson) =>
