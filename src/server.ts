@@ -298,6 +298,6 @@ SMySQL.connect();
 // setUpPermissions();
 setUpRoles();
 // setUpGenders();
-// setUpUsers();
+setUpUsers();
 
 export default app;

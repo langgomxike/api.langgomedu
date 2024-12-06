@@ -81,8 +81,9 @@ export default class CVController {
             console.log("successfully", data);
             if(data){
                 SResponse.getResponse(ResponseStatus.OK, [data], "Update CV", response);
+            }else{
+                SResponse.getResponse(ResponseStatus.Forbidden, [data], "Update CV", response);
             }
-            SResponse.getResponse(ResponseStatus.Forbidden, [data], "Update CV", response);
         })
     }
 
@@ -97,14 +98,14 @@ export default class CVController {
 
     }
 
-    public static test(request: express.Request, response: express.Response){
-        const param = request.query.detail;
-        const detail = param ? param.toString() : "";
-        console.log(detail);
-        SAddress.getAddressByDetail(detail , (data)=> {
-            SResponse.getResponse(ResponseStatus.OK, [data], "", response);
-        })
-    }
+    // public static test(request: express.Request, response: express.Response){
+    //     const param = request.query.detail;
+    //     const detail = param ? param.toString() : "";
+    //     console.log(detail);
+    //     SAddress.getAddressByDetail(detail , (data)=> {
+    //         SResponse.getResponse(ResponseStatus.OK, [data], "", response);
+    //     })
+    // }
 
     
 }
