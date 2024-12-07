@@ -79,7 +79,7 @@ export default class SCertificate {
                 return ids
             })
             .catch((error) => {
-                console.log("fail to store old Certificates : ", error.message);
+                console.log("fail to store new Certificates : ", error.message);
                 return {};
             })
     }

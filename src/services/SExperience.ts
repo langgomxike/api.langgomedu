@@ -77,7 +77,7 @@ export default class SExperience {
                 return ids
             })
             .catch((error) => {
-                console.log("fail to store old Experiences : ", error.message);
+                console.log("fail to store new Experiences : ", error.message);
                 return {};
             })
     }
