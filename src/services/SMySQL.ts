@@ -42,6 +42,8 @@ export default class SMySQL {
         SLog.log(LogType.Info, "connect", "can not connect to mysql", err);
       }
     });
+
+    this.connection.query("SET SESSION sql_mode = (SELECT REPLACE(@@sql_mode, 'ONLY_FULL_GROUP_BY', ''))");
   }
 
   public static getConnection(onNext: (connection: Connection | null) => void): void {

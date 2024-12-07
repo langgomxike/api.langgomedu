@@ -1,3 +1,4 @@
+// @ts-ignore
 import express, { Response } from 'express';
 import SLog, { LogType } from '../services/SLog';
 import SResponse, { ResponseStatus } from '../services/SResponse';

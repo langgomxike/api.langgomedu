@@ -1,8 +1,11 @@
+// @ts-ignore
 import express from 'express';
 import SUserAdmin from '../../services/admin/SUserAdmin';
 import SResponse, {ResponseStatus} from '../../services/SResponse';
 import SLog, {LogType} from '../../services/SLog';
 import User from "../../models/User";
+import Class from "../../models/Class";
+import Report from "../../models/Report";
 
 export default class UserAdminController {
    
@@ -32,6 +35,21 @@ export default class UserAdminController {
         SUserAdmin.getAllReportUserOfUser(user.id, (reports) => {
             SLog.log(LogType.Info, "getAllReportUserOfUser", "get all report user of user successfully");
             SResponse.getResponse(ResponseStatus.OK, reports, "get all report user of user successfully", response);
+        });
+    }
+
+    public static getAllReportUserOfClass(request: express.Request, response: express.Response) {
+        const _class: Class = request?.body?.class;
+
+        if(!_class || !_class.id){
+            SLog.log(LogType.Error, "getAllReportUserOfClass", "Invalid class");
+            SResponse.getResponse(ResponseStatus.Internal_Server_Error, null, "Invalid class", response);
+            return;
+        }
+
+        SUserAdmin.getAllReportUserOfClass(_class.id, (reports: Report[]) => {
+            SLog.log(LogType.Info, "getAllReportUserOfClass", "get all report class of class successfully");
+            SResponse.getResponse(ResponseStatus.OK, reports, "get all report class of class successfully", response);
         });
     }
 
@@ -66,9 +84,9 @@ export default class UserAdminController {
     }
 
     public static async getUsers(request: express.Request, response: express.Response){
-        await SUserAdmin.getAllUsers2((users)=>{
-            SResponse.getResponse(ResponseStatus.OK, {users}, 'get all users 2', response)
-        });
+        // await SUserAdmin.getAllUsers2((users)=>{
+        //     SResponse.getResponse(ResponseStatus.OK, {users}, 'get all users 2', response)
+        // });
     }
 
 }
