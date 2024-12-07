@@ -176,7 +176,7 @@ export default class SClass {
   public static getClassDetailWithUser(
     classId: number,
     userId: string,
-    onNext: (_class: Class) => void
+    onNext: (_class: Class, memberInClass: User[]) => void
   ) {
     //get class
     const sql = `SELECT JSON_OBJECT(
@@ -277,14 +277,28 @@ export default class SClass {
                  WHERE c.id = ?
                  GROUP BY c.id;`;
 
+                 const childInClassSql = `
+                 SELECT JSON_OBJECT(
+                            'id', u.id,
+                            'full_name', u.full_name,
+                            'email', u.email,
+                            'phone_number', u.phone_number,
+                            'avatar', u.avatar
+                          ) as child
+                 FROM users u
+                          INNER JOIN class_members cm ON cm.user_id = u.id
+                          INNER JOIN classes c ON c.id = cm.class_id
+                 WHERE u.parent_id = ? AND cm.class_id = ?;
+               `;
+
     SMySQL.getConnection((connection) => {
-      connection?.query<any[]>(
+      connection?.execute<any[]>(
         sql,
         [userId, userId, userId, userId, userId, classId],
         (err, result) => {
           if (err || !result || result.length < 1) {
             console.log("get Class by ID", err);
-            onNext(new Class());
+            onNext(new Class(), []);
           }
 
           const classData: Class = result[0].class as Class;
@@ -292,7 +306,27 @@ export default class SClass {
           classData.author_accepted = result[0].class.author_accepted === 1;
           classData.paid = result[0].class.paid === 1;
 
-          onNext(classData);
+          connection.execute<any[]>(childInClassSql, [userId, classId], (childErr, childResult) => {
+              if (childErr) {
+                console.log("Error fetching children", childErr);
+              } else {
+                const membersInClassL: User[] = [];
+
+                if (childResult && childResult.length > 0) {
+                  childResult.forEach((child) => {
+                    if (child.child) {
+                      membersInClassL.push(child.child); // Đẩy từng thành viên vào danh sách
+                    }
+                  });
+                }
+                
+                onNext(classData,membersInClassL );
+              }
+    
+              // Trả dữ liệu về callback
+            }
+          );
+
         }
       );
     });
@@ -611,7 +645,7 @@ GROUP BY parent_children.id;
       filter.maxLearners,
     ].filter((param) => param !== undefined);
 
-    // console.log(mysql.format(sql, params));
+    console.log(mysql.format(sql, params));
     // console.log(params);
 
     // Get a database connection
@@ -662,11 +696,14 @@ GROUP BY parent_children.id;
     perPage: number,
     onNext: (classes: Class[], pagination: Pagination) => void
   ) {
-    // Xác định điều kiện WHERE theo userType
-    const condition =
-      userType === UserType.TUTOR
-        ? `classes.tutor_id IS NULL AND classes.author_id != ? AND class_members.user_id IS NULL`
-        : `classes.author_id != ? AND  classes.tutor_id IS NULL AND class_members.user_id IS NULL`;
+    const currentDate = new Date().getTime();
+    console.log("Current date: " + currentDate);
+    
+   // Xác định điều kiện WHERE theo userType
+   const condition =
+   userType === UserType.TUTOR
+     ? `classes.tutor_id IS NULL AND classes.author_id != ? AND class_members.user_id IS NULL AND classes.started_at >= ${currentDate}`
+     : `classes.author_id = classes.tutor_id AND classes.tutor_id != ? AND classes.author_id != ? AND class_members.user_id IS NULL AND classes.started_at >= ${currentDate}`;
 
     // Tạo các điều kiện lọc động
     let filterConditions = "";
@@ -771,11 +808,11 @@ GROUP BY parent_children.id;
 
     // Thay thế các giá trị điều kiện theo userType và các filter
     const params = [
-      ...(userType === UserType.TUTOR ? [userId, userId] : [userId, userId]),
+      ...(userType === UserType.TUTOR ? [userId, userId] : [userId, userId, userId]),
       ...queryParamsAddress,
       ...(parseNumericFilter(filter.major) || []),
       ...(parseNumericFilter(filter.classLevelId) || []),
-      ...(userType === UserType.TUTOR ? [userId, userId] : [userId, userId]),
+      ...(userType === UserType.TUTOR ? [userId, userId] : [userId, userId, userId]),
     ].filter((param) => param !== undefined);
 
     // console.log("suggest: ",mysql.format(sql, params));
@@ -1406,9 +1443,7 @@ GROUP BY parent_children.id;
             false
           );
         }
-        SFirebase.push(
-          FirebaseNode.Classes,
-          [{ key: FirebaseNode.Id, value: classId }],
+        SFirebase.push(FirebaseNode.Classes, [{ key: FirebaseNode.Id, value: classId }],
           () => {
             onNext(`Join in class id: ${classId} successful!`, true);
           }
@@ -1487,26 +1522,33 @@ GROUP BY parent_children.id;
     const sql = `
     UPDATE classes SET class_creation_fee = ?,  paid_path = ?, updated_at = ? WHERE id = ?
   `;
-
-    const updatedAT = new Date().getTime();
-    const values = [classFee, paidPath, updatedAT, classId];
-
-    SMySQL.getConnection((connection) => {
-      connection?.execute<any>(sql, values, (err, results) => {
-        if (err) {
-          onNext("Update failed", false);
-          console.log(">>> Update failed:", err);
-          return;
-        }
-
-        // Kiểm tra xem có bản ghi nào được cập nhật không
-        if (results.affectedRows === 0) {
-          onNext("No matching record found", false);
-        } else {
-          onNext(`Payment update successful for ID: ${classId}`, true);
-        }
-      });
-    });
+  
+      const updatedAT = new Date().getTime();
+      const values = [classFee, paidPath, updatedAT ,classId];
+    
+      SMySQL.getConnection((connection) => {
+          connection?.execute<any>(sql, values, (err, results) => {
+            if (err) {
+              onNext('Update failed', false);
+              console.log('>>> Update failed:', err);
+              return;
+            }
+  
+            // Kiểm tra xem có bản ghi nào được cập nhật không
+            if (results.affectedRows === 0) {
+              onNext('No matching record found', false);
+            } else {
+              SFirebase.push(FirebaseNode.Classes, [{ key: FirebaseNode.Id, value: classId }],
+                () => {
+                  onNext(`Payment update successful for ID: ${classId}`, true);
+                }
+              );
+            }
+  
+          });
+      })
+  
+  
   }
 
   public static acceptTutorForClass(

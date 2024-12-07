@@ -275,8 +275,12 @@ export default class UserController {
               return;
             }
 
-            SLog.log(LogType.Info, "registerChild", "Fail to store child");
-            SResponse.getResponse(ResponseStatus.OK, {}, "Store child successfully", response);
+            SRole.addRolesToUser(parent.id, [new Role(RoleList.PARENT)], () => {
+              SRole.addRolesToUser(user.id, [new Role(RoleList.CHILD)], () => {
+                SLog.log(LogType.Info, "registerChild", "store child successfully");
+                SResponse.getResponse(ResponseStatus.OK, {}, "Store child successfully", response);
+              });
+            });
           });
         });
       });
@@ -656,6 +660,8 @@ export default class UserController {
     response: express.Response
   ) {
     const id: string = request?.params?.id;
+    console.log("lay id", id);
+    
 
     if (!id) {
       SLog.log(LogType.Error, "getUserInfo", "Invalid ID");
@@ -770,7 +776,7 @@ export default class UserController {
     
 
     if (file) {
-      avatarPath = `uploads/avatars/${file.filename}`; // Lưu đường dẫn file vào avatarPath
+      avatarPath = `/uploads/avatars/${file.filename}`; // Lưu đường dẫn file vào avatarPath
       console.log("Uploaded file path:", avatarPath);
     } else {
       // Nếu không có file tải lên, trả về lỗi

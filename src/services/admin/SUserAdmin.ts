@@ -47,18 +47,18 @@ export default class SUserAdmin {
     const params = [search, search, search];
 
     const TAB = {
-        ALL: "all",
-        PENDING_APPROVAL: "pendingApproval",
-        REPORTED: "reported",
-        BANNED: "banned",
-      };
+      ALL: "all",
+      PENDING_APPROVAL: "pendingApproval",
+      REPORTED: "reported",
+      BANNED: "banned",
+    };
 
     // Điều kiện tìm kiếm tùy thuộc vào `userType`
 
     // Người dùng bị báo cáo
     if (action === TAB.REPORTED) {
       additionalCondition = "AND reports.reportee_id IS NOT NULL";
-    } 
+    }
     // Người dùng có CV đang chờ phê duyệt
     else if (action === TAB.PENDING_APPROVAL) {
       additionalCondition = "AND cvs.approved_at IS NULL AND cvs.id IS NOT NULL";
@@ -77,30 +77,29 @@ export default class SUserAdmin {
       : "";
 
     const sql = `
-        SELECT 
-        ${userJsonSql}
+        SELECT ${userJsonSql}
         FROM users
-        LEFT JOIN reports ON reports.reportee_id = users.id
-        LEFT JOIN genders ON users.gender_id = genders.id
-        LEFT JOIN addresses ON addresses.id = users.address_id
-        LEFT JOIN user_role ON user_role.user_id = users.id
-        LEFT JOIN cvs ON cvs.id = users.id OR cvs.id = CONCAT(users.id, '_t')
+                 LEFT JOIN reports ON reports.reportee_id = users.id
+                 LEFT JOIN genders ON users.gender_id = genders.id
+                 LEFT JOIN addresses ON addresses.id = users.address_id
+                 LEFT JOIN user_role ON user_role.user_id = users.id
+                 LEFT JOIN cvs ON cvs.id = users.id OR cvs.id = CONCAT(users.id, '_t')
         WHERE COALESCE(user_role.role_id, 0) NOT IN (1, 2)
-        ${additionalCondition}
-         ${searchCondition}
+            ${additionalCondition} ${searchCondition}
         GROUP BY users.id
         ORDER BY users.full_name ASC
-        LIMIT ${perPage} OFFSET ${(page - 1) * perPage}
+            LIMIT ${perPage}
+        OFFSET ${(page - 1) * perPage}
         ;
-        `;
+    `;
 
     const countSQL = `
         SELECT COUNT(DISTINCT users.id) AS total
         FROM users
-        LEFT JOIN reports ON reports.reportee_id = users.id
-        LEFT JOIN addresses ON addresses.id = users.address_id
-        LEFT JOIN user_role ON user_role.user_id = users.id
-        LEFT JOIN cvs ON cvs.id = users.id OR cvs.id = CONCAT(users.id, '_t')
+                 LEFT JOIN reports ON reports.reportee_id = users.id
+                 LEFT JOIN addresses ON addresses.id = users.address_id
+                 LEFT JOIN user_role ON user_role.user_id = users.id
+                 LEFT JOIN cvs ON cvs.id = users.id OR cvs.id = CONCAT(users.id, '_t')
         WHERE COALESCE(user_role.role_id, 0) NOT IN (1, 2) ${additionalCondition} ${searchCondition};
     `;
 
@@ -139,7 +138,8 @@ export default class SUserAdmin {
     });
   }
 
-  public static getPendingCVs() {}
+  public static getPendingCVs() {
+  }
 
 
   public static getAllReportUserOfUser(
@@ -176,6 +176,39 @@ export default class SUserAdmin {
     });
   }
 
+  public static getAllReportUserOfClass(
+    classId: number,
+    onNext: (reports: Report[]) => void
+  ) {
+    const sql = `
+        SELECT reports.*,
+               reports.level_id as report_level,
+               JSON_OBJECT(
+                       'id', users.id,
+                       'full_name', users.full_name,
+                       'avatar', users.avatar,
+                       'point', users.point
+               )                as reporter
+        FROM reports
+                 INNER JOIN users ON reports.reporter_id = users.id
+                 LEFT JOIN classes ON reports.class_id = classes.id
+        WHERE reports.class_id = ?;`;
+
+    SMySQL.getConnection((connection) => {
+      connection?.execute<any[]>(sql, [classId], (err, results) => {
+        if (err) {
+          SLog.log(LogType.Error, "getAllReportUserOfClass", "found error: ", err);
+          onNext([]);
+          return;
+        }
+
+        const reports: Report[] = results ?? [];
+
+        onNext(reports);
+      });
+    });
+  }
+
   public static getReportById(
     reportId: number,
     onNext: (report: Report | undefined) => void
@@ -195,11 +228,12 @@ export default class SUserAdmin {
                        'major', JSON_OBJECT(
                                'vn_name', majors.vn_name,
                                'en_name', majors.en_name,
-                               'ja_name', majors.ja_name
+                               'ja_name', majors.ja_name,
+                               'icon', majors.icon
                                 ),
                        'tutor', JSON_OBJECT(
                                'id', classes.author_id
-                                 )
+                                )
                )                as class
         FROM reports
                  INNER JOIN users ON reports.reportee_id = users.id
@@ -225,8 +259,9 @@ export default class SUserAdmin {
   public static getReportEvidences(reportId: number, onNext: (files: string[]) => void) {
     const sql = `
         SELECT files.path as file_path
-        FROM files INNER JOIN report_files ON report_files.file_id = files.id
-        WHERE report_files.report_id =?;
+        FROM files
+                 INNER JOIN report_files ON report_files.file_id = files.id
+        WHERE report_files.report_id = ?;
     `;
 
     SMySQL.getConnection((connection) => {

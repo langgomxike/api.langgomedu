@@ -5,6 +5,7 @@ import User from "../models/User";
 import Attendance from "./../models/Attendance";
 import SFirebase, {FirebaseNode} from "./SFirebase";
 import SLog, {LogType} from "./SLog";
+import SMessage from "./SMessage";
 import SMySQL from "./SMySQL";
 import * as mysql from "mysql2";
 
@@ -60,6 +61,7 @@ export default class SAttendance {
                                 'started_at', lessons.started_at
                         ) as lesson,
                         JSON_OBJECT(
+                                'id', classes.id,
                                 'title', classes.title,
                                 'tutor', JSON_OBJECT(
                                         'id', classes.tutor_id
@@ -680,6 +682,39 @@ export default class SAttendance {
       });
     });
   }
+
+  
+  public static async sendNotifyFroLearner(
+    learnerId: string,
+    parentId: string,
+    learnerMessage: string, 
+    parentMessage:string,
+    onNext: (message: string, result: boolean) => void
+  ) {
+
+    console.log("userIds: ", learnerId);
+    console.log("parentIds: ", parentId);
+
+    try {
+      await SMessage.createNotification(
+        learnerMessage,
+        learnerId, () => {}
+      );
+
+      if(parentId){
+        await SMessage.createNotification(
+          parentMessage,
+          parentId, () => {}
+        );
+      }
+  
+      onNext("Send notification successfully!", true);
+    } catch (error) {
+      console.error("Error sending notifications:", error);
+      onNext("Failed to send notifications!", false);
+    }
+  }
+
 
   // Hàm cập nhật thanh toán cho learner
   public static confirmPaymentByTutor(

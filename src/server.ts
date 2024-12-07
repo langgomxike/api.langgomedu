@@ -80,6 +80,7 @@ app.get(ATTENDANCE_BASE_URL + "/learner/:lesson_id/:user_id", AttendanceControll
 app.get(ATTENDANCE_BASE_URL + "/tutor/:class_id/:lesson_id", AttendanceController.getAttendanceByTutorClassLesson);
 app.post(ATTENDANCE_BASE_URL + "/pay", uploadPayment.single('file'), AttendanceController.updatePaymentOfLearner);
 app.post(ATTENDANCE_BASE_URL + "/confirm_paid", AttendanceController.confirmPaymentByTutor);
+app.post(ATTENDANCE_BASE_URL + "/notify", AttendanceController.sendNotifyForLearners);
 
 
 // Define the base URL for certificate-related routes
@@ -102,6 +103,7 @@ app.get(CLASS_BASE_URL + "/suggests/:user_id", ClassController.getSuggestsClasse
 app.get(CLASS_BASE_URL + "/filter/:user_id", ClassController.getFilterClasses);
 app.get(CLASS_BASE_URL + "/:user_id", ClassController.getClassesByUserId);
 app.get(CLASS_BASE_URL + "/detail/:class_id", ClassController.getClass);
+app.get(CLASS_BASE_URL + "/get_class_by_id/:id", ClassController.getClassById);
 app.post(CLASS_BASE_URL + "/conflicting", ClassController.getconflictingLessonsWithClassUsers);
 app.post(CLASS_BASE_URL + "/create", ClassController.createClass);
 app.post(CLASS_BASE_URL + "/create-learner", ClassController.createClassForLearner);
@@ -275,6 +277,7 @@ app.post(ADMIN_USER_BASE_URL + "/users/reports", AdminController.getAllReportUse
 app.get(ADMIN_USER_BASE_URL + "/users/reports/evidences/:id", AdminController.getReportEvidences);
 app.get(ADMIN_USER_BASE_URL + "/users/reports/:id", AdminController.getReport);
 app.get(ADMIN_USER_BASE_URL + "/classes", ClassAdminController.getAllClasses);
+app.post(ADMIN_USER_BASE_URL + "/classes/reports", AdminController.getAllReportUserOfClass);
 app.get(ADMIN_USER_BASE_URL + "/classes/:class_id", ClassAdminController.getDetailClass);
 app.put(ADMIN_USER_BASE_URL + "/classes/approve", ClassAdminController.approveClass);
 app.put(ADMIN_USER_BASE_URL + "/classes/approve-paid", ClassAdminController.approvePaymentByAdmin);
@@ -294,7 +297,6 @@ app.listen(port, () => {
 });
 
 SMySQL.connect();
-// setUpPermissions();
 setUpRoles();
 // setUpGenders();
 setUpUsers();

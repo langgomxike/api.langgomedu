@@ -147,7 +147,7 @@ export default class SMessage {
                                 'created_at', m.created_at,
                                 'as_read', m.as_read,
                                 'sender', JSON_OBJECT(
-                                          'id', users.id
+                                        'id', users.id
                                           )
                         ) AS newest_message
                  FROM classes c
@@ -160,7 +160,8 @@ export default class SMessage {
                                             ORDER BY created_at DESC
                      LIMIT 1
                      )
-                     LEFT JOIN users ON m.sender_id = users.id
+                     LEFT JOIN users
+                 ON m.sender_id = users.id
                  ORDER BY m.created_at DESC`;
 
     SMySQL.getConnection(connection => {

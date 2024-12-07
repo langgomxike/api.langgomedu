@@ -3,6 +3,9 @@ import knex from 'knex';
 import * as process from "node:process";
 import { addressJson } from '../models/Address';
 import { fileJson } from '../models/File';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
 
 const db = knex({
     client: 'mysql2',
@@ -11,6 +14,7 @@ const db = knex({
         user: process.env.MYSQL_USER || 'root',
         password: process.env.MYSQL_PASSWORD || '',
         database: process.env.MYSQL_DATABASE || 'langgomedu',  // Tên cơ sở dữ liệu
+        port: +(process.env.MYSQL_PORT ?? "3306"),  // Tên cơ sở dữ liệu
     },
 });
 
@@ -47,7 +51,8 @@ export const createSubquery = (table: string, alias:string , addressAlias: strin
 // Lắng nghe sự kiện query 
 // cần log ra câu truy vấn để xem thì mở cái đây lên
 
-// db.on('query', (queryData) => {
-//   console.log('Executing Query:', queryData.sql); // Log câu truy vấn
-//   console.log('Bindings:', queryData.bindings); // Log giá trị binding
-// });
+db.on('query', (queryData) => {
+  console.log('Executing Query:', queryData.sql); // Log câu truy vấn
+  console.log('Bindings:', queryData.bindings); // Log giá trị binding
+});
+ 

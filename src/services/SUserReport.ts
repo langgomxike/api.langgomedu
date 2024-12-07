@@ -248,7 +248,7 @@ export default class SUserReport {
         [
           reporter,
           reportee,
-          class_id ? class_id : 0,
+          class_id ? class_id : -1,
           content,
           createdAt,
           reason,
@@ -343,7 +343,9 @@ export default class SUserReport {
           Promise.all(fileInsertPromises)
             .then(() => {
               SLog.log(LogType.Info, "CreatedReport", "Report created successfully with files");
-              onNext(true);
+              SFirebase.push(FirebaseNode.Reports, [{ key: FirebaseNode.ReportId, value: reportId }], () => {
+                onNext(true);
+              })
             })
             .catch((error) => {
               SLog.log(LogType.Error, "CreatedReport", "Error while processing files", error);
