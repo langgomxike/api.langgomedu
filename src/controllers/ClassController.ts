@@ -179,10 +179,10 @@ export default class ClassController {
     SClass.getClassDetailWithUser(
       classId,
       userId,
-      (_class) => {
+      (class_data, members_in_class) => {
         SResponse.getResponse(
           ResponseStatus.OK,
-          { class: _class},
+          { class: class_data, members_in_class},
           "get detail class by id",
           response
         );
