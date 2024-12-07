@@ -908,6 +908,7 @@ public static updateUserProfile(
   const updateMajors = (connection: any, callback: () => void) => {
     if (majors && majors.length > 0) {
       // Lọc danh sách majors để loại bỏ giá trị trùng lặp
+      // @ts-ignore
       const uniqueMajors = [...new Set(majors)];
 
       const deleteSql = "DELETE FROM interested_majors WHERE user_id = ?";

@@ -277,6 +277,7 @@ app.post(ADMIN_USER_BASE_URL + "/users/reports", AdminController.getAllReportUse
 app.get(ADMIN_USER_BASE_URL + "/users/reports/evidences/:id", AdminController.getReportEvidences);
 app.get(ADMIN_USER_BASE_URL + "/users/reports/:id", AdminController.getReport);
 app.get(ADMIN_USER_BASE_URL + "/classes", ClassAdminController.getAllClasses);
+app.post(ADMIN_USER_BASE_URL + "/classes/reports", AdminController.getAllReportUserOfClass);
 app.get(ADMIN_USER_BASE_URL + "/classes/:class_id", ClassAdminController.getDetailClass);
 app.put(ADMIN_USER_BASE_URL + "/classes/approve", ClassAdminController.approveClass);
 app.put(ADMIN_USER_BASE_URL + "/classes/approve-paid", ClassAdminController.approvePaymentByAdmin);
