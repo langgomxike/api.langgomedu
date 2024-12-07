@@ -759,6 +759,7 @@ public static getProfileUserById(
 }
 
 //thay avatar
+
 public static updateAvatar(
   id: string, // ID của người dùng
   avatar: string, // Avatar mới
@@ -805,13 +806,22 @@ public static updateAvatar(
           return;
         }
 
-        // Nếu cập nhật thành công
+        // Nếu cập nhật thành công trong MySQL
         SLog.log(LogType.Info, "updateAvatar", "Avatar updated successfully");
-        onNext(true);
+
+        // Đồng bộ hóa với Firebase Realtime Database
+        SFirebase.push(FirebaseNode.Users, [
+          { key: FirebaseNode.Id, value: id }
+        ], () => {
+          // Callback khi cập nhật Firebase thành công
+          SLog.log(LogType.Info, "updateAvatar", "Avatar updated in Firebase");
+          onNext(true);
+        });
       }
     );
   });
 }
+
 
 public static updateUserProfile(
   id: string,
@@ -1074,7 +1084,10 @@ public static updateUserProfile(
       updateMajors(connection, () => {
         updateClasses(connection, () => {
           updateUser(connection, () => {
-            onNext(true);
+            SFirebase.push(FirebaseNode.Users, [{ key: FirebaseNode.Id, value: id }], () => {
+              onNext(true);
+            })
+          
           });
         });
       });

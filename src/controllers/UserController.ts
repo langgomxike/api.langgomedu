@@ -660,6 +660,8 @@ export default class UserController {
     response: express.Response
   ) {
     const id: string = request?.params?.id;
+    console.log("lay id", id);
+    
 
     if (!id) {
       SLog.log(LogType.Error, "getUserInfo", "Invalid ID");
@@ -774,7 +776,7 @@ export default class UserController {
     
 
     if (file) {
-      avatarPath = `uploads/avatars/${file.filename}`; // Lưu đường dẫn file vào avatarPath
+      avatarPath = `/uploads/avatars/${file.filename}`; // Lưu đường dẫn file vào avatarPath
       console.log("Uploaded file path:", avatarPath);
     } else {
       // Nếu không có file tải lên, trả về lỗi
