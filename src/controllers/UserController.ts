@@ -772,7 +772,7 @@ export default class UserController {
     
 
     if (file) {
-      avatarPath = `uploads/avatars/${file.filename}`; // Lưu đường dẫn file vào avatarPath
+      avatarPath = `/uploads/avatars/${file.filename}`; // Lưu đường dẫn file vào avatarPath
       console.log("Uploaded file path:", avatarPath);
     } else {
       // Nếu không có file tải lên, trả về lỗi
