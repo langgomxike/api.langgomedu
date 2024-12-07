@@ -288,12 +288,11 @@ export default class SClass {
           }
 
           const classData: Class = result[0].class as Class;
-          classData.admin_accepted = result[0].class.admin_accepted  === 1
-          classData.author_accepted = result[0].class.author_accepted  === 1
-          classData.paid = result[0].class.paid  === 1
+          classData.admin_accepted = result[0].class.admin_accepted === 1;
+          classData.author_accepted = result[0].class.author_accepted === 1;
+          classData.paid = result[0].class.paid === 1;
 
           onNext(classData);
-
         }
       );
     });
@@ -306,7 +305,6 @@ export default class SClass {
     userId: string,
     onNext: (data: any[]) => void
   ) {
-
     const sql = `
     WITH parent_children AS (
     SELECT *
@@ -358,7 +356,7 @@ FROM parent_children
 LEFT JOIN class_members AS cm ON cm.user_id = parent_children.id
 LEFT JOIN distinct_lessons ON distinct_lessons.user_id = parent_children.id 
 GROUP BY parent_children.id;
-    `
+    `;
 
     SMySQL.getConnection((connection) => {
       connection?.query<any>(sql, [userId, userId, classId], (err, result) => {
@@ -374,7 +372,7 @@ GROUP BY parent_children.id;
 
         const removeDuplicates = (conflicts) => {
           const seen = {};
-          return conflicts.filter(conflict => {
+          return conflicts.filter((conflict) => {
             if (!seen[conflict.day]) {
               seen[conflict.day] = true;
               return true; // Keep this conflict
@@ -382,12 +380,12 @@ GROUP BY parent_children.id;
             return false; // Remove duplicates
           });
         };
-        
+
         // Process data
-        const groupedData = result.map(user => {
+        const groupedData = result.map((user) => {
           return {
             ...user.all_user,
-            conflicts: user.conflicts ?  removeDuplicates(user.conflicts) : null
+            conflicts: user.conflicts ? removeDuplicates(user.conflicts) : null,
           };
         });
 
@@ -483,7 +481,7 @@ GROUP BY parent_children.id;
     // Tạo các điều kiện lọc động
     // Tạo các điều kiện lọc động
     let filterConditions = "";
-    let queryParamsAddress: string[] = []
+    let queryParamsAddress: string[] = [];
 
     if (filter.minPrice) {
       filterConditions += ` AND classes.price >= ?`;
@@ -503,17 +501,23 @@ GROUP BY parent_children.id;
     if (filter.district) {
       const districts = filter.district.split(",").map((d) => d.trim());
       filterConditions += ` AND (${districts
-        .map(() => "(addresses.district LIKE ? OR ? LIKE CONCAT('%', CONCAT(addresses.district, '%')))")
+        .map(
+          () =>
+            "(addresses.district LIKE ? OR ? LIKE CONCAT('%', CONCAT(addresses.district, '%')))"
+        )
         .join(" OR ")})`;
       districts.forEach((d) => {
-        queryParamsAddress.push(`%${d}%`, d); 
+        queryParamsAddress.push(`%${d}%`, d);
       });
     }
 
     if (filter.ward) {
       const wards = filter.ward.split(",").map((w) => w.trim());
       filterConditions += ` AND (${wards
-        .map(() => "(addresses.ward LIKE ? OR ? LIKE CONCAT('%', CONCAT(addresses.ward, '%')))") // Tương tự
+        .map(
+          () =>
+            "(addresses.ward LIKE ? OR ? LIKE CONCAT('%', CONCAT(addresses.ward, '%')))"
+        ) // Tương tự
         .join(" OR ")})`;
       wards.forEach((w) => {
         queryParamsAddress.push(`%${w}%`, w); // Thêm cả giá trị '%<ward>%' và `<ward>`
@@ -583,7 +587,7 @@ GROUP BY parent_children.id;
       LIMIT ${perPage} OFFSET ${(page - 1) * perPage};
   `;
 
-  const countSql = `
+    const countSql = `
     SELECT COUNT(DISTINCT classes.id) AS totalCount
     FROM classes
     LEFT JOIN users tutor ON tutor.id = classes.tutor_id
@@ -604,7 +608,7 @@ GROUP BY parent_children.id;
       ...queryParamsAddress,
       ...(parseNumericFilter(filter.major) || []),
       ...(parseNumericFilter(filter.classLevelId) || []),
-      filter.maxLearners
+      filter.maxLearners,
     ].filter((param) => param !== undefined);
 
     // console.log(mysql.format(sql, params));
@@ -635,9 +639,9 @@ GROUP BY parent_children.id;
             console.log("getFilterClasses - DATA", err);
             return;
           }
-  
+
           const totalCount = rows[0]?.totalCount;
-  
+
           const pagination: Pagination = {
             page,
             per_page: perPage,
@@ -645,7 +649,6 @@ GROUP BY parent_children.id;
             total_items: totalCount,
           };
           return onNext(classes, pagination);
-
         });
       });
     });
@@ -659,57 +662,63 @@ GROUP BY parent_children.id;
     perPage: number,
     onNext: (classes: Class[], pagination: Pagination) => void
   ) {
-   // Xác định điều kiện WHERE theo userType
-   const condition =
-   userType === UserType.TUTOR
-     ? `classes.tutor_id IS NULL AND classes.author_id != ? AND class_members.user_id IS NULL`
-     : `classes.author_id != ? AND  classes.tutor_id IS NULL AND class_members.user_id IS NULL`;
+    // Xác định điều kiện WHERE theo userType
+    const condition =
+      userType === UserType.TUTOR
+        ? `classes.tutor_id IS NULL AND classes.author_id != ? AND class_members.user_id IS NULL`
+        : `classes.author_id != ? AND  classes.tutor_id IS NULL AND class_members.user_id IS NULL`;
 
- // Tạo các điều kiện lọc động
- let filterConditions = "";
- let queryParamsAddress:string[] = [];
+    // Tạo các điều kiện lọc động
+    let filterConditions = "";
+    let queryParamsAddress: string[] = [];
 
- if (filter.province) {
-   const province = filter.province.trim();
-   filterConditions += `
+    if (filter.province) {
+      const province = filter.province.trim();
+      filterConditions += `
      AND (addresses.province LIKE ? OR ? LIKE CONCAT('%', CONCAT(addresses.province, '%')))
    `;
-   queryParamsAddress.push(`%${province}%`, province);
- }
+      queryParamsAddress.push(`%${province}%`, province);
+    }
 
- if (filter.district) {
-   const districts = filter.district.split(",").map((d) => d.trim());
-   filterConditions += ` AND (${districts
-     .map(() => "(addresses.district LIKE ? OR ? LIKE CONCAT('%', CONCAT(addresses.district, '%')))")
-     .join(" OR ")})`;
-   districts.forEach((d) => {
-    queryParamsAddress.push(`%${d}%`, d); 
-   });
- }
+    if (filter.district) {
+      const districts = filter.district.split(",").map((d) => d.trim());
+      filterConditions += ` AND (${districts
+        .map(
+          () =>
+            "(addresses.district LIKE ? OR ? LIKE CONCAT('%', CONCAT(addresses.district, '%')))"
+        )
+        .join(" OR ")})`;
+      districts.forEach((d) => {
+        queryParamsAddress.push(`%${d}%`, d);
+      });
+    }
 
- if (filter.ward) {
-   const wards = filter.ward.split(",").map((w) => w.trim());
-   filterConditions += ` AND (${wards
-     .map(() => "(addresses.ward LIKE ? OR ? LIKE CONCAT('%', CONCAT(addresses.ward, '%')))") // Tương tự
-     .join(" OR ")})`;
-   wards.forEach((w) => {
-    queryParamsAddress.push(`%${w}%`, w);
-   });
- }
+    if (filter.ward) {
+      const wards = filter.ward.split(",").map((w) => w.trim());
+      filterConditions += ` AND (${wards
+        .map(
+          () =>
+            "(addresses.ward LIKE ? OR ? LIKE CONCAT('%', CONCAT(addresses.ward, '%')))"
+        ) // Tương tự
+        .join(" OR ")})`;
+      wards.forEach((w) => {
+        queryParamsAddress.push(`%${w}%`, w);
+      });
+    }
 
- if (filter.major) {
-   const majors = filter.major.split(",").map(Number);
-   filterConditions += ` AND classes.major_id IN (${majors
-     .map(() => "?")
-     .join(",")})`;
- }
+    if (filter.major) {
+      const majors = filter.major.split(",").map(Number);
+      filterConditions += ` AND classes.major_id IN (${majors
+        .map(() => "?")
+        .join(",")})`;
+    }
 
- if (filter.classLevelId) {
-   const classLevels = filter.classLevelId.split(",").map(Number);
-   filterConditions += ` AND classes.class_level_id IN (${classLevels
-     .map(() => "?")
-     .join(",")})`;
- }
+    if (filter.classLevelId) {
+      const classLevels = filter.classLevelId.split(",").map(Number);
+      filterConditions += ` AND classes.class_level_id IN (${classLevels
+        .map(() => "?")
+        .join(",")})`;
+    }
 
     // SQL query to fetch class information, including tutor, major, and class level details
     const sql = `
@@ -802,9 +811,6 @@ GROUP BY parent_children.id;
       });
     });
   }
-
-
-  
 
   // Lấy danh sách  lớp học liên quan
   public static getRelatedClasses(
@@ -933,7 +939,10 @@ GROUP BY parent_children.id;
   }
 
   // Lấy danh sách lớp học của người dùng
-  public static getClassByUserId(userId: string, onNext: (classes: Class[]) => void) {
+  public static getClassByUserId(
+    userId: string,
+    onNext: (classes: Class[]) => void
+  ) {
     // SQL query to fetch class information, including tutor, major, and class level details
     const sql = `SELECT 
                     ${this.classJsonSQL}
@@ -948,8 +957,8 @@ GROUP BY parent_children.id;
                   WHERE classes.tutor_id = ? OR classes.author_id = ? OR class_members.user_id IS NOT NULL 
                    GROUP BY classes.id;`;
 
-      // console.log("", mysql.format(sql, [userId, userId, userId]));
-      
+    // console.log("", mysql.format(sql, [userId, userId, userId]));
+
     // Get a database connection
     SMySQL.getConnection((connection) => {
       // Execute the SQL query with the provided user_id as a parameter
@@ -968,7 +977,7 @@ GROUP BY parent_children.id;
             ...row.class,
             author_accepted: !!row.class.author_accepted,
             admin_accepted: !!row.class.admin_accepted,
-            paid: !!row.class.paid
+            paid: !!row.class.paid,
           };
           classes.push(classData);
         });
@@ -997,7 +1006,48 @@ GROUP BY parent_children.id;
     updatedClass: Class,
     onNext: (result: boolean) => void
   ) {
-    
+    let sqlClass = `UPDATE classes SET (title, description, major_id, price, class_level_id, max_learners, started_at, ended_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) WHERE id = ?`;
+
+    SMySQL.getConnection((connection) => {
+      if (!connection) {
+        console.error("Không thể kết nối database.");
+        onNext(false);
+        return;
+      }
+
+      connection.beginTransaction((transactionErr) => {
+        if (transactionErr) {
+          console.error("Lỗi khi bắt đầu transaction:", transactionErr);
+          onNext(false);
+          return;
+        }
+
+        connection.execute(
+          sqlClass,
+          [
+            updatedClass.title,
+            updatedClass.description,
+            updatedClass.major,
+            updatedClass.price,
+            updatedClass.class_level,
+            updatedClass.max_learners,
+            updatedClass.started_at,
+            updatedClass.ended_at,
+            new Date().getTime(),
+            updatedClass.id,
+          ],
+          (error) => {
+            if (error) {
+              console.log("Cập nhật không thành công");
+              onNext(false);
+            } else {
+              console.log("Cập nhật thành công");
+              onNext(true);
+            }
+          }
+        );
+      });
+    });
   }
 
   /**
@@ -1105,21 +1155,21 @@ GROUP BY parent_children.id;
       INSERT INTO classes (title, description, major_id, tutor_id, author_id, price, class_level_id, max_learners, started_at, ended_at, address_id) 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
-  
+
     SMySQL.getConnection((connection) => {
       if (!connection) {
         console.error("Không thể kết nối database.");
         onNext(false);
         return;
       }
-  
+
       connection.beginTransaction((transactionErr) => {
         if (transactionErr) {
           console.error("Lỗi khi bắt đầu transaction:", transactionErr);
           onNext(false);
           return;
         }
-  
+
         connection.execute(
           classSql,
           [
@@ -1141,14 +1191,14 @@ GROUP BY parent_children.id;
               connection.rollback(() => onNext(false));
               return;
             }
-  
+
             const classId = (classResult as any).insertId;
             if (!classId) {
               console.error("Không lấy được ID lớp học vừa tạo.");
               connection.rollback(() => onNext(false));
               return;
             }
-  
+
             if (lessons.length === 0) {
               connection.commit((commitErr) => {
                 if (commitErr) {
@@ -1175,14 +1225,14 @@ GROUP BY parent_children.id;
                   lesson.note || null,
                 ])
                 .flat();
-  
+
               connection.execute(lessonSql, lessonValues, (lessonErr) => {
                 if (lessonErr) {
                   console.error("Lỗi khi thêm bài học:", lessonErr);
                   connection.rollback(() => onNext(false));
                   return;
                 }
-  
+
                 connection.commit((commitErr) => {
                   if (commitErr) {
                     console.error("Lỗi khi commit transaction:", commitErr);
@@ -1212,17 +1262,12 @@ GROUP BY parent_children.id;
     ended_at: number,
     max_learners: number | 1,
     address_id: number,
-    lessons: Lesson[], // Nhận danh sách đầy đủ các bài học
+    lessons: Lesson[],
+    userIds: string[],
     onNext: (result: boolean, insertId?: number) => void
   ) {
-    // Nếu tutor_id là chuỗi rỗng, gán giá trị null
-    if (!tutor_id || tutor_id === '') {
-      tutor_id = "";
-    }
-
-    if (!max_learners) {
-      max_learners = 1
-    }
+    if (!tutor_id || tutor_id === "") tutor_id = "";
+    if (!max_learners) max_learners = 1;
   
     const classSql = `
       INSERT INTO classes (title, description, major_id, tutor_id, author_id, price, class_level_id, started_at, ended_at, max_learners, address_id) 
@@ -1249,8 +1294,8 @@ GROUP BY parent_children.id;
             title,
             description,
             major_id,
-            tutor_id, // Phải nhận từ frontend
-            author_id, // Phải nhận từ frontend
+            tutor_id,
+            author_id,
             price,
             class_level_id,
             started_at,
@@ -1265,68 +1310,66 @@ GROUP BY parent_children.id;
               return;
             }
   
-            const classId = (classResult as any).insertId;
+            const classId = (classResult as any)?.insertId;
+  
             if (!classId) {
               console.error("Không lấy được ID lớp học vừa tạo.");
               connection.rollback(() => onNext(false));
               return;
             }
   
-            console.log('classId sau khi insert lớp học:', classId); // Log classId
+            // Insert lessons
+            const lessonSql = `
+              INSERT INTO lessons (class_id, day, started_at, duration, is_online, note) 
+              VALUES ${lessons.map(() => "(?, ?, ?, ?, ?, ?)").join(",")}
+            `;
+            const lessonValues = lessons.flatMap((lesson) => [
+              classId,
+              lesson.day,
+              lesson.started_at,
+              lesson.duration,
+              lesson.is_online,
+              lesson.note || null,
+            ]);
   
-            if (lessons.length === 0) {
-              connection.commit((commitErr) => {
-                if (commitErr) {
-                  console.error("Lỗi khi commit transaction:", commitErr);
-                  onNext(false);
-                } else {
-                  console.log("Tạo lớp học thành công, không có bài học.");
-                  onNext(true, classId);
-                }
-              });
-            } else {
-              // Insert các bài học
-              const lessonSql = `
-                INSERT INTO lessons (class_id, day, started_at, duration, is_online, note) 
-                VALUES ${lessons.map(() => "(?, ?, ?, ?, ?, ?)").join(",")}
+            connection.execute(lessonSql, lessonValues, (lessonErr) => {
+              if (lessonErr) {
+                console.error("Lỗi khi thêm bài học:", lessonErr);
+                connection.rollback(() => onNext(false));
+                return;
+              }
+  
+              // Insert class members
+              const finalUserIds = userIds.length > 0 ? userIds : [author_id];
+              const sqlClassMember = `
+                INSERT INTO class_members (class_id, user_id) 
+                VALUES ${userIds.map(() => "(?, ?)").join(",")}
               `;
-              const lessonValues = lessons
-                .map((lesson) => [
-                  classId,
-                  lesson.day,
-                  lesson.started_at,
-                  lesson.duration,
-                  lesson.is_online,
-                  lesson.note || null,
-                ])
-                .flat();
+              const valueClassMembers = finalUserIds.flatMap((userId) => [classId, userId]);
   
-              console.log('Câu truy vấn bài học:', lessonSql); // Log câu truy vấn bài học
-              console.log('Giá trị bài học:', lessonValues); // Log giá trị bài học
-  
-              connection.execute(lessonSql, lessonValues, (lessonErr) => {
-                if (lessonErr) {
-                  console.error("Lỗi khi thêm bài học:", lessonErr);
+              connection.execute(sqlClassMember, valueClassMembers, (err) => {
+                if (err) {
+                  console.error("Lỗi khi thêm thông tin người dùng:", err);
                   connection.rollback(() => onNext(false));
                   return;
                 }
   
                 connection.commit((commitErr) => {
                   if (commitErr) {
-                    console.error("Lỗi khi commit transaction:", commitErr);
+                    console.error("Commit thất bại:", commitErr);
                     onNext(false);
                   } else {
-                    console.log("Tạo lớp học và bài học thành công.");
+                    console.log("Tạo lớp học và các thông tin liên quan thành công.");
                     onNext(true, classId);
                   }
                 });
               });
-            }
+            });
           }
         );
       });
     });
-  }  
+  }
   
 
   public static joinClass(
@@ -1411,7 +1454,8 @@ GROUP BY parent_children.id;
             }
 
             if (updateResults && updateResults.affectedRows > 0) {
-              SFirebase.push(FirebaseNode.Classes,
+              SFirebase.push(
+                FirebaseNode.Classes,
                 [{ key: FirebaseNode.Id, value: classId }],
                 () => {
                   onNext("Class accepted by tutor successfully", true);
@@ -1432,102 +1476,89 @@ GROUP BY parent_children.id;
   public static payForClass(
     classId: number,
     classFee: number,
-    paidPath: string | null, 
+    paidPath: string | null,
     onNext: (message: string, result: boolean) => void
-    ) {
-  
+  ) {
     console.log("class id: ", classId);
     console.log("classFee: ", classFee);
     console.log("paymentPath: ", paidPath);
-      
-     // Tạo placeholders cho danh sách userIds
+
+    // Tạo placeholders cho danh sách userIds
     const sql = `
     UPDATE classes SET class_creation_fee = ?,  paid_path = ?, updated_at = ? WHERE id = ?
   `;
-  
-      const updatedAT = new Date().getTime();
-      const values = [classFee, paidPath, updatedAT ,classId];
-    
-      SMySQL.getConnection((connection) => {
-          connection?.execute<any>(sql, values, (err, results) => {
-            if (err) {
-              onNext('Update failed', false);
-              console.log('>>> Update failed:', err);
-              return;
-            }
-  
-            // Kiểm tra xem có bản ghi nào được cập nhật không
-            if (results.affectedRows === 0) {
-              onNext('No matching record found', false);
-            } else {
-                  onNext(`Payment update successful for ID: ${classId}`, true);
-            }
-  
-          });
-      })
-  
-  
+
+    const updatedAT = new Date().getTime();
+    const values = [classFee, paidPath, updatedAT, classId];
+
+    SMySQL.getConnection((connection) => {
+      connection?.execute<any>(sql, values, (err, results) => {
+        if (err) {
+          onNext("Update failed", false);
+          console.log(">>> Update failed:", err);
+          return;
+        }
+
+        // Kiểm tra xem có bản ghi nào được cập nhật không
+        if (results.affectedRows === 0) {
+          onNext("No matching record found", false);
+        } else {
+          onNext(`Payment update successful for ID: ${classId}`, true);
+        }
+      });
+    });
   }
 
   public static acceptTutorForClass(
-    classId: number, 
+    classId: number,
     authorAccepted: boolean,
     onNext: (message: string, result: boolean) => void
-    ) {
-  
+  ) {
     console.log("class id: ", classId);
-      
-     // Tạo placeholders cho danh sách userIds
-     let sql = "";
-     let values: any[] = [];
-     const updatedAT = new Date().getTime();
-     
-     if(authorAccepted == true) {
-        sql =  `
+
+    // Tạo placeholders cho danh sách userIds
+    let sql = "";
+    let values: any[] = [];
+    const updatedAT = new Date().getTime();
+
+    if (authorAccepted == true) {
+      sql = `
         UPDATE classes SET author_accepted = ?, updated_at = ? WHERE id = ?
       `;
-      values = [authorAccepted, updatedAT ,classId];
+      values = [authorAccepted, updatedAT, classId];
       console.log("Chấp nhận gia sư");
-      
-     }
-     else{
-      sql =  `
+    } else {
+      sql = `
       UPDATE classes SET tutor_id = null, updated_at = ? WHERE id = ?
       `;
-      values =  [updatedAT ,classId];
+      values = [updatedAT, classId];
       console.log("Từ chối");
-     }
-       
-    
-      SMySQL.getConnection((connection) => {
-          connection?.execute<any>(sql, values, (err, results) => {
-            if (err) {
-              onNext('Update failed', false);
-              console.log('>>> Update failed:', err);
-              return;
-            }
-  
-            // Kiểm tra xem có bản ghi nào được cập nhật không
-            if (results.affectedRows === 0) {
-              onNext('No matching record found', false);
-            } else {
-
-              SFirebase.push(FirebaseNode.Classes,
-                [{ key: FirebaseNode.Id, value: classId }],
-                () => {
-                  onNext(` Update successful for ID: ${classId}`, true);
-                }
-              );
-                 
-            }
-  
-          });
-      })
-  
-  
     }
 
-  
+    SMySQL.getConnection((connection) => {
+      connection?.execute<any>(sql, values, (err, results) => {
+        if (err) {
+          onNext("Update failed", false);
+          console.log(">>> Update failed:", err);
+          return;
+        }
+
+        // Kiểm tra xem có bản ghi nào được cập nhật không
+        if (results.affectedRows === 0) {
+          onNext("No matching record found", false);
+        } else {
+          SFirebase.push(
+            FirebaseNode.Classes,
+            [{ key: FirebaseNode.Id, value: classId }],
+            () => {
+              onNext(` Update successful for ID: ${classId}`, true);
+            }
+          );
+        }
+      });
+    });
+  }
+
   //khoá lớp học
   //  UPDATE classes
   // SET status = 1

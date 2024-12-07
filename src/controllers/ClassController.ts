@@ -329,7 +329,7 @@ export default class ClassController {
     request: express.Request,
     response: express.Response
   ) {
-    let {
+    const {
       title,
       description,
       major_id,
@@ -344,10 +344,12 @@ export default class ClassController {
       district,
       ward,
       detail,
-      lessons, // Mảng các buổi học
+      lessons,
+      userIds,
     } = request.body;
   
-    // Kiểm tra tính hợp lệ của dữ liệu đầu vào
+    console.log("data: ", request.body);
+    
     if (
       !title ||
       !description ||
@@ -363,7 +365,9 @@ export default class ClassController {
       !ward ||
       !detail ||
       !Array.isArray(lessons) ||
-      lessons.length === 0
+      lessons.length === 0 ||
+      !userIds ||
+      !Array.isArray(userIds)
     ) {
       return SResponse.getResponse(
         ResponseStatus.Internal_Server_Error,
@@ -373,27 +377,6 @@ export default class ClassController {
       );
     }
   
-    // Kiểm tra tutor_id và xử lý nếu là chuỗi rỗng
-    if (!tutor_id || tutor_id === '') {
-      tutor_id = ""; // Nếu tutor_id là chuỗi rỗng, gán giá trị null
-    }
-
-    if (!max_learners) {
-      max_learners = 1
-    }
-  
-    // Tính toán danh sách các buổi học
-    const fullLessons = lessons.flatMap((lesson) =>
-      calculateLessonDates(started_at, ended_at, [lesson.day]).map((calculatedLesson) => ({
-        ...lesson,
-        day: calculatedLesson.day,
-        started_at: calculatedLesson.started_at,
-      }))
-    );
-  
-    console.log('Danh sách đầy đủ các buổi học:', fullLessons); // Log dữ liệu fullLessons
-  
-    // Tạo địa chỉ
     SAddress.createAddress(
       province,
       district,
@@ -409,12 +392,11 @@ export default class ClassController {
           );
         }
   
-        // Tạo lớp học
         SClass.createClassForLearner(
           title,
           description,
           major_id,
-          tutor_id,
+          tutor_id || "",
           author_id,
           class_level_id,
           price,
@@ -422,7 +404,8 @@ export default class ClassController {
           ended_at,
           max_learners,
           addressId,
-          fullLessons,
+          lessons,
+          userIds,
           (result: boolean, insertId?: number) => {
             if (result) {
               SResponse.getResponse(
@@ -435,7 +418,7 @@ export default class ClassController {
               SResponse.getResponse(
                 ResponseStatus.Internal_Server_Error,
                 { message: 'Không thể tạo lớp học.' },
-                'Create class failed!',
+                'Failed to create class!',
                 response
               );
             }
@@ -443,7 +426,8 @@ export default class ClassController {
         );
       }
     );
-  }
+  };
+  
 
   /**
    * Updates a class based on the data provided in the request body.

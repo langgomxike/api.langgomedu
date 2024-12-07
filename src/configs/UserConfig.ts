@@ -19,12 +19,12 @@ export function setUpUsers() {
 
         const user = new User();
         user.roles = [new Role(RoleConfig.SUPER_ADMIN, RoleConfig[RoleConfig.SUPER_ADMIN])];
-        user.id = ADMIN_ID;
-        user.full_name = process.env.ADMIN_NAME;
-        user.username = process.env.ADMIN_USERNAME;
-        user.phone_number = process.env.ADMIN_PHONE_NUMBER;
-        user.password = process.env.ADMIN_PASSWORD;
-        user.token = token;
+        user.id = ADMIN_ID ?? "";
+        user.full_name = process.env.ADMIN_NAME ?? "";
+        user.username = process.env.ADMIN_USERNAME ?? "";
+        user.phone_number = process.env.ADMIN_PHONE_NUMBER ?? "";
+        user.password = process.env.ADMIN_PASSWORD ?? "";
+        user.token = token ?? "";
 
         SUser.storeUser(user, () => {
             SRole.addRolesToUser(user.id, [
