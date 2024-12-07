@@ -997,111 +997,7 @@ GROUP BY parent_children.id;
     updatedClass: Class,
     onNext: (result: boolean) => void
   ) {
-    // // Initialize the SQL statement for updating the 'classes' table
-    // let sql = "UPDATE `classes` SET ";
-    // const updateCols: string[] = []; // Array to hold the columns to be updated
-    // const updateValues: Array<string | number> = []; // Array to hold the values corresponding to the columns
-    // // Conditionally add the 'title' column if the title length is within the valid range
-    // if (
-    //   updatedClass.title &&
-    //   updatedClass.title.length >= 3 &&
-    //   updatedClass.title.length <= 255
-    // ) {
-    //   updateCols.push("`title`=?");
-    //   updateValues.push(updatedClass.title);
-    // }
-    // // Conditionally add the 'description' column if it is provided
-    // if (updatedClass.description) {
-    //   updateCols.push("`description`=?");
-    //   updateValues.push(updatedClass.description);
-    // }
-    // // Conditionally add the 'major_id' column if a valid major ID is provided
-    // if (updatedClass.major?.id) {
-    //   updateCols.push("`major_id`=?");
-    //   updateValues.push(updatedClass.major.id);
-    // }
-    // // Conditionally add the 'tutor_id' column if a valid tutor ID is provided
-    // if (updatedClass.tutor?.id) {
-    //   updateCols.push("`tutor_id`=?");
-    //   updateValues.push(updatedClass.tutor.id);
-    // }
-    // // Conditionally add the 'price' column if a price is provided
-    // if (updatedClass.price) {
-    //   updateCols.push("`price`=?");
-    //   updateValues.push(updatedClass.price);
-    // }
-    // // Conditionally add the 'class_creation_fee' column if it is provided
-    // if (updatedClass.class_creation_fee) {
-    //   updateCols.push("`class_creation_fee`=?");
-    //   updateValues.push(updatedClass.class_creation_fee);
-    // }
-    // // Conditionally add the 'class_level_id' column if a valid class level ID is provided
-    // if (updatedClass.class_level?.id) {
-    //   updateCols.push("`class_level_id`=?");
-    //   updateValues.push(updatedClass.class_level.id);
-    // }
-    // // Conditionally add the 'max_learners' column if the maximum number of learners is provided
-    // if (updatedClass.max_learners) {
-    //   updateCols.push("`max_learners`=?");
-    //   updateValues.push(updatedClass.max_learners);
-    // }
-    // // Conditionally add the 'started_at' column if the start date is provided
-    // if (updatedClass.started_at) {
-    //   updateCols.push("`started_at`=?");
-    //   updateValues.push(updatedClass.started_at);
-    // }
-    // // Conditionally add the 'ended_at' column if the end date is provided
-    // if (updatedClass.ended_at) {
-    //   updateCols.push("`ended_at`=?");
-    //   updateValues.push(updatedClass.ended_at);
-    // }
-    // // Conditionally add address columns if they are provided
-    // if (updatedClass.address_1) {
-    //   updateCols.push("`address_1`=?");
-    //   updateValues.push(updatedClass.address_1);
-    // }
-    // // Conditionally add the 'address_2' column if the second address line is provided
-    // if (updatedClass.address_2) {
-    //   updateCols.push("`address_2`=?"); // Add the 'address_2' column to the list of columns to update
-    //   updateValues.push(updatedClass.address_2); // Add the corresponding value for 'address_2'
-    // }
-    // // Conditionally add the 'address_3' column if the third address line is provided
-    // if (updatedClass.address_3) {
-    //   updateCols.push("`address_3`=?"); // Add the 'address_3' column to the list of columns to update
-    //   updateValues.push(updatedClass.address_3); // Add the corresponding value for 'address_3'
-    // }
-    // // Conditionally add the 'address_4' column if the fourth address line is provided
-    // if (updatedClass.address_4) {
-    //   updateCols.push("`address_4`=?"); // Add the 'address_4' column to the list of columns to update
-    //   updateValues.push(updatedClass.address_4); // Add the corresponding value for 'address_4'
-    // }
-    // // Build the final SQL statement by appending updated columns and setting the updated timestamp
-    // sql += updateCols.map((col) => col + ", ").join(" ");
-    // sql += " `updated_at`=? WHERE id = ?";
-    // // Execute the SQL statement using a MySQL connection
-    // SMySQL.getConnection((connection) => {
-    //   connection?.execute(
-    //     sql,
-    //     [...updateValues, new Date().getTime(), updatedClass.id],
-    //     (error) => {
-    //       // If an error occurs, log the error and invoke the callback with 'false'
-    //       if (error) {
-    //         onNext(false);
-    //         SLog.log(
-    //           LogType.Error,
-    //           "updateClass",
-    //           "Cannot update class",
-    //           error
-    //         );
-    //         return;
-    //       }
-    //       // If the update is successful, log success and invoke the callback with 'true'
-    //       onNext(true);
-    //       SLog.log(LogType.Error, "updateClass", "Update class successfully");
-    //       return;
-    //     }
-    //   );
-    // });
+    
   }
 
   /**
@@ -1314,7 +1210,7 @@ GROUP BY parent_children.id;
     price: number,
     started_at: number,
     ended_at: number,
-    max_learners: number,
+    max_learners: number | 1,
     address_id: number,
     lessons: Lesson[], // Nhận danh sách đầy đủ các bài học
     onNext: (result: boolean, insertId?: number) => void
@@ -1322,6 +1218,10 @@ GROUP BY parent_children.id;
     // Nếu tutor_id là chuỗi rỗng, gán giá trị null
     if (!tutor_id || tutor_id === '') {
       tutor_id = "";
+    }
+
+    if (!max_learners) {
+      max_learners = 1
     }
   
     const classSql = `

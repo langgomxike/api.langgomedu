@@ -2,6 +2,7 @@ import CV, { cvJson, cvJson2 } from "./../models/CV";
 import SLog, { LogType } from "./SLog";
 import SMySQL from "./SMySQL";
 import db from "../configs/knex";
+// @ts-ignore
 import mysql from "mysql2";
 import Filters from "../models/Filters";
 import Pagination from "../models/Pagination";
@@ -56,7 +57,7 @@ export default class SCV {
         results.push(response[0].cv);
       })
       .catch((err) => {
-        SLog.log(LogType.Error, "getUserCV3", "ERR", err);
+        SLog.log(LogType.Error, "getAllUserCVs", "ERR", err.message);
 
       })
 
@@ -72,6 +73,7 @@ export default class SCV {
 
     const cvs: CV[] = [];
     results.forEach(result => {
+      // @ts-ignore
       const cv = result.cv
       cvs.push(cv);
     });
