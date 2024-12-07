@@ -46,43 +46,6 @@ export default class ReportController {
     });
   }
 
-  // public static createUserReport(
-  //   request: express.Request,
-  //   response: express.Response
-  // ) {
-  //   // Lấy dữ liệu từ body của request
-  //   const { reporter, reportee, class_id, content } =
-  //     request?.body?.report || {};
-
-  //   // Kiểm tra các tham số cần thiết
-  //   if (!reporter || !reportee || !content) {
-  //     return response
-  //       .status(400)
-  //       .json({ success: false, message: "Missing required fields." });
-  //   }
-
-  //   // Gọi phương thức CreatedReport để tạo báo cáo
-  //   SUserReport.CreatedReport(
-  //     reporter,
-  //     reportee,
-  //     class_id,
-  //     content,
-  //     (result) => {
-  //       if (result) {
-  //         // Nếu thành công, trả về phản hồi JSON
-  //         response
-  //           .status(201)
-  //           .json({ success: true, message: "Report created successfully." });
-  //       } else {
-  //         // Nếu thất bại, trả về lỗi
-  //         response
-  //           .status(500)
-  //           .json({ success: false, message: "Failed to create report." });
-  //       }
-  //     }
-  //   );
-  // }
-
   public static approveClassReport(
     request: express.Request,
     response: express.Response
@@ -127,6 +90,61 @@ export default class ReportController {
     });
   }
 
+  // public static createReport(
+  //   request: express.Request,
+  //   response: express.Response
+  // ) {
+  //   // In ra dữ liệu nhận được từ request để kiểm tra
+  //   console.log("Request Body:", request.body);
+  //   // console.log("Files:", request.files);
+
+  //   // Lấy dữ liệu từ body của request (không cần truy cập qua report nếu không có trường này)
+  //   const {reporter, reportee, class_id, content} = request.body;
+
+  //   // Lấy đường dẫn file để upload từ request.files
+  //   const files = (request as any).files;
+  //   const filePaths: string[] = [];
+
+  //   // Kiểm tra và lưu đường dẫn các file
+  //   if (files && Array.isArray(files)) {
+  //     files.forEach((file: any) => {
+  //       const filePath = file ? `uploads/reports/${file.filename}` : null;
+  //       if (filePath) {
+  //         filePaths.push(filePath); // Thêm filePath vào mảng filePaths
+  //         console.log("File path uploaded: ", filePath);
+  //       }
+  //     });
+  //   }
+
+  //   // Kiểm tra các tham số cần thiết
+  //   if (!reporter || !reportee || !content) {
+  //     return response
+  //       .status(400)
+  //       .json({success: false, message: "Missing required fields."});
+  //   }
+
+  //   // Gọi phương thức CreatedReport để tạo báo cáo
+  //   SUserReport.CreatedReport(
+  //     reporter,
+  //     reportee,
+  //     class_id,
+  //     content,
+  //     filePaths, // Truyền filePaths vào tham số files
+  //     (result) => {
+  //       if (result) {
+  //         // Nếu thành công, trả về phản hồi JSON
+  //         response
+  //           .status(201)
+  //           .json({success: true, message: "Report created successfully."});
+  //       } else {
+  //         // Nếu thất bại, trả về lỗi
+  //         response
+  //           .status(500)
+  //           .json({success: false, message: "Failed to create report."});
+  //       }
+  //     }
+  //   );
+  // }
   public static createReport(
     request: express.Request,
     response: express.Response
@@ -134,37 +152,40 @@ export default class ReportController {
     // In ra dữ liệu nhận được từ request để kiểm tra
     console.log("Request Body:", request.body);
     // console.log("Files:", request.files);
-
+  
     // Lấy dữ liệu từ body của request (không cần truy cập qua report nếu không có trường này)
-    const {reporter, reportee, class_id, content} = request.body;
-
+    const { reporter, reportee, class_id, content } = request.body;
+  
     // Lấy đường dẫn file để upload từ request.files
     const files = (request as any).files;
     const filePaths: string[] = [];
-
+  
     // Kiểm tra và lưu đường dẫn các file
     if (files && Array.isArray(files)) {
       files.forEach((file: any) => {
-        const filePath = file ? `uploads/reports/${file.filename}` : null;
+        const filePath = file ? `/uploads/reports/${file.filename}` : null;
         if (filePath) {
           filePaths.push(filePath); // Thêm filePath vào mảng filePaths
           console.log("File path uploaded: ", filePath);
         }
       });
     }
-
+  
     // Kiểm tra các tham số cần thiết
     if (!reporter || !reportee || !content) {
       return response
         .status(400)
-        .json({success: false, message: "Missing required fields."});
+        .json({ success: false, message: "Missing required fields." });
     }
-
+  
+    // Nếu không có class_id, gán nó là null
+    const classId = class_id || "";
+  
     // Gọi phương thức CreatedReport để tạo báo cáo
     SUserReport.CreatedReport(
       reporter,
       reportee,
-      class_id,
+      classId, 
       content,
       filePaths, // Truyền filePaths vào tham số files
       (result) => {
@@ -172,17 +193,17 @@ export default class ReportController {
           // Nếu thành công, trả về phản hồi JSON
           response
             .status(201)
-            .json({success: true, message: "Report created successfully."});
+            .json({ success: true, message: "Report created successfully." });
         } else {
           // Nếu thất bại, trả về lỗi
           response
             .status(500)
-            .json({success: false, message: "Failed to create report."});
+            .json({ success: false, message: "Failed to create report." });
         }
       }
     );
   }
-
+  
   public static approveUserReport(
     request: express.Request,
     response: express.Response

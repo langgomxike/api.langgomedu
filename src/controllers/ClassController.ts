@@ -646,7 +646,7 @@ export default class ClassController {
     request: express.Request,
     response: express.Response
   ) {}
-  // Hàm khoá lớp học
+
   // Hàm khoá lớp học
   public static LockClass(
     request: express.Request,
@@ -678,6 +678,46 @@ export default class ClassController {
       }
     });
   }
+  public static getClassById(
+    request: express.Request,
+    response: express.Response
+  ) {
+    // Lấy classId từ params (URL parameter)
+    const classId = request.params.id; // Thay đổi từ 'class_id' thành 'id' để phù hợp với URL
+  
+    // Kiểm tra xem classId có hợp lệ không
+    if (!classId) {
+      // Xử lý trường hợp không có classId hợp lệ
+      return SResponse.getResponse(
+        ResponseStatus.Not_Found,
+        null,
+        "Invalid class ID",
+        response
+      );
+    }
+  
+    // Truy vấn lớp học từ cơ sở dữ liệu qua SClass.getClassById
+    SClass.getClassById(classId, (classDetails) => {
+      if (!classDetails) {
+        // Trả về nếu không tìm thấy lớp học
+        return SResponse.getResponse(
+          ResponseStatus.Not_Found,
+          null,
+          "Class not found",
+          response
+        );
+      }
+  
+      // Trả về thông tin lớp học nếu tìm thấy
+      SResponse.getResponse(
+        ResponseStatus.OK,
+        classDetails,
+        "Class retrieved successfully",
+        response
+      );
+    });
+  }
+  
 }
 
 // Hàm tính danh sách các ngày cho một ngày cụ thể trong tuần
