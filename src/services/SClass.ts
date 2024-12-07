@@ -1627,12 +1627,7 @@ GROUP BY parent_children.id;
   
     }
 
-  
-  //khoá lớp học
-  //  UPDATE classes
-  // SET status = 1
-  // WHERE class_id = your_class_id
-  // LIMIT 1;
+
   public static LockClass(class_id: string, onNext: (result: boolean) => void) {
     // Câu truy vấn SQL để khóa lớp học
     const sql = `
@@ -1660,6 +1655,37 @@ GROUP BY parent_children.id;
           onNext(true);
         }
       );
+    });
+  }
+
+  //lấy lớp học theo id
+  public static getClassById(
+    id: string,
+    onNext: (classDetails: Class | undefined) => void
+  ) {
+    const sql = `
+    SELECT * 
+    FROM classes
+    WHERE id = ?;
+    `;
+  
+    // Kết nối với cơ sở dữ liệu và thực hiện truy vấn
+    SMySQL.getConnection((connection) => {
+      connection?.execute<any>(sql, [id], (error, result) => {
+        if (error || !result || result.length === 0) {
+          SLog.log(
+            LogType.Error,
+            "getClassById",
+            `Class with id ${id} not found`,
+            error
+          );
+          onNext(undefined);
+          return;
+        }
+  
+        const classDetails = result[0]; // Lấy kết quả đầu tiên từ query
+        onNext(classDetails);
+      });
     });
   }
 }

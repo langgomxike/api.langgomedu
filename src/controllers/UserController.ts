@@ -656,6 +656,8 @@ export default class UserController {
     response: express.Response
   ) {
     const id: string = request?.params?.id;
+    console.log("lay id", id);
+    
 
     if (!id) {
       SLog.log(LogType.Error, "getUserInfo", "Invalid ID");

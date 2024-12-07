@@ -102,6 +102,7 @@ app.get(CLASS_BASE_URL + "/suggests/:user_id", ClassController.getSuggestsClasse
 app.get(CLASS_BASE_URL + "/filter/:user_id", ClassController.getFilterClasses);
 app.get(CLASS_BASE_URL + "/:user_id", ClassController.getClassesByUserId);
 app.get(CLASS_BASE_URL + "/detail/:class_id", ClassController.getClass);
+app.get(CLASS_BASE_URL + "/get_class_by_id/:id", ClassController.getClassById);
 app.post(CLASS_BASE_URL + "/conflicting", ClassController.getconflictingLessonsWithClassUsers);
 app.post(CLASS_BASE_URL + "/create", ClassController.createClass);
 app.post(CLASS_BASE_URL + "/create-learner", ClassController.createClassForLearner);
@@ -295,9 +296,6 @@ app.listen(port, () => {
 });
 
 SMySQL.connect();
-// setUpPermissions();
 setUpRoles();
-// setUpGenders();
-// setUpUsers();
 
 export default app;
