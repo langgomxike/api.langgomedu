@@ -80,6 +80,7 @@ app.get(ATTENDANCE_BASE_URL + "/learner/:lesson_id/:user_id", AttendanceControll
 app.get(ATTENDANCE_BASE_URL + "/tutor/:class_id/:lesson_id", AttendanceController.getAttendanceByTutorClassLesson);
 app.post(ATTENDANCE_BASE_URL + "/pay", uploadPayment.single('file'), AttendanceController.updatePaymentOfLearner);
 app.post(ATTENDANCE_BASE_URL + "/confirm_paid", AttendanceController.confirmPaymentByTutor);
+app.post(ATTENDANCE_BASE_URL + "/notify", AttendanceController.sendNotifyForLearners);
 
 
 // Define the base URL for certificate-related routes

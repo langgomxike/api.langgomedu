@@ -113,6 +113,23 @@ export default class AttendanceController {
     );
   }
 
+  // Send notification for learner
+  public static sendNotifyForLearners(
+    request: express.Request,
+    response: express.Response
+  ) {
+    const {learner_id, parent_id, learner_message, parent_message} = request.body;
+
+    // Cập nhật thanh toán xác nhận từ tutor
+    SAttendance.sendNotifyFroLearner(
+      learner_id, parent_id, learner_message, parent_message,
+      (message, result) => {
+        SResponse.getResponse(ResponseStatus.OK, {message, result}, "send notification successfully",response
+        );
+      }
+    );
+  }
+
   public static getAttendanceByLearnerClassLesson(
     request: express.Request,
     response: express.Response
