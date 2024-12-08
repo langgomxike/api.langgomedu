@@ -174,12 +174,10 @@ app.get(CV_BASE_URL, CVController.getAllCVs);
 app.get(CV_BASE_URL + "/suggests/:user_id", CVController.getSuggestedCVs);
 app.get(CV_BASE_URL + "/filter/:user_id", CVController.getFilterCVs);
 app.post(CV_BASE_URL+ "/uploadCV", CVController.createCV);
-app.post(CV_BASE_URL + "/send", CVController.updateCV);
-app.get(CV_BASE_URL + "/:id", CVController.getCV);
-app.put(CV_BASE_URL + "/:id", CVController.updateCV);
-app.patch(CV_BASE_URL + "/:id", CVController.updateCV);
-app.delete(CV_BASE_URL + "/:id", CVController.deleteCV);
-app.post(CV_BASE_URL + "/approve/:id", CVController.approveCV);
+app.get(CV_BASE_URL + "/:id", CVController.getCV);;
+app.get(CV_BASE_URL + "/temp/:id", CVController.getTempCV);
+app.post(CV_BASE_URL + "/approve", CVController.approveCV);
+app.post(CV_BASE_URL + "/deny", CVController.denyCV);
 
 const GENDER_BASE_URL = Config.PREFIX + "/genders";
 app.get(GENDER_BASE_URL, GenderController.getAllGender);

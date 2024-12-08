@@ -9,6 +9,8 @@ import { cvJoin, tempCvJoin } from "../models/User";
 import SEducation from "./SEducation";
 import SExperience from "./SExperience";
 import SCertificate from "./SCertificate";
+import SMessage from "./SMessage";
+import SFirebase, { FirebaseNode } from "./SFirebase";
 
 
 export default class SCV {
@@ -51,7 +53,7 @@ export default class SCV {
         select(db.raw(cvJson2('cvs', 'user', 'address', 'gender', 'icl', 'im')))
         .where('cvs.id', subId)
         .groupBy('user.id')
-      )
+    )
       .then((response) => {
         results.push(response[0].cv);
       })
@@ -60,6 +62,36 @@ export default class SCV {
 
       })
 
+    onNext(results)
+  }
+
+  public static async getTempCV(cv_id: string, onNext: (cv: any) => void) {
+    const subId = cv_id.split('_')[0];
+    const results: any[] = [];
+    await tempCvJoin('cvs', 'user', 'address', 'gender', 'icl', 'im',
+      db('cvs').
+        select(db.raw(cvJson2('cvs', 'user', 'address', 'gender', 'icl', 'im')))
+        .where('cvs.id', cv_id)
+        .groupBy('user.id')
+    )
+      .then((response) => {
+        results.push(response[0].cv);
+      })
+      .catch((err) => {
+        SLog.log(LogType.Error, "getAllUserCVs", "ERR", err.message);
+      });
+    await cvJoin('cvs', 'user', 'address', 'gender', 'icl', 'im',
+      db('cvs').
+        select(db.raw(cvJson2('cvs', 'user', 'address', 'gender', 'icl', 'im')))
+        .where('cvs.id', subId)
+        .groupBy('user.id')
+    )
+      .then((response) => {
+        results.push(response[0].cv);
+      })
+      .catch((err) => {
+        SLog.log(LogType.Error, "getUserCV3", "ERR", err);
+      })
     onNext(results)
   }
 
@@ -106,65 +138,65 @@ export default class SCV {
 ) AS user_data
 `;
 
-// Lấy danh sách CV gợi ý
+  // Lấy danh sách CV gợi ý
   public static getSugestedCVs(
-  userId: string,
-  page: number,
-  perPage: number,
-  address: string,
-  onNext: (cvs: CV[], pagination: Pagination) => void
+    userId: string,
+    page: number,
+    perPage: number,
+    address: string,
+    onNext: (cvs: CV[], pagination: Pagination) => void
   ) {
-  // Khởi tạo mảng queryParams
-  const queryParams = [userId];
+    // Khởi tạo mảng queryParams
+    const queryParams = [userId];
 
-  // Tách chuỗi address
-  let condition = "";
+    // Tách chuỗi address
+    let condition = "";
 
-  const [province, district, ward] = address
-    .split(",")
-    .map((part) => part.trim())
-    .filter(
-      (part) => part !== "" && part !== "undefined" && part !== undefined
-    );
+    const [province, district, ward] = address
+      .split(",")
+      .map((part) => part.trim())
+      .filter(
+        (part) => part !== "" && part !== "undefined" && part !== undefined
+      );
 
-  if (province || district || ward) {
-    // Bắt đầu một điều kiện AND nếu có address
+    if (province || district || ward) {
+      // Bắt đầu một điều kiện AND nếu có address
 
-    if (province) {
-      condition += `
+      if (province) {
+        condition += `
     AND (
       ad.province LIKE ? 
       OR ? LIKE CONCAT('%', ad.province, '%')
     )
   `;
-      queryParams.push(`%${province}%`, province);
-    }
-    if (district) {
-      condition += `
+        queryParams.push(`%${province}%`, province);
+      }
+      if (district) {
+        condition += `
       AND (
         ad.district LIKE ? 
         OR ? LIKE CONCAT('%', ad.district, '%')
       )
     `;
-    queryParams.push(`%${district}%`, district);
-    }
-    if (ward) {
-      condition += `
+        queryParams.push(`%${district}%`, district);
+      }
+      if (ward) {
+        condition += `
       AND (
         ad.ward LIKE ? 
         OR ? LIKE CONCAT('%', ad.ward, '%')
       )
     `;
-    queryParams.push(`%${ward}%`, ward);
+        queryParams.push(`%${ward}%`, ward);
+      }
+
+      // Kết thúc điều kiện AND với dấu ngoặc
     }
 
-    // Kết thúc điều kiện AND với dấu ngoặc
-  }
+    // Cuối cùng, thêm userId lần nữa nếu cần
+    queryParams.push(userId);
 
-  // Cuối cùng, thêm userId lần nữa nếu cần
-  queryParams.push(userId);
-
-  const sql = `
+    const sql = `
       WITH SuggestedCVs AS (
       SELECT
         ${this.cvJsonSQL},
@@ -200,95 +232,95 @@ export default class SCV {
       LIMIT ${perPage} OFFSET ${(page - 1) * perPage};
   `;
 
-  // console.log("getSugestedCVs queryParams: ", queryParams);
+    // console.log("getSugestedCVs queryParams: ", queryParams);
 
-  // console.log("getSugestedCVs", mysql.format(sql, queryParams));
+    // console.log("getSugestedCVs", mysql.format(sql, queryParams));
 
-  // console.log(mysql.format(sql, [province, district]));
+    // console.log(mysql.format(sql, [province, district]));
 
-  SMySQL.getConnection((connection) => {
-    connection?.query<any[]>(sql, queryParams, (err, results) => {
-      if (err) {
-        SLog.log(
-          LogType.Error,
-          "fail to fetch cv",
-          "can't fetch user cv",
-          err
-        ),
-          onNext([], new Pagination());
+    SMySQL.getConnection((connection) => {
+      connection?.query<any[]>(sql, queryParams, (err, results) => {
+        if (err) {
+          SLog.log(
+            LogType.Error,
+            "fail to fetch cv",
+            "can't fetch user cv",
+            err
+          ),
+            onNext([], new Pagination());
+          return;
+        }
+
+        const totalCount = results[0]?.totalCount;
+        const cvs: CV[] = [];
+        results.forEach((result) => {
+          const cv = result.user_data;
+          cvs.push(cv);
+        });
+        const pagination: Pagination = {
+          page: page,
+          per_page: perPage,
+          total_pages: Math.ceil(totalCount / perPage),
+          total_items: totalCount,
+        };
+
+        onNext(cvs, pagination);
         return;
-      }
-
-      const totalCount = results[0]?.totalCount;
-      const cvs: CV[] = [];
-      results.forEach((result) => {
-        const cv = result.user_data;
-        cvs.push(cv);
       });
-      const pagination: Pagination = {
-        page: page,
-        per_page: perPage,
-        total_pages: Math.ceil(totalCount / perPage),
-        total_items: totalCount,
-      };
-
-      onNext(cvs, pagination);
-      return;
     });
-  });
   }
 
   // Lấy cvs theo filter
   public static getFilterCVs(
-  userId: string,
-  page: number,
-  perPage: number,
-  filter: Filters,
-  onNext: (cvs: CV[], pagination: Pagination) => void
+    userId: string,
+    page: number,
+    perPage: number,
+    filter: Filters,
+    onNext: (cvs: CV[], pagination: Pagination) => void
   ) {
-  // Build SQL query dynamically based on provided filters
-  let queryParams: any[] = [];
-  let filterConditions =
-    "1=1 AND cvs.approved_at IS NOT NULL AND cvs.id != ?";
-  queryParams.push(userId);
+    // Build SQL query dynamically based on provided filters
+    let queryParams: any[] = [];
+    let filterConditions =
+      "1=1 AND cvs.approved_at IS NOT NULL AND cvs.id != ?";
+    queryParams.push(userId);
 
-  // Add filter conditions if they are provided
-  if (filter.province) {
-    const province = filter.province.trim();
-    filterConditions += `
+    // Add filter conditions if they are provided
+    if (filter.province) {
+      const province = filter.province.trim();
+      filterConditions += `
       AND (ad.province LIKE ? OR ? LIKE CONCAT('%', CONCAT(ad.province, '%')))
     `;
-    queryParams.push(`%${province}%`, province);
-  }
- 
-  if (filter.district) {
-    const districts = filter.district.split(",").map((d) => d.trim());
-    filterConditions += ` AND (${districts
-      .map(() => "(ad.district LIKE ? OR ? LIKE CONCAT('%', CONCAT(ad.district, '%')))")
-      .join(" OR ")})`;
-    districts.forEach((d) => {
-     queryParams.push(`%${d}%`, d); 
-    });
-  }
- 
-  if (filter.ward) {
-    const wards = filter.ward.split(",").map((w) => w.trim());
-    filterConditions += ` AND (${wards
-      .map(() => "(ad.ward LIKE ? OR ? LIKE CONCAT('%', CONCAT(ad.ward, '%')))") // Tương tự
-      .join(" OR ")})`;
-    wards.forEach((w) => {
-     queryParams.push(`%${w}%`, w);
-    });
-  }
+      queryParams.push(`%${province}%`, province);
+    }
 
-  if (filter.genders) {
-    const genders = filter.genders.split(",").map((g) => g.trim());
-    filterConditions += ` AND g.id IN (${genders.map(() => "?").join(",")})`;
-    queryParams.push(...genders);
-  }
+    if (filter.district) {
+      const districts = filter.district.split(",").map((d) => d.trim());
+      filterConditions += ` AND (${districts
+        .map(() => "(ad.district LIKE ? OR ? LIKE CONCAT('%', CONCAT(ad.district, '%')))")
+        .join(" OR ")})`;
+      districts.forEach((d) => {
+        queryParams.push(`%${d}%`, d);
+      });
+    }
 
-  // Full SQL query with dynamic filter conditions
-  const sql = `
+    if (filter.ward) {
+      const wards = filter.ward.split(",").map((w) => w.trim());
+      filterConditions += ` AND (${wards
+        .map(() => "(ad.ward LIKE ? OR ? LIKE CONCAT('%', CONCAT(ad.ward, '%')))") // Tương tự
+        .join(" OR ")})`;
+      wards.forEach((w) => {
+        queryParams.push(`%${w}%`, w);
+      });
+    }
+
+    if (filter.genders) {
+      const genders = filter.genders.split(",").map((g) => g.trim());
+      filterConditions += ` AND g.id IN (${genders.map(() => "?").join(",")})`;
+      queryParams.push(...genders);
+    }
+
+    // Full SQL query with dynamic filter conditions
+    const sql = `
       SELECT
         ${this.cvJsonSQL}
       FROM cvs
@@ -301,7 +333,7 @@ export default class SCV {
       LIMIT ${perPage} OFFSET ${(page - 1) * perPage};
   `;
 
-  const totalSql = `
+    const totalSql = `
   SELECT COUNT(*) as totalCount
   FROM cvs
   LEFT JOIN users ON users.id = cvs.id
@@ -313,54 +345,54 @@ export default class SCV {
   `;
 
 
-// console.log(mysql.format(sql, queryParams));
+    // console.log(mysql.format(sql, queryParams));
 
-// Execute the query
-  SMySQL.getConnection((connection) => {
-    connection?.execute<any[]>(sql, queryParams, (err, results) => {
-      if (err) {
-        console.log("fail to fetch cv", err);
-      
-        onNext([], new Pagination());
-        return;
-      }
-
-      const cvs: CV[] = [];
-      results.forEach((result) => {
-        const cv = result.user_data;
-        cvs.push(cv);
-      });
-
-      connection.execute<any>(totalSql, queryParams, (err, result) => {
+    // Execute the query
+    SMySQL.getConnection((connection) => {
+      connection?.execute<any[]>(sql, queryParams, (err, results) => {
         if (err) {
-          SLog.log(
-            LogType.Error,
-            "fail to fetch total count",
-            "can't fetch total count",
-            err
-          );
+          console.log("fail to fetch cv", err);
+
           onNext([], new Pagination());
           return;
         }
 
-        const totalCount = result[0].totalCount;
+        const cvs: CV[] = [];
+        results.forEach((result) => {
+          const cv = result.user_data;
+          cvs.push(cv);
+        });
 
-        const pagination: Pagination = {
-          page: page,
-          per_page: perPage,
-          total_pages: Math.ceil(totalCount / perPage),
-          total_items: totalCount,
-        };
+        connection.execute<any>(totalSql, queryParams, (err, result) => {
+          if (err) {
+            SLog.log(
+              LogType.Error,
+              "fail to fetch total count",
+              "can't fetch total count",
+              err
+            );
+            onNext([], new Pagination());
+            return;
+          }
 
-        onNext(cvs, pagination);
+          const totalCount = result[0].totalCount;
+
+          const pagination: Pagination = {
+            page: page,
+            per_page: perPage,
+            total_pages: Math.ceil(totalCount / perPage),
+            total_items: totalCount,
+          };
+
+          onNext(cvs, pagination);
+        });
       });
     });
-  });
   }
 
 
 
-  public static async UpdateCV(cvData: any, onNext: (response: any) => void) {
+  public static async updateCV(cvData: any, onNext: (response: any) => void) {
     // console.log(JSON.stringify(cvData));
     const cvId = cvData.userId;
     const cvIdnew = `${cvData.userId}_t`;
@@ -407,6 +439,101 @@ export default class SCV {
         console.log("fail to update cv", err.message);
         onNext(null)
       })
+  }
+  public static async approveCV(data: any, onNext: (result: any) => void) {
+    const oldCvId = data.oldCvId;
+    const cvId = data.cvId;
+    const approved_at = Date.now();
+
+    // khi chap nhan CV
+    await db.transaction(async (trx) => {
+      // 1. Xóa dòng cũ theo oldCvId
+      await trx('cvs').where('id', oldCvId).del();
+
+      // 2. Cập nhật dòng mới với id của dòng cũ
+      await trx('cvs').where('id', cvId).update({
+        id: oldCvId,
+        approved_at: approved_at,
+        updated_at: approved_at,
+      });
+      // 3. xóa thông tin education của cv cũ
+      await trx('educations').where('cv_id', oldCvId).del();
+      // 4. cập nhân cv_id của thông tin educations
+      await trx('educations').where('cv_id', cvId).update({
+        cv_id: oldCvId,
+      })
+      // 5. xóa thông tin experiences của cv cũ
+      await trx('experiences').where('cv_id', oldCvId).del();
+      // 6. cập nhân cv_id của thông tin experiences
+      await trx('experiences').where('cv_id', cvId).update({
+        cv_id: oldCvId,
+      })
+      // 7. xóa thông tin education của cv cũ
+      await trx('certificates').where('cv_id', oldCvId).del();
+      // 8. cập nhân cv_id của thông tin educations
+      await trx('certificates').where('cv_id', cvId).update({
+        cv_id: oldCvId,
+      })
+
+    }).then((result) => {
+      console.log(result);
+      SFirebase.push(FirebaseNode.CVs, [{
+        key: FirebaseNode.Id,
+        value: oldCvId,
+      }],()=> {
+        onNext({
+          status: true
+        })
+      })
+    })
+      .catch((error) => {
+        console.log(error);
+
+        onNext({
+          status: false
+        })
+      })
+  }
+  // deny CV
+  public static async denyCV(data: any, onNext: (result: any) => void) {
+    const oldCvId = data.oldCvId;
+    const cvId = data.cvId;
+    const reason = data.reason;
+    const approved_at = Date.now();
+
+    // Khi tu choi CV
+    await db.transaction(async (trx) => {
+      // 1. Xóa dòng cũ theo oldCvId
+      await trx('cvs').where('id', cvId).del();
+      // 3. xóa thông tin education của cv cũ
+      await trx('educations').where('cv_id', cvId).del();
+      // 5. xóa thông tin experiences của cv cũ
+      await trx('experiences').where('cv_id', cvId).del();
+      // 7. xóa thông tin education của cv cũ
+      await trx('certificates').where('cv_id', cvId).del();
+    }).then((result) => {
+
+      console.log(result);
+      SMessage.createNotification(reason, oldCvId, ()=>{})
+      SFirebase.push(FirebaseNode.CVs, [{
+        key: FirebaseNode.Id,
+        value: oldCvId,
+      }],()=> {
+        onNext({
+          status: false
+        })
+      })
+    })
+      .catch((error) => {
+        console.log(error);
+
+        onNext({
+          status: false
+        })
+      })
+
+
+
   }
 
 
