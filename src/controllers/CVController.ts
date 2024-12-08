@@ -73,11 +73,24 @@ export default class CVController {
         }
 
     }
+    public static getTempCV(request: express.Request, response: express.Response){
+        const user_id = request.params.id;
+        const userId = user_id?.toString();
+        // console.log(user_id);
+        
+        if(userId){
+            SCV.getTempCV(userId, (cv)=>{
+                SResponse.getResponse(ResponseStatus.OK, cv, "get Temp CV", response);
+            })
+        }else{
+            SResponse.getResponse(ResponseStatus.Internal_Server_Error, [], "can't get User with this ID", response)
+        }
+    }
 
     public static createCV(request: express.Request, response: express.Response) {
         const body = request.body;
         // console.log(body);
-        SCV.UpdateCV(body, (data)=> {
+        SCV.updateCV(body, (data)=> {
             // console.log("successfully", data);
             if(data){
                 SResponse.getResponse(ResponseStatus.OK, [data], "Update CV", response);
@@ -87,15 +100,19 @@ export default class CVController {
         })
     }
 
-    public static updateCV(request: express.Request, response: express.Response) {
-        
-    }
-
-    public static deleteCV(request: express.Request, response: express.Response) {
-
-    }
     public static approveCV(request: express.Request, response: express.Response) {
+        const body = request.body;
 
+        SCV.approveCV(body, (data)=> {
+            SResponse.getResponse(ResponseStatus.OK, [data], "Approve CV", response);
+        })
+    }
+    public static denyCV(request: express.Request, response: express.Response) {
+        const body = request.body;
+
+        SCV.denyCV(body, (data)=> {
+            SResponse.getResponse(ResponseStatus.OK, [data], "Approve CV", response);
+        })
     }
 
     // public static test(request: express.Request, response: express.Response){
