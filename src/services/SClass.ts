@@ -1040,50 +1040,70 @@ GROUP BY parent_children.id;
    * @param onNext - Callback function to handle the result of the update operation.
    */
   public static updateClass(
-    updatedClass: Class,
+    classId: number,
+    title: string,
+    description: string,
+    major_id: number,
+    class_level_id: number,
+    max_learners: number,
+    price: number,
+    started_at: number,
+    ended_at: number,
+    updated_at: number,
     onNext: (result: boolean) => void
   ) {
-    let sqlClass = `UPDATE classes SET (title, description, major_id, price, class_level_id, max_learners, started_at, ended_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) WHERE id = ?`;
-
+    const sql = `
+      UPDATE classes 
+      SET 
+        title = ?, 
+        description = ?, 
+        major_id = ?, 
+        class_level_id = ?, 
+        max_learners = ?, 
+        price = ?, 
+        started_at = ?, 
+        ended_at = ?, 
+        updated_at = ?
+      WHERE id = ?
+    `;
+  
     SMySQL.getConnection((connection) => {
       if (!connection) {
         console.error("Không thể kết nối database.");
         onNext(false);
         return;
       }
-
-      connection.beginTransaction((transactionErr) => {
-        if (transactionErr) {
-          console.error("Lỗi khi bắt đầu transaction:", transactionErr);
-          onNext(false);
-          return;
-        }
-
-        connection.execute(
-          sqlClass,
-          [
-            updatedClass.title,
-            updatedClass.description,
-            updatedClass.major,
-            updatedClass.price,
-            updatedClass.class_level,
-            updatedClass.max_learners,
-            updatedClass.started_at,
-            updatedClass.ended_at,
-            new Date().getTime(),
-            updatedClass.id,
-          ],
-          (error) => {
-            if (error) {
-              console.log("Cập nhật không thành công");
-              onNext(false);
-            } else {
-              console.log("Cập nhật thành công");
+  
+      connection.execute(
+        sql,
+        [
+          title,
+          description,
+          major_id,
+          class_level_id,
+          max_learners,
+          price,
+          started_at,
+          ended_at,
+          updated_at = new Date().getTime(),
+          classId,
+        ],
+        (err, result) => {
+          if (err) {
+            console.error("Lỗi khi cập nhật lớp học:", err);
+            onNext(false);
+          } else {
+            const affectedRows = (result as any).affectedRows;
+            if (affectedRows > 0) {
+              console.log("Cập nhật lớp học thành công.");
               onNext(true);
+            } else {
+              console.warn("Không tìm thấy lớp học để cập nhật.");
+              onNext(false);
             }
           }
-        );
-      });
+        }
+      );
     });
   }
 
@@ -1257,7 +1277,7 @@ GROUP BY parent_children.id;
                   classId,
                   lesson.day,
                   lesson.started_at,
-                  lesson.duration,
+                  lesson.duration * 60000,
                   lesson.is_online,
                   lesson.note || null,
                 ])
@@ -1291,7 +1311,7 @@ GROUP BY parent_children.id;
     title: string,
     description: string,
     major_id: number,
-    tutor_id: string | "",
+    tutor_id: string | null,
     author_id: string,
     class_level_id: number,
     price: number,
@@ -1303,7 +1323,7 @@ GROUP BY parent_children.id;
     userIds: string[],
     onNext: (result: boolean, insertId?: number) => void
   ) {
-    if (!tutor_id || tutor_id === "") tutor_id = "";
+    if (!tutor_id || tutor_id === null) tutor_id = null;
     if (!max_learners) max_learners = 1;
   
     const classSql = `
@@ -1364,11 +1384,13 @@ GROUP BY parent_children.id;
               classId,
               lesson.day,
               lesson.started_at,
-              lesson.duration,
+              lesson.duration * 60000,
               lesson.is_online,
               lesson.note || null,
             ]);
   
+            
+            
             connection.execute(lessonSql, lessonValues, (lessonErr) => {
               if (lessonErr) {
                 console.error("Lỗi khi thêm bài học:", lessonErr);

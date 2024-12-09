@@ -1,107 +1,123 @@
 import express from "express";
 import moment from "moment"; // Thư viện hỗ trợ xử lý thời gian
-import SResponse, {ResponseStatus} from "../services/SResponse";
-import SLog, {LogType} from "../services/SLog";
+import SResponse, { ResponseStatus } from "../services/SResponse";
+import SLog, { LogType } from "../services/SLog";
 import Class from "../models/Class";
 import SClass from "../services/SClass";
-import {UserType} from "../configs/UserType";
+import { UserType } from "../configs/UserType";
 import Filters from "../models/Filters";
-import {parseQueryBoolean, parseQueryNumber, parseQueryString} from "../configs/QueryHelpers";
+import {
+  parseQueryBoolean,
+  parseQueryNumber,
+  parseQueryString,
+} from "../configs/QueryHelpers";
 import SAddress from "../services/SAddress";
-
+import Lesson from "../models/Lesson";
 
 export default class ClassController {
-
   public static getSuggestsClasses(
     request: express.Request,
     response: express.Response
   ) {
-    const query = request.query
+    const query = request.query;
 
     const user_id = request.params.user_id;
 
-    const user_type: number =  Number(query.user_type) ?? UserType.LEANER;
+    const user_type: number = Number(query.user_type) ?? UserType.LEANER;
 
-     // Lấy các giá trị filter từ query parameters
+    // Lấy các giá trị filter từ query parameters
     const filter: Filters = {
-    //Địa chỉ:
-    province: parseQueryString(query.province),
-    district: parseQueryString(query.district),
-    ward: parseQueryString(query.ward),
+      //Địa chỉ:
+      province: parseQueryString(query.province),
+      district: parseQueryString(query.district),
+      ward: parseQueryString(query.ward),
 
-    // Ngành học (nếu có)
-    major: parseQueryString(query.major),
-    // classLevelId: 
-    classLevelId: parseQueryString(query.classLevelId),
-  };
+      // Ngành học (nếu có)
+      major: parseQueryString(query.major),
+      // classLevelId:
+      classLevelId: parseQueryString(query.classLevelId),
+    };
 
-  const page = Number(request.query.page) || 1;
-  const perPage = Number(request.query.perPage) || 2;
+    const page = Number(request.query.page) || 1;
+    const perPage = Number(request.query.perPage) || 2;
 
-    SClass.getSuggestsClasses(user_id, user_type, filter, page, perPage ,
+    SClass.getSuggestsClasses(
+      user_id,
+      user_type,
+      filter,
+      page,
+      perPage,
       (classes, pagination) => {
-      SResponse.getResponse(
-        ResponseStatus.OK,
-        {classes, pagination} ,
-        "get sugget classes",
-        response
-      );
-    });
+        SResponse.getResponse(
+          ResponseStatus.OK,
+          { classes, pagination },
+          "get sugget classes",
+          response
+        );
+      }
+    );
   }
 
   public static getFilterClasses(
     request: express.Request,
     response: express.Response
   ) {
-    const query = request.query
+    const query = request.query;
 
     const user_id = request.params.user_id;
 
-    const user_type: number =  Number(query.user_type) ?? UserType.LEANER;
+    const user_type: number = Number(query.user_type) ?? UserType.LEANER;
 
-     // Lấy các giá trị filter từ query parameters
+    // Lấy các giá trị filter từ query parameters
     const filter: Filters = {
-    // Giá lớp học tối thiểu
-    minPrice: parseQueryNumber(query.minPrice),
+      // Giá lớp học tối thiểu
+      minPrice: parseQueryNumber(query.minPrice),
 
-    // Giá lớp học tối đa
-    maxPrice: parseQueryNumber(query.maxPrice),
+      // Giá lớp học tối đa
+      maxPrice: parseQueryNumber(query.maxPrice),
 
-    //Địa chỉ:
-    province: parseQueryString(query.province),
-    district: parseQueryString(query.district),
-    ward: parseQueryString(query.ward),
+      //Địa chỉ:
+      province: parseQueryString(query.province),
+      district: parseQueryString(query.district),
+      ward: parseQueryString(query.ward),
 
-    // Hình thức học: online/offline
-    isOnline: parseQueryBoolean(query.isOnline),
+      // Hình thức học: online/offline
+      isOnline: parseQueryBoolean(query.isOnline),
 
-    // Ngành học (nếu có)
-    major: parseQueryString(query.major),
-    // classLevelId: 
-    classLevelId: parseQueryString(query.classLevelId),
+      // Ngành học (nếu có)
+      major: parseQueryString(query.major),
+      // classLevelId:
+      classLevelId: parseQueryString(query.classLevelId),
 
-    // Số lượng tối đa trong lớp 
-    maxLearners: parseQueryNumber(query.maxLearners),
-    // Ngày bắt đầu & Ngày kết thúc
-    startedAtMin: parseQueryNumber(query.startedAtMin),
-    endedAtMax: parseQueryNumber(query.endedAtMax),
-  };
+      // Số lượng tối đa trong lớp
+      maxLearners: parseQueryNumber(query.maxLearners),
+      // Ngày bắt đầu & Ngày kết thúc
+      startedAtMin: parseQueryNumber(query.startedAtMin),
+      endedAtMax: parseQueryNumber(query.endedAtMax),
+    };
 
-  // Lấy các tham số sắp xếp từ query parameters
-  const sortBy = parseQueryString(request.query.sort) ?? "started_at"; 
+    // Lấy các tham số sắp xếp từ query parameters
+    const sortBy = parseQueryString(request.query.sort) ?? "started_at";
 
-  const page = Number(request.query.page) || 1;
-  const perPage = Number(request.query.perPage) || 2;
+    const page = Number(request.query.page) || 1;
+    const perPage = Number(request.query.perPage) || 2;
 
-    SClass.getFilterClasses(user_id, user_type, filter, sortBy, page, perPage ,
+    SClass.getFilterClasses(
+      user_id,
+      user_type,
+      filter,
+      sortBy,
+      page,
+      perPage,
       (classes, pagination) => {
-      SResponse.getResponse(
-        ResponseStatus.OK,
-        {classes, pagination} ,
-        "get sugget classes with filters",
-        response
-      );
-    });
+        SResponse.getResponse(
+          ResponseStatus.OK,
+          { classes, pagination },
+          "get sugget classes with filters",
+          response
+        );
+      }
+    );
   }
 
   public static getAllClasses(
@@ -149,7 +165,7 @@ export default class ClassController {
     response: express.Response
   ) {
     const user_id = request.params.user_id;
-    
+
     SClass.getClassByUserId(user_id, (classes) => {
       SResponse.getResponse(
         ResponseStatus.OK,
@@ -164,7 +180,7 @@ export default class ClassController {
     const classId: number = Number(request.params.class_id) ?? -1;
     const userId: string = String(request.query.user_id) ?? "";
 
-    SLog.log(LogType.Info, "getClass", "check params: " , {classId, userId});
+    SLog.log(LogType.Info, "getClass", "check params: ", { classId, userId });
 
     if (classId <= 0) {
       SResponse.getResponse(
@@ -175,14 +191,14 @@ export default class ClassController {
       );
       return;
     }
-    
+
     SClass.getClassDetailWithUser(
       classId,
       userId,
       (class_data, members_in_class) => {
         SResponse.getResponse(
           ResponseStatus.OK,
-          { class: class_data, members_in_class},
+          { class: class_data, members_in_class },
           "get detail class by id",
           response
         );
@@ -197,7 +213,7 @@ export default class ClassController {
   ) {
     const userId = request.body.user_id;
     const classId = Number(request.body.class_id);
-    
+
     SClass.getconflictingLessonsWithClassUsers(classId, userId, (data) => {
       SResponse.getResponse(
         ResponseStatus.OK,
@@ -231,6 +247,8 @@ export default class ClassController {
       lessons, // Mảng các bài học, chứa thông tin ngày học (vd: thứ 2, thứ 3)
     } = request.body;
 
+    console.log("data: ", JSON.stringify(request.body, null, 2));
+
     // Kiểm tra tính hợp lệ
     if (
       !title ||
@@ -263,7 +281,8 @@ export default class ClassController {
       calculateLessonDates(
         started_at,
         ended_at,
-        [lesson.day] // Dựa vào từng ngày trong tuần
+        [lesson.day],
+        lesson.started_at // Dựa vào từng ngày trong tuần
       ).map((calculatedLesson) => ({
         ...lesson,
         day: calculatedLesson.day,
@@ -347,9 +366,9 @@ export default class ClassController {
       lessons,
       userIds,
     } = request.body;
-  
+
     console.log("data: ", request.body);
-    
+
     if (
       !title ||
       !description ||
@@ -371,12 +390,28 @@ export default class ClassController {
     ) {
       return SResponse.getResponse(
         ResponseStatus.Internal_Server_Error,
-        { message: 'Dữ liệu đầu vào không hợp lệ.' },
-        'Invalid input data.',
+        { message: "Dữ liệu đầu vào không hợp lệ." },
+        "Invalid input data.",
         response
       );
     }
-  
+
+    // Tính toán danh sách các buổi học
+    const fullLessons = lessons.flatMap((lesson) =>
+      calculateLessonDates(
+        started_at,
+        ended_at,
+        [lesson.day],
+        lesson.started_at // Dựa vào từng ngày trong tuần
+      ).map((calculatedLesson) => ({
+        ...lesson,
+        day: calculatedLesson.day,
+        started_at: calculatedLesson.started_at,
+      }))
+    );
+
+    console.log("Danh sách đầy đủ các buổi học:", fullLessons);
+
     SAddress.createAddress(
       province,
       district,
@@ -386,12 +421,12 @@ export default class ClassController {
         if (!addressResult || !addressId) {
           return SResponse.getResponse(
             ResponseStatus.Internal_Server_Error,
-            { message: 'Không thể tạo địa chỉ.' },
-            'Failed to create address.',
+            { message: "Không thể tạo địa chỉ." },
+            "Failed to create address.",
             response
           );
         }
-  
+
         SClass.createClassForLearner(
           title,
           description,
@@ -410,15 +445,15 @@ export default class ClassController {
             if (result) {
               SResponse.getResponse(
                 ResponseStatus.OK,
-                { message: 'Tạo lớp học thành công.', classId: insertId },
-                'Create class successfully!',
+                { message: "Tạo lớp học thành công.", classId: insertId },
+                "Create class successfully!",
                 response
               );
             } else {
               SResponse.getResponse(
                 ResponseStatus.Internal_Server_Error,
-                { message: 'Không thể tạo lớp học.' },
-                'Failed to create class!',
+                { message: "Không thể tạo lớp học." },
+                "Failed to create class!",
                 response
               );
             }
@@ -426,8 +461,7 @@ export default class ClassController {
         );
       }
     );
-  };
-  
+  }
 
   /**
    * Updates a class based on the data provided in the request body.
@@ -439,42 +473,119 @@ export default class ClassController {
     request: express.Request,
     response: express.Response
   ) {
-    // Extract the class object from the request body, or set to undefined if not provided
-    const updatedClass: Class | undefined = request?.body?.class ?? undefined;
+    const {
+      class_id,
+      title,
+      description,
+      major_id,
+      class_level_id,
+      max_learners,
+      price,
+      started_at,
+      ended_at,
+      updated_at,
+      province,
+      district,
+      ward,
+      detail,
+    } = request.body;
 
-    // If the class object is not valid, return an internal server error response
-    if (!updatedClass) {
-      SResponse.getResponse(
+    // Kiểm tra tính hợp lệ
+    if (
+      !class_id ||
+      !title ||
+      !description ||
+      !major_id ||
+      !class_level_id ||
+      !max_learners ||
+      !price ||
+      !started_at ||
+      !ended_at ||
+      !updated_at ||
+      !province ||
+      !district ||
+      !ward ||
+      !detail
+    ) {
+      return SResponse.getResponse(
         ResponseStatus.Internal_Server_Error,
-        null,
-        "Class is not valid",
+        { message: "Dữ liệu đầu vào không hợp lệ." },
+        "Invalid input data.",
         response
       );
-      return;
     }
 
-    // Update the class using SClass.updateClass and handle the callback
-    SClass.updateClass(updatedClass, (result) => {
-      // If the update fails, return an internal server error response
-      if (!result) {
-        SResponse.getResponse(
-          ResponseStatus.Internal_Server_Error,
-          null,
-          "Server cannot update",
-          response
-        );
-        return;
-      }
+    // Lấy addressId từ thông tin địa chỉ
+    SAddress.getAddressId(
+      province,
+      district,
+      ward,
+      detail,
+      (address_id: number | null) => {
+        console.log("Address Id: ", address_id);
 
-      // If the update succeeds, return a success response
-      SResponse.getResponse(
-        ResponseStatus.OK,
-        null,
-        "Update class successfully",
-        response
-      );
-      return;
-    });
+        if (!address_id) {
+          return SResponse.getResponse(
+            ResponseStatus.Internal_Server_Error,
+            { message: "Không tìm thấy địa chỉ liên quan đến lớp học." },
+            "Address not found for the given class.",
+            response
+          );
+        }
+
+        if (address_id) {
+          // Cập nhật thông tin địa chỉ
+          SAddress.updateAddress(
+            address_id,
+            province,
+            district,
+            ward,
+            detail,
+            (addressResult: boolean) => {
+              if (!addressResult) {
+                return SResponse.getResponse(
+                  ResponseStatus.Internal_Server_Error,
+                  { message: "Không thể cập nhật địa chỉ." },
+                  "Failed to update address.",
+                  response
+                );
+              }
+
+              // Cập nhật thông tin lớp học
+              SClass.updateClass(
+                class_id,
+                title,
+                description,
+                major_id,
+                class_level_id,
+                max_learners,
+                price,
+                started_at,
+                ended_at,
+                updated_at,
+                (updateResult: boolean) => {
+                  if (updateResult) {
+                    SResponse.getResponse(
+                      ResponseStatus.OK,
+                      { message: "Cập nhật lớp học thành công." },
+                      "Update class successfully!",
+                      response
+                    );
+                  } else {
+                    SResponse.getResponse(
+                      ResponseStatus.Internal_Server_Error,
+                      { message: "Không thể cập nhật lớp học." },
+                      "Update class failed!",
+                      response
+                    );
+                  }
+                }
+              );
+            }
+          );
+        }
+      }
+    );
   }
 
   /**
@@ -575,7 +686,7 @@ export default class ClassController {
     const file = (request as any).file;
     const paidPath = file ? `/uploads/payments/${file.filename}` : null;
 
-    SClass.payForClass(classId, classFee ,paidPath, (message, result) => {
+    SClass.payForClass(classId, classFee, paidPath, (message, result) => {
       // Trả về phản hồi thành công khi lớp học đã được nhận
       SResponse.getResponse(
         ResponseStatus.OK,
@@ -603,8 +714,6 @@ export default class ClassController {
       );
     });
   }
-
-
 
   public static approveToAttendClass(
     request: express.Request,
@@ -668,7 +777,7 @@ export default class ClassController {
   ) {
     // Lấy classId từ params (URL parameter)
     const classId = request.params.id; // Thay đổi từ 'class_id' thành 'id' để phù hợp với URL
-  
+
     // Kiểm tra xem classId có hợp lệ không
     if (!classId) {
       // Xử lý trường hợp không có classId hợp lệ
@@ -679,7 +788,7 @@ export default class ClassController {
         response
       );
     }
-  
+
     // Truy vấn lớp học từ cơ sở dữ liệu qua SClass.getClassById
     SClass.getClassById(classId, (classDetails) => {
       if (!classDetails) {
@@ -691,7 +800,7 @@ export default class ClassController {
           response
         );
       }
-  
+
       // Trả về thông tin lớp học nếu tìm thấy
       SResponse.getResponse(
         ResponseStatus.OK,
@@ -701,21 +810,29 @@ export default class ClassController {
       );
     });
   }
-  
 }
 
 // Hàm tính danh sách các ngày cho một ngày cụ thể trong tuần
 function calculateLessonDates(
   startDate: number,
   endDate: number,
-  daysOfWeek: number[]
+  daysOfWeek: number[],
+  lessonStarted_at: number
 ): { day: number; started_at: number }[] {
   const result: { day: number; started_at: number }[] = [];
-  let current = moment(startDate).startOf("day");
+  // let current = moment(startDate).startOf("day");
+  const time = moment(lessonStarted_at); 
+  // Lấy giờ và phút
+  const hour = time.hour() * 3600000;
+  const minute = time.minute() * 60000;
+  
+  let current = moment(startDate + hour + minute);
 
-  const end = moment(endDate).endOf("day");
+  // const end = moment(endDate).endOf("day");
+  const end = moment(endDate);
   while (current <= end) {
-    const currentDayOfWeek = current.isoWeekday(); // Lấy thứ trong tuần (1: Thứ 2, 7: Chủ Nhật)
+    // Lấy thứ trong tuần (1: Thứ 2, 7: Chủ Nhật)
+    const currentDayOfWeek = current.isoWeekday(); 
     if (daysOfWeek.includes(currentDayOfWeek)) {
       result.push({
         day: currentDayOfWeek,
