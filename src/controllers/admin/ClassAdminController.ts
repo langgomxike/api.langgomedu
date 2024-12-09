@@ -1,42 +1,57 @@
+// @ts-ignore
 import express from 'express';
 import SUserAdmin from '../../services/admin/SUserAdmin';
-import SResponse, { ResponseStatus } from '../../services/SResponse';
+import SResponse, {ResponseStatus} from '../../services/SResponse';
 import SClassAdmin from '../../services/admin/SClassAdmin';
-import SLog, { LogType } from '../../services/SLog';
+import SLog, {LogType} from '../../services/SLog';
+
 export default class ClassAdminController {
-   
-    public static getAllClasses(request: express.Request, response: express.Response) {
-        const search = String(request.query.search);
-        const page = Number(request.query.page) || 1;
-        const perPage = Number(request.query.perPage) || 10;  
-        const action = String(request.query.action);    
-        
-        SClassAdmin.getAllClasses(search, action, page, perPage,(classes, pagination) => {
-            SResponse.getResponse(ResponseStatus.OK, {classes, pagination}, "get all classes", response);
-        });
-    }
 
-    public static getDetailClass(request: express.Request, response: express.Response) {
-        const class_id = parseInt(request.params.class_id);
-        SClassAdmin.getClassById(class_id,(lessons, users) => {
-            console.log(">>> getDetailClass",   lessons, users );
-            
-            SResponse.getResponse(ResponseStatus.OK, {lessons, users}, "get class by id", response);
-        });
-    }
+  public static getAllClasses(request: express.Request, response: express.Response) {
+    const search = String(request.query.search);
+    const page = Number(request.query.page) || 1;
+    const perPage = Number(request.query.perPage) || 10;
+    const action = String(request.query.action);
 
-    public static approveClass (request: express.Request, response: express.Response) {
-        const class_id = parseInt(request.body.class_id);
-        SClassAdmin.approveClass(class_id, (result, message) => {
-            SResponse.getResponse(ResponseStatus.OK, {result, message}, "admin approve class", response);
-        });
-    }
+    SClassAdmin.getAllClasses(search, action, page, perPage, (classes, pagination) => {
+      SResponse.getResponse(ResponseStatus.OK, {classes, pagination}, "get all classes", response);
+    });
+  }
 
-    public static approvePaymentByAdmin (request: express.Request, response: express.Response) {
-        const class_id = parseInt(request.body.class_id);
-        SClassAdmin.approvePaymentByAdmin(class_id, (result, message) => {
-            SResponse.getResponse(ResponseStatus.OK, {result, message}, "Approve payment by admin", response);
-        });
-    }
+  public static getDetailClass(request: express.Request, response: express.Response) {
+    const class_id = parseInt(request.params.class_id);
+    SClassAdmin.getClassById(class_id, (lessons, users) => {
+      console.log(">>> getDetailClass", lessons, users);
 
+      SResponse.getResponse(ResponseStatus.OK, {lessons, users}, "get class by id", response);
+    });
+  }
+
+  public static approveClass(request: express.Request, response: express.Response) {
+    const class_id = parseInt(request.body.class_id);
+    SClassAdmin.approveClass(class_id, (result, message) => {
+      SResponse.getResponse(ResponseStatus.OK, {result, message}, "admin approve class", response);
+    });
+  }
+
+  public static approvePaymentByAdmin(request: express.Request, response: express.Response) {
+    const class_id = parseInt(request.body.class_id);
+    SClassAdmin.approvePaymentByAdmin(class_id, (result, message) => {
+      SResponse.getResponse(ResponseStatus.OK, {result, message}, "Approve payment by admin", response);
+    });
+  }
+
+  public static deleteClass(request: express.Request, response: express.Response) {
+    const class_id: number = +(request.params?.id ?? "-1");
+
+    SClassAdmin.deleteClass(class_id, (result) => {
+      if (result) {
+        SLog.log(LogType.Info, "deleteClass", `Delete class with id: ${class_id}`);
+        SResponse.getResponse(ResponseStatus.OK, result, "delete class", response);
+      } else {
+        SLog.log(LogType.Error, "deleteClass", `Fail to delete class with id: ${class_id}`);
+        SResponse.getResponse(ResponseStatus.Internal_Server_Error, null, "Fail to delete class", response);
+      }
+    });
+  }
 }
