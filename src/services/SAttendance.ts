@@ -698,12 +698,16 @@ export default class SAttendance {
     try {
       await SMessage.createNotification(
         learnerMessage,
+        "",
+        "",
         learnerId, () => {}
       );
 
       if(parentId){
         await SMessage.createNotification(
           parentMessage,
+          "",
+          "",
           parentId, () => {}
         );
       }

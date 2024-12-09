@@ -173,6 +173,34 @@ export default class MessageController {
     });
   }
 
+  public static sendNotifications(request: express.Request, response: express.Response) {
+
+    const content: string = request?.body?.content ?? "";
+    let index: number = +(request?.body?.index ?? "1");
+    if (index < 1 || index > 3) index = 1;
+    const user_id: string = request?.body?.user_id ?? "-1";
+
+    if (!content) {
+      SLog.log(LogType.Info, "sendNotifications", "send notifications unsuccessfully", "Cannot get the content");
+      SResponse.getResponse(ResponseStatus.Internal_Server_Error, null, "Cannot get the content", response);
+      return;
+    }
+
+    let vnNoti = index === 1 ? content : "";
+    let enNoti = index === 2 ? content : "";
+    let jaNoti = index === 3 ? content : "";
+
+    SMessage.createNotification(vnNoti, enNoti, jaNoti, user_id, (result) => {
+      if (result) {
+        SLog.log(LogType.Info, "sendNotifications", "send notifications successfully");
+        SResponse.getResponse(ResponseStatus.OK, null, "Notifications sent successfully", response);
+      } else {
+        SLog.log(LogType.Info, "sendNotifications", "send notifications unsuccessfully");
+        SResponse.getResponse(ResponseStatus.Internal_Server_Error, null, "Send notifications unsuccessfully", response);
+      }
+    });
+  }
+
   public static createClassMessage(request: express.Request, response: express.Response) {
     const token: string = request?.headers?.authorization?.replace("Bearer ", "") ?? "";
     const message: Message = request?.body?.message;

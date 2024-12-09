@@ -8,7 +8,7 @@ import Lesson from "../models/Lesson";
 import { UserType } from "../configs/UserType";
 import SFirebase, { FirebaseNode } from "./SFirebase";
 import db from "../configs/knex";
-import mysql from "mysql2";
+import * as mysql from "mysql2";
 import Filters from "../models/Filters";
 import Pagination from "../models/Pagination";
 import { parseNumericFilter } from "../configs/QueryHelpers";
