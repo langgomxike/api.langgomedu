@@ -264,7 +264,8 @@ export default class SClass {
                                                   WHERE lessons.class_id = c.id
                                                   GROUP BY lessons.day
                                                   ORDER BY lessons.day ASC) l),
-                        'total_lessons', (SELECT COUNT(*) FROM lessons WHERE lessons.class_id = c.id)
+                        'total_lessons', (SELECT COUNT(*) FROM lessons WHERE lessons.class_id = c.id),
+                        'is_rating', IFNULL(ratings.id, false)
                         ) as class
                  FROM classes c
                           LEFT JOIN users tutor ON tutor.id = c.tutor_id
@@ -274,6 +275,7 @@ export default class SClass {
                           LEFT JOIN lessons ON lessons.class_id = c.id
                           LEFT JOIN addresses ON addresses.id = c.address_id
                           LEFT JOIN class_members ON class_members.class_id = c.id AND class_members.user_id = ?
+                          LEFT JOIN ratings ON ratings.class_id = c.id AND ratings.rater_id = ?
                  WHERE c.id = ?
                  GROUP BY c.id;`;
 
@@ -294,7 +296,7 @@ export default class SClass {
     SMySQL.getConnection((connection) => {
       connection?.execute<any[]>(
         sql,
-        [userId, userId, userId, userId, userId, classId],
+        [userId, userId, userId, userId, userId, userId,classId],
         (err, result) => {
           if (err || !result || result.length < 1) {
             console.log("get Class by ID", err);
@@ -305,6 +307,7 @@ export default class SClass {
           classData.admin_accepted = result[0].class.admin_accepted  === 1
           classData.author_accepted = result[0].class.author_accepted  === 1
           classData.paid = result[0].class.paid  === 1
+          classData.is_rating = result[0].class.is_rating  === 1
 
           connection.execute<any[]>(childInClassSql, [userId, classId], (childErr, childResult) => {
               if (childErr) {
