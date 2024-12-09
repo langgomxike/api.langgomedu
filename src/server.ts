@@ -280,6 +280,7 @@ app.post(ADMIN_USER_BASE_URL + "/classes/reports", AdminController.getAllReportU
 app.get(ADMIN_USER_BASE_URL + "/classes/:class_id", ClassAdminController.getDetailClass);
 app.put(ADMIN_USER_BASE_URL + "/classes/approve", ClassAdminController.approveClass);
 app.put(ADMIN_USER_BASE_URL + "/classes/approve-paid", ClassAdminController.approvePaymentByAdmin);
+app.delete(ADMIN_USER_BASE_URL + "/classes/:id", ClassAdminController.deleteClass);
 
 //Upload CV files
 const EDUCATION_URL = Config.PREFIX + "/educations";
