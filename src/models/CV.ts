@@ -44,7 +44,7 @@ export const cvJson = (asName: string): string => {
     'certificates', (${certificatesSubquery}), 
     'educations', (${educationsSubquery}),
     'experiences', (${experiencesSubquery}),
-    'approve_at', ${asName}.approved_at,
+    'approved_at', ${asName}.approved_at,
     'updated_at', ${asName}.updated_at 
 ) as cv `;
 }
@@ -58,7 +58,7 @@ export const cvJson2 = (alias: string, userAlias: string, addressAlias: string, 
         'certificates', (${certificatesSubquery}), 
         'educations', (${educationsSubquery}),
         'experiences', (${experiencesSubquery}),
-        'approve_at', ${alias}.approved_at,
+        'approved_at', ${alias}.approved_at,
         'updated_at', ${alias}.updated_at 
     ) as cv `;
 }
@@ -72,7 +72,7 @@ export const cvTempJson = (alias: string, userAlias: string, addressAlias: strin
         'certificates', (${certificatesSubquery}), 
         'educations', (${educationsSubquery}),
         'experiences', (${experiencesSubquery}),
-        'approve_at', ${alias}.approved_at,
+        'approved_at', ${alias}.approved_at,
         'updated_at', ${alias}.updated_at 
     ) as cv `;
 }
