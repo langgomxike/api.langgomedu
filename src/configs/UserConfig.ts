@@ -24,7 +24,7 @@ export function setUpUsers() {
         user.username = process.env.ADMIN_USERNAME ?? "";
         user.phone_number = process.env.ADMIN_PHONE_NUMBER ?? "";
         user.password = process.env.ADMIN_PASSWORD ?? "";
-        user.token = token ?? "";
+        user.token = token;
 
         SUser.storeUser(user, () => {
             SRole.addRolesToUser(user.id, [

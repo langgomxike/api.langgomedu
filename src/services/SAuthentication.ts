@@ -1,3 +1,4 @@
+// @ts-ignore
 import express from 'express';
 import SResponse, { ResponseStatus } from './SResponse';
 import SMySQL from './SMySQL';

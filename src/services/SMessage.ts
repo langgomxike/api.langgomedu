@@ -55,9 +55,11 @@ export default class SMessage {
     });
   }
 
-  public static createNotification(content: string, userId: string, onNext: (result: boolean) => void) {
+  public static createNotification(vnContent: string, enContent: string, jaContent: string, userId: string, onNext: (result: boolean) => void) {
     const sql = `INSERT INTO messages (sender_id, receiver_id, content, created_at, as_read)
                  VALUES (?, ?, ?, ?, 0)`;
+
+    const content = `${vnContent}{$$}${enContent}{$$}${jaContent}`;
 
     dotenv.config();
     const superAdminId = process.env.ADMIN_ID ?? "-1";

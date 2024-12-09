@@ -176,7 +176,7 @@ export default class SUser {
   ) {
     const sql = `SELECT addresses.*
                  FROM addresses
-                 INNER JOIN users ON users.address_id = addresses.id
+                          INNER JOIN users ON users.address_id = addresses.id
                  WHERE users.id = ?`;
 
     SMySQL.getConnection((connection) => {
@@ -286,7 +286,11 @@ export default class SUser {
 
             const encodedPhone = user.phone_number.slice(0, 3) + "*".repeat(user.phone_number.length - 3);
 
-            SMessage.createNotification(`Xin chào ${user.full_name}, bạn đã đăng ký tài khoản thành công. Tài khoản mới với số điện thoại [${encodedPhone}], tên tài khoản [${user.username}] đã được tạo thành công. Từ nay bạn sẽ có thể đăng nhập tài khoản với những thông tin này. Vui lòng ghi nhớ những thông tin cho các lần đăng nhập tiếp theo!`, user.id,
+            const vnNoti = `Xin chào ${user.full_name}, bạn đã đăng ký tài khoản thành công. Tài khoản mới với số điện thoại [${encodedPhone}], tên tài khoản [${user.username}] đã được tạo thành công. Từ nay bạn sẽ có thể đăng nhập tài khoản với những thông tin này. Vui lòng ghi nhớ những thông tin cho các lần đăng nhập tiếp theo!`;
+            const enNoti = `Hello ${user.full_name}, you have successfully registered an account. A new account with the phone number [${encodedPhone}] and username [${user.username}] has been created. From now on, you will be able to log in to your account using this information. Please remember these details for future logins!`;
+            const jaNoti = `こんにちは ${user.full_name}さん、アカウントの登録が成功しました。電話番号[${encodedPhone}]とユーザー名[${user.username}]で新しいアカウントが作成されました。これからはこの情報を使用してアカウントにログインできます。この情報を忘れないようにしてください！`;
+
+            SMessage.createNotification(vnNoti, enNoti, jaNoti, user.id,
               () => {
                 onNext(true);
               });
@@ -365,7 +369,11 @@ export default class SUser {
             return;
           }
 
-          SMessage.createNotification(`Cập nhật mật khẩu mới thành công. Từ nay bạn sẽ đăng nhập tài khoản với mật khẩu mới này.`, userId, () => {
+          const vnNoti = `Cập nhật mật khẩu mới thành công. Từ nay, bạn sẽ đăng nhập tài khoản với mật khẩu mới này.`;
+          const enNoti = `Your password has been successfully updated. From now on, you will log in to your account with this new password.`;
+          const jaNoti = `パスワードが正常に更新されました。これからはこの新しいパスワードでアカウントにログインします。`;
+
+          SMessage.createNotification(vnNoti, enNoti, jaNoti, userId, () => {
             onNext(true);
           });
         }
@@ -676,422 +684,418 @@ export default class SUser {
       );
     });
   }
+
 //lấy ra profile user
-public static getProfileUserById(
-  id: string,
-  onNext: (
-    userWithDetails:
-      | (User & { interesdMajors: any[]; interestedClassLevels: any[] })
-      | undefined
-  ) => void
-) {
-  const sql = `
-  SELECT 
-    users.*,
-    -- Lấy danh sách majors từ bảng interested_majors
-    (
-      SELECT 
-        IFNULL(
-          JSON_ARRAYAGG(
-            JSON_OBJECT(
-              'id', majors.id,
-              'vn_name', majors.vn_name,
-              'en_name', majors.en_name,
-              'ja_name', majors.ja_name,
-              'icon', majors.icon
-            )
-          ), JSON_ARRAY()
-        )
-      FROM interested_majors
-      JOIN majors ON interested_majors.major_id = majors.id
-      WHERE interested_majors.user_id = users.id
-    ) AS interested_majors,
-    -- Lấy danh sách class levels từ bảng interested_class_levels
-    (
-      SELECT 
-        IFNULL(
-          JSON_ARRAYAGG(
-            JSON_OBJECT(
-              'id', class_levels.id,
-              'vn_name', class_levels.vn_name,
-              'en_name', class_levels.en_name,
-              'ja_name', class_levels.ja_name
-            )
-          ), JSON_ARRAY()
-        )
-      FROM interested_class_levels
-      JOIN class_levels ON interested_class_levels.class_level_id = class_levels.id
-      WHERE interested_class_levels.user_id = users.id
-    ) AS interested_class_levels,
-    -- Lấy thông tin địa chỉ
-    JSON_OBJECT(
-      'province', addresses.province,
-      'district', addresses.district,
-      'ward', addresses.ward,
-      'detail', addresses.detail
-    ) AS address,
-    JSON_OBJECT(
-      'id', users.gender_id
-) as gender
-  FROM users
-  LEFT JOIN addresses ON users.address_id = addresses.id
-  WHERE users.id = ?;
-  `;
+  public static getProfileUserById(
+    id: string,
+    onNext: (
+      userWithDetails:
+        | (User & { interesdMajors: any[]; interestedClassLevels: any[] })
+        | undefined
+    ) => void
+  ) {
+    const sql = `
+        SELECT users.*,
+               -- Lấy danh sách majors từ bảng interested_majors
+               (SELECT IFNULL(
+                               JSON_ARRAYAGG(
+                                       JSON_OBJECT(
+                                               'id', majors.id,
+                                               'vn_name', majors.vn_name,
+                                               'en_name', majors.en_name,
+                                               'ja_name', majors.ja_name,
+                                               'icon', majors.icon
+                                       )
+                               ), JSON_ARRAY()
+                       )
+                FROM interested_majors
+                         JOIN majors ON interested_majors.major_id = majors.id
+                WHERE interested_majors.user_id = users.id)       AS interested_majors,
+               -- Lấy danh sách class levels từ bảng interested_class_levels
+               (SELECT IFNULL(
+                               JSON_ARRAYAGG(
+                                       JSON_OBJECT(
+                                               'id', class_levels.id,
+                                               'vn_name', class_levels.vn_name,
+                                               'en_name', class_levels.en_name,
+                                               'ja_name', class_levels.ja_name
+                                       )
+                               ), JSON_ARRAY()
+                       )
+                FROM interested_class_levels
+                         JOIN class_levels ON interested_class_levels.class_level_id = class_levels.id
+                WHERE interested_class_levels.user_id = users.id) AS interested_class_levels,
+               -- Lấy thông tin địa chỉ
+               JSON_OBJECT(
+                       'province', addresses.province,
+                       'district', addresses.district,
+                       'ward', addresses.ward,
+                       'detail', addresses.detail
+               )                                                  AS address,
+               JSON_OBJECT(
+                       'id', users.gender_id
+               )                                                  as gender
+        FROM users
+                 LEFT JOIN addresses ON users.address_id = addresses.id
+        WHERE users.id = ?;
+    `;
 
-  // Kết nối với cơ sở dữ liệu và thực hiện truy vấn
-  SMySQL.getConnection((connection) => {
-    connection?.execute<any>(sql, [id], (error, result) => {
-      if (error || !result || result.length === 0) {
-        SLog.log(
-          LogType.Error,
-          "getProfileUserById",
-          "User not found",
-          error
-        );
-        onNext(undefined);
-        return;
-      }
+    // Kết nối với cơ sở dữ liệu và thực hiện truy vấn
+    SMySQL.getConnection((connection) => {
+      connection?.execute<any>(sql, [id], (error, result) => {
+        if (error || !result || result.length === 0) {
+          SLog.log(
+            LogType.Error,
+            "getProfileUserById",
+            "User not found",
+            error
+          );
+          onNext(undefined);
+          return;
+        }
 
-      const userWithDetails = result[0]; // Lấy kết quả đầu tiên từ query
-      onNext(userWithDetails);
+        const userWithDetails = result[0]; // Lấy kết quả đầu tiên từ query
+        onNext(userWithDetails);
+      });
     });
-  });
-}
+  }
 
 //thay avatar
 
-public static updateAvatar(
-  id: string, // ID của người dùng
-  avatar: string, // Avatar mới
-  onNext: (result: boolean) => void // Callback trả về kết quả
-) {
-  // Truy vấn SQL để cập nhật avatar trong bảng users
-  const sqlUpdateAvatar = "UPDATE users SET avatar = ? WHERE id = ?";
+  public static updateAvatar(
+    id: string, // ID của người dùng
+    avatar: string, // Avatar mới
+    onNext: (result: boolean) => void // Callback trả về kết quả
+  ) {
+    // Truy vấn SQL để cập nhật avatar trong bảng users
+    const sqlUpdateAvatar = "UPDATE users SET avatar = ? WHERE id = ?";
 
-  // Thời gian cập nhật
-  const paramsUpdate = [avatar, id];
+    // Thời gian cập nhật
+    const paramsUpdate = [avatar, id];
 
-  // Kết nối cơ sở dữ liệu và thực hiện truy vấn cập nhật
-  SMySQL.getConnection((connection) => {
-    if (!connection) {
-      SLog.log(LogType.Error, "updateAvatar", "No connection available");
-      onNext(false);
-      return;
-    }
-
-    connection.execute(
-      sqlUpdateAvatar,
-      paramsUpdate,
-      (err: Error | null, result: any) => {
-        if (err) {
-          // Nếu có lỗi khi cập nhật avatar
-          SLog.log(
-            LogType.Error,
-            "updateAvatar",
-            "Failed to update avatar",
-            err
-          );
-          onNext(false);
-          return;
-        }
-
-        if (result.affectedRows === 0) {
-          // Nếu không có dòng nào bị ảnh hưởng (ID không tồn tại hoặc avatar không thay đổi)
-          SLog.log(
-            LogType.Error,
-            "updateAvatar",
-            "No user found with the given ID or no changes made."
-          );
-          onNext(false);
-          return;
-        }
-
-        // Nếu cập nhật thành công trong MySQL
-        SLog.log(LogType.Info, "updateAvatar", "Avatar updated successfully");
-
-        // Đồng bộ hóa với Firebase Realtime Database
-        SFirebase.push(FirebaseNode.Users, [
-          { key: FirebaseNode.Id, value: id }
-        ], () => {
-          // Callback khi cập nhật Firebase thành công
-          SLog.log(LogType.Info, "updateAvatar", "Avatar updated in Firebase");
-          onNext(true);
-        });
-      }
-    );
-  });
-}
-
-
-public static updateUserProfile(
-  id: string,
-  onNext: (result: boolean) => void,
-  full_name?: string,
-  hometown?: string,
-  birthday?: number,
-  gender_id?: number,
-  province?: string,
-  district?: string,
-  ward?: string,
-  detail?: string,
-  majors?: number[],
-  classes?: number[]
-) {
-  const updateUser = (connection: any, callback: () => void) => {
-    let sql = "UPDATE users SET ";
-    const params: any[] = [];
-
-    if (full_name !== undefined) {
-      sql += "full_name = ?,";
-      params.push(full_name || null);
-    }
-    if (hometown !== undefined) {
-      sql += "hometown = ?,";
-      params.push(hometown || null);
-    }
-    if (birthday !== undefined) {
-      sql += "birthday = ?,";
-      params.push(birthday || null);
-    }
-    if (gender_id !== undefined) {
-      sql += "gender_id = ?,";
-      params.push(gender_id || null);
-    }
-
-    sql += "updated_at = ? WHERE id = ?";
-    params.push(new Date().getTime(), id);
-
-    connection.execute(sql, params, (error: Error | null) => {
-      if (error) {
+    // Kết nối cơ sở dữ liệu và thực hiện truy vấn cập nhật
+    SMySQL.getConnection((connection) => {
+      if (!connection) {
+        SLog.log(LogType.Error, "updateAvatar", "No connection available");
         onNext(false);
-        SLog.log(LogType.Error, "updateUser", "Failed to execute", error);
         return;
       }
-      callback();
-    });
-  };
 
-  const updateClasses = (connection: any, callback: () => void) => {
-    if (classes && classes.length > 0) {
-      const deleteSql =
-        "DELETE FROM interested_class_levels WHERE user_id = ?";
-      connection.execute(deleteSql, [id], (deleteError: Error | null) => {
-        if (deleteError) {
-          onNext(false);
-          SLog.log(
-            LogType.Error,
-            "deleteClasses",
-            "Failed to execute",
-            deleteError
-          );
-          return;
-        }
-
-        // Tạo danh sách VALUES cụ thể cho INSERT
-        const insertValues = classes.map(() => "(?, ?)").join(", ");
-        const insertSql = `INSERT INTO interested_class_levels (user_id, class_level_id) VALUES ${insertValues}`;
-        const insertParams = classes.flatMap((classId) => [id, classId]);
-
-        connection.execute(
-          insertSql,
-          insertParams,
-          (insertError: Error | null) => {
-            if (insertError) {
-              onNext(false);
-              SLog.log(
-                LogType.Error,
-                "insertClasses",
-                "Failed to execute",
-                insertError
-              );
-              return;
-            }
-            callback();
-          }
-        );
-      });
-    } else {
-      callback();
-    }
-  };
-
-  const updateMajors = (connection: any, callback: () => void) => {
-    if (majors && majors.length > 0) {
-      // Lọc danh sách majors để loại bỏ giá trị trùng lặp
-      // @ts-ignore
-      const uniqueMajors = [...new Set(majors)];
-
-      const deleteSql = "DELETE FROM interested_majors WHERE user_id = ?";
-      connection.execute(deleteSql, [id], (deleteError: Error | null) => {
-        if (deleteError) {
-          onNext(false);
-          SLog.log(
-            LogType.Error,
-            "deleteMajors",
-            "Failed to execute",
-            deleteError
-          );
-          return;
-        }
-
-        // Tạo câu lệnh INSERT
-        const insertValues = uniqueMajors.map(() => "(?, ?)").join(", ");
-        const insertSql = `INSERT INTO interested_majors (user_id, major_id) VALUES ${insertValues}`;
-        const insertParams = uniqueMajors.flatMap((majorId) => [id, majorId]);
-
-        connection.execute(
-          insertSql,
-          insertParams,
-          (insertError: Error | null) => {
-            if (insertError) {
-              onNext(false);
-              SLog.log(
-                LogType.Error,
-                "insertMajors",
-                "Failed to execute",
-                insertError
-              );
-              return;
-            }
-            callback();
-          }
-        );
-      });
-    } else {
-      callback();
-    }
-  };
-
-  const updateAddress = (connection: any, callback: () => void) => {
-    if (province || district || ward || detail) {
-      const getAddressIdSql = "SELECT address_id FROM users WHERE id = ?";
       connection.execute(
-        getAddressIdSql,
-        [id],
-        (getAddressError: Error | null, result: any) => {
-          if (getAddressError) {
+        sqlUpdateAvatar,
+        paramsUpdate,
+        (err: Error | null, result: any) => {
+          if (err) {
+            // Nếu có lỗi khi cập nhật avatar
+            SLog.log(
+              LogType.Error,
+              "updateAvatar",
+              "Failed to update avatar",
+              err
+            );
+            onNext(false);
+            return;
+          }
+
+          if (result.affectedRows === 0) {
+            // Nếu không có dòng nào bị ảnh hưởng (ID không tồn tại hoặc avatar không thay đổi)
+            SLog.log(
+              LogType.Error,
+              "updateAvatar",
+              "No user found with the given ID or no changes made."
+            );
+            onNext(false);
+            return;
+          }
+
+          // Nếu cập nhật thành công trong MySQL
+          SLog.log(LogType.Info, "updateAvatar", "Avatar updated successfully");
+
+          // Đồng bộ hóa với Firebase Realtime Database
+          SFirebase.push(FirebaseNode.Users, [
+            {key: FirebaseNode.Id, value: id}
+          ], () => {
+            // Callback khi cập nhật Firebase thành công
+            SLog.log(LogType.Info, "updateAvatar", "Avatar updated in Firebase");
+            onNext(true);
+          });
+        }
+      );
+    });
+  }
+
+
+  public static updateUserProfile(
+    id: string,
+    onNext: (result: boolean) => void,
+    full_name?: string,
+    hometown?: string,
+    birthday?: number,
+    gender_id?: number,
+    province?: string,
+    district?: string,
+    ward?: string,
+    detail?: string,
+    majors?: number[],
+    classes?: number[]
+  ) {
+    const updateUser = (connection: any, callback: () => void) => {
+      let sql = "UPDATE users SET ";
+      const params: any[] = [];
+
+      if (full_name !== undefined) {
+        sql += "full_name = ?,";
+        params.push(full_name || null);
+      }
+      if (hometown !== undefined) {
+        sql += "hometown = ?,";
+        params.push(hometown || null);
+      }
+      if (birthday !== undefined) {
+        sql += "birthday = ?,";
+        params.push(birthday || null);
+      }
+      if (gender_id !== undefined) {
+        sql += "gender_id = ?,";
+        params.push(gender_id || null);
+      }
+
+      sql += "updated_at = ? WHERE id = ?";
+      params.push(new Date().getTime(), id);
+
+      connection.execute(sql, params, (error: Error | null) => {
+        if (error) {
+          onNext(false);
+          SLog.log(LogType.Error, "updateUser", "Failed to execute", error);
+          return;
+        }
+        callback();
+      });
+    };
+
+    const updateClasses = (connection: any, callback: () => void) => {
+      if (classes && classes.length > 0) {
+        const deleteSql =
+          "DELETE FROM interested_class_levels WHERE user_id = ?";
+        connection.execute(deleteSql, [id], (deleteError: Error | null) => {
+          if (deleteError) {
             onNext(false);
             SLog.log(
               LogType.Error,
-              "getAddressId",
+              "deleteClasses",
               "Failed to execute",
-              getAddressError
+              deleteError
             );
             return;
           }
 
-          const addressId = result[0]?.address_id;
-          if (addressId) {
-            let updateAddressSql = "UPDATE addresses SET ";
-            const addressParams: any[] = [];
+          // Tạo danh sách VALUES cụ thể cho INSERT
+          const insertValues = classes.map(() => "(?, ?)").join(", ");
+          const insertSql = `INSERT INTO interested_class_levels (user_id, class_level_id)
+                             VALUES ${insertValues}`;
+          const insertParams = classes.flatMap((classId) => [id, classId]);
 
-            if (province !== undefined) {
-              updateAddressSql += "province = ?,";
-              addressParams.push(province || null);
-            }
-            if (district !== undefined) {
-              updateAddressSql += "district = ?,";
-              addressParams.push(district || null);
-            }
-            if (ward !== undefined) {
-              updateAddressSql += "ward = ?,";
-              addressParams.push(ward || null);
-            }
-            if (detail !== undefined) {
-              updateAddressSql += "detail = ?,";
-              addressParams.push(detail || null);
-            }
-
-            updateAddressSql =
-              updateAddressSql.slice(0, -1) + " WHERE id = ?";
-            addressParams.push(addressId);
-
-            connection.execute(
-              updateAddressSql,
-              addressParams,
-              (updateError: Error | null) => {
-                if (updateError) {
-                  onNext(false);
-                  SLog.log(
-                    LogType.Error,
-                    "updateAddress",
-                    "Failed to execute",
-                    updateError
-                  );
-                  return;
-                }
-                callback();
-              }
-            );
-          } else {
-            const insertAddressSql =
-              "INSERT INTO addresses (province, district, ward, detail) VALUES (?, ?, ?, ?)";
-            const insertParams = [province, district, ward, detail];
-
-            connection.execute(
-              insertAddressSql,
-              insertParams,
-              (insertError: Error | null, result: any) => {
-                if (insertError) {
-                  onNext(false);
-                  SLog.log(
-                    LogType.Error,
-                    "insertAddress",
-                    "Failed to execute",
-                    insertError
-                  );
-                  return;
-                }
-
-                const newAddressId = result.insertId;
-                const updateUserSql =
-                  "UPDATE users SET address_id = ? WHERE id = ?";
-                connection.execute(
-                  updateUserSql,
-                  [newAddressId, id],
-                  (updateError: Error | null) => {
-                    if (updateError) {
-                      onNext(false);
-                      SLog.log(
-                        LogType.Error,
-                        "updateUserAddressId",
-                        "Failed to execute",
-                        updateError
-                      );
-                      return;
-                    }
-                    callback();
-                  }
+          connection.execute(
+            insertSql,
+            insertParams,
+            (insertError: Error | null) => {
+              if (insertError) {
+                onNext(false);
+                SLog.log(
+                  LogType.Error,
+                  "insertClasses",
+                  "Failed to execute",
+                  insertError
                 );
+                return;
               }
+              callback();
+            }
+          );
+        });
+      } else {
+        callback();
+      }
+    };
+
+    const updateMajors = (connection: any, callback: () => void) => {
+      if (majors && majors.length > 0) {
+        // Lọc danh sách majors để loại bỏ giá trị trùng lặp
+        // @ts-ignore
+        const uniqueMajors = [...new Set(majors)];
+
+        const deleteSql = "DELETE FROM interested_majors WHERE user_id = ?";
+        connection.execute(deleteSql, [id], (deleteError: Error | null) => {
+          if (deleteError) {
+            onNext(false);
+            SLog.log(
+              LogType.Error,
+              "deleteMajors",
+              "Failed to execute",
+              deleteError
             );
+            return;
           }
-        }
-      );
-    } else {
-      callback();
-    }
-  };
 
-  SMySQL.getConnection((connection: any) => {
-    if (!connection) {
-      onNext(false);
-      SLog.log(LogType.Error, "updateUserProfile", "No connection available");
-      return;
-    }
+          // Tạo câu lệnh INSERT
+          const insertValues = uniqueMajors.map(() => "(?, ?)").join(", ");
+          const insertSql = `INSERT INTO interested_majors (user_id, major_id)
+                             VALUES ${insertValues}`;
+          const insertParams = uniqueMajors.flatMap((majorId) => [id, majorId]);
 
-    updateAddress(connection, () => {
-      updateMajors(connection, () => {
-        updateClasses(connection, () => {
-          updateUser(connection, () => {
-            SFirebase.push(FirebaseNode.Users, [{ key: FirebaseNode.Id, value: id }], () => {
-              onNext(true);
-            })
-          
+          connection.execute(
+            insertSql,
+            insertParams,
+            (insertError: Error | null) => {
+              if (insertError) {
+                onNext(false);
+                SLog.log(
+                  LogType.Error,
+                  "insertMajors",
+                  "Failed to execute",
+                  insertError
+                );
+                return;
+              }
+              callback();
+            }
+          );
+        });
+      } else {
+        callback();
+      }
+    };
+
+    const updateAddress = (connection: any, callback: () => void) => {
+      if (province || district || ward || detail) {
+        const getAddressIdSql = "SELECT address_id FROM users WHERE id = ?";
+        connection.execute(
+          getAddressIdSql,
+          [id],
+          (getAddressError: Error | null, result: any) => {
+            if (getAddressError) {
+              onNext(false);
+              SLog.log(
+                LogType.Error,
+                "getAddressId",
+                "Failed to execute",
+                getAddressError
+              );
+              return;
+            }
+
+            const addressId = result[0]?.address_id;
+            if (addressId) {
+              let updateAddressSql = "UPDATE addresses SET ";
+              const addressParams: any[] = [];
+
+              if (province !== undefined) {
+                updateAddressSql += "province = ?,";
+                addressParams.push(province || null);
+              }
+              if (district !== undefined) {
+                updateAddressSql += "district = ?,";
+                addressParams.push(district || null);
+              }
+              if (ward !== undefined) {
+                updateAddressSql += "ward = ?,";
+                addressParams.push(ward || null);
+              }
+              if (detail !== undefined) {
+                updateAddressSql += "detail = ?,";
+                addressParams.push(detail || null);
+              }
+
+              updateAddressSql =
+                updateAddressSql.slice(0, -1) + " WHERE id = ?";
+              addressParams.push(addressId);
+
+              connection.execute(
+                updateAddressSql,
+                addressParams,
+                (updateError: Error | null) => {
+                  if (updateError) {
+                    onNext(false);
+                    SLog.log(
+                      LogType.Error,
+                      "updateAddress",
+                      "Failed to execute",
+                      updateError
+                    );
+                    return;
+                  }
+                  callback();
+                }
+              );
+            } else {
+              const insertAddressSql =
+                "INSERT INTO addresses (province, district, ward, detail) VALUES (?, ?, ?, ?)";
+              const insertParams = [province, district, ward, detail];
+
+              connection.execute(
+                insertAddressSql,
+                insertParams,
+                (insertError: Error | null, result: any) => {
+                  if (insertError) {
+                    onNext(false);
+                    SLog.log(
+                      LogType.Error,
+                      "insertAddress",
+                      "Failed to execute",
+                      insertError
+                    );
+                    return;
+                  }
+
+                  const newAddressId = result.insertId;
+                  const updateUserSql =
+                    "UPDATE users SET address_id = ? WHERE id = ?";
+                  connection.execute(
+                    updateUserSql,
+                    [newAddressId, id],
+                    (updateError: Error | null) => {
+                      if (updateError) {
+                        onNext(false);
+                        SLog.log(
+                          LogType.Error,
+                          "updateUserAddressId",
+                          "Failed to execute",
+                          updateError
+                        );
+                        return;
+                      }
+                      callback();
+                    }
+                  );
+                }
+              );
+            }
+          }
+        );
+      } else {
+        callback();
+      }
+    };
+
+    SMySQL.getConnection((connection: any) => {
+      if (!connection) {
+        onNext(false);
+        SLog.log(LogType.Error, "updateUserProfile", "No connection available");
+        return;
+      }
+
+      updateAddress(connection, () => {
+        updateMajors(connection, () => {
+          updateClasses(connection, () => {
+            updateUser(connection, () => {
+              SFirebase.push(FirebaseNode.Users, [{key: FirebaseNode.Id, value: id}], () => {
+                onNext(true);
+              })
+
+            });
           });
         });
       });
     });
-  });
-}
+  }
 }
