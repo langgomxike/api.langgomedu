@@ -195,6 +195,7 @@ app.delete(MAJOR_BASE_URL + "/:id", MajorController.deleteMajor);
 const MESSAGE_BASE_URL = Config.PREFIX + "/messages";
 app.get(MESSAGE_BASE_URL + "/contacts", MessageController.getContacts);
 app.get(MESSAGE_BASE_URL + "/notifications", MessageController.getNotifications);
+app.post(MESSAGE_BASE_URL + "/notifications", MessageController.sendNotifications);
 app.put(MESSAGE_BASE_URL + "/notifications/mark-as-read", MessageController.markAsReadNotifications);
 app.patch(MESSAGE_BASE_URL + "/notifications/mark-as-read", MessageController.markAsReadNotifications);
 app.delete(MESSAGE_BASE_URL + "/notifications/:id", MessageController.deleteNotification);
