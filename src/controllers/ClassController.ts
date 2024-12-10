@@ -2,7 +2,6 @@ import express from "express";
 import moment from "moment"; // Thư viện hỗ trợ xử lý thời gian
 import SResponse, { ResponseStatus } from "../services/SResponse";
 import SLog, { LogType } from "../services/SLog";
-import Class from "../models/Class";
 import SClass from "../services/SClass";
 import { UserType } from "../configs/UserType";
 import Filters from "../models/Filters";
@@ -484,6 +483,7 @@ export default class ClassController {
       started_at,
       ended_at,
       updated_at,
+      address_id,
       province,
       district,
       ward,
@@ -502,6 +502,7 @@ export default class ClassController {
       !started_at ||
       !ended_at ||
       !updated_at ||
+      !address_id ||
       !province ||
       !district ||
       !ward ||
@@ -515,77 +516,158 @@ export default class ClassController {
       );
     }
 
-    // Lấy addressId từ thông tin địa chỉ
-    SAddress.getAddressId(
+      // Cập nhật thông tin địa chỉ
+      SAddress.updateAddress(
+        address_id,
+        province,
+        district,
+        ward,
+        detail,
+        (addressResult: boolean) => {
+          if (!addressResult) {
+            return SResponse.getResponse(
+              ResponseStatus.Internal_Server_Error,
+              { message: "Không thể cập nhật địa chỉ." },
+              "Failed to update address.",
+              response
+            );
+          }
+
+          // Cập nhật thông tin lớp học
+          SClass.updateClass(
+            class_id,
+            title,
+            description,
+            major_id,
+            class_level_id,
+            max_learners,
+            price,
+            started_at,
+            ended_at,
+            updated_at,
+            (updateResult: boolean) => {
+              if (updateResult) {
+                SResponse.getResponse(
+                  ResponseStatus.OK,
+                  { message: "Cập nhật lớp học thành công." },
+                  "Update class successfully!",
+                  response
+                );
+              } else {
+                SResponse.getResponse(
+                  ResponseStatus.Internal_Server_Error,
+                  { message: "Không thể cập nhật lớp học." },
+                  "Update class failed!",
+                  response
+                );
+              }
+            }
+          );
+        }
+      );
+  }
+
+  public static updateClassForLeaner(
+    request: express.Request,
+    response: express.Response
+  ) {
+    const {
+      class_id,
+      title,
+      description,
+      major_id,
+      class_level_id,
+      max_learners,
+      price,
+      started_at,
+      ended_at,
+      updated_at,
+      users,
+      address_id,
       province,
       district,
       ward,
       detail,
-      (address_id: number | null) => {
-        console.log("Address Id: ", address_id);
+    } = request.body;
+    console.log("Updata Class For Learner Data: ", JSON.stringify(request.body, null, 2));
+    
 
-        if (!address_id) {
-          return SResponse.getResponse(
-            ResponseStatus.Internal_Server_Error,
-            { message: "Không tìm thấy địa chỉ liên quan đến lớp học." },
-            "Address not found for the given class.",
-            response
-          );
-        }
+    // Kiểm tra tính hợp lệ
+    if (
+      !class_id ||
+      !title ||
+      !description ||
+      !major_id ||
+      !class_level_id ||
+      !max_learners ||
+      !price ||
+      !started_at ||
+      !ended_at ||
+      !updated_at ||
+      !address_id ||
+      !province ||
+      !district ||
+      !ward ||
+      !detail
+    ) {
+      return SResponse.getResponse(
+        ResponseStatus.Internal_Server_Error,
+        { message: "Dữ liệu đầu vào không hợp lệ." },
+        "Invalid input data.",
+        response
+      );
+    }
 
-        if (address_id) {
-          // Cập nhật thông tin địa chỉ
-          SAddress.updateAddress(
-            address_id,
-            province,
-            district,
-            ward,
-            detail,
-            (addressResult: boolean) => {
-              if (!addressResult) {
-                return SResponse.getResponse(
+      // Cập nhật thông tin địa chỉ
+      SAddress.updateAddress(
+        address_id,
+        province,
+        district,
+        ward,
+        detail,
+        (addressResult: boolean) => {
+          if (!addressResult) {
+            return SResponse.getResponse(
+              ResponseStatus.Internal_Server_Error,
+              { message: "Không thể cập nhật địa chỉ." },
+              "Failed to update address.",
+              response
+            );
+          }
+
+          // Cập nhật thông tin lớp học
+          SClass.updateClassForLearner(
+            class_id,
+            title,
+            description,
+            major_id,
+            class_level_id,
+            max_learners,
+            price,
+            started_at,
+            ended_at,
+            updated_at,
+            users,
+            (updateResult: boolean) => {
+              if (updateResult) {
+                SResponse.getResponse(
+                  ResponseStatus.OK,
+                  { message: "Cập nhật lớp học thành công." },
+                  "Update class successfully!",
+                  response
+                );
+              } else {
+                SResponse.getResponse(
                   ResponseStatus.Internal_Server_Error,
-                  { message: "Không thể cập nhật địa chỉ." },
-                  "Failed to update address.",
+                  { message: "Không thể cập nhật lớp học." },
+                  "Update class failed!",
                   response
                 );
               }
-
-              // Cập nhật thông tin lớp học
-              SClass.updateClass(
-                class_id,
-                title,
-                description,
-                major_id,
-                class_level_id,
-                max_learners,
-                price,
-                started_at,
-                ended_at,
-                updated_at,
-                (updateResult: boolean) => {
-                  if (updateResult) {
-                    SResponse.getResponse(
-                      ResponseStatus.OK,
-                      { message: "Cập nhật lớp học thành công." },
-                      "Update class successfully!",
-                      response
-                    );
-                  } else {
-                    SResponse.getResponse(
-                      ResponseStatus.Internal_Server_Error,
-                      { message: "Không thể cập nhật lớp học." },
-                      "Update class failed!",
-                      response
-                    );
-                  }
-                }
-              );
             }
           );
         }
-      }
-    );
+      );
   }
 
   /**
@@ -821,18 +903,18 @@ function calculateLessonDates(
 ): { day: number; started_at: number }[] {
   const result: { day: number; started_at: number }[] = [];
   // let current = moment(startDate).startOf("day");
-  const time = moment(lessonStarted_at); 
+  const time = moment(lessonStarted_at);
   // Lấy giờ và phút
   const hour = time.hour() * 3600000;
   const minute = time.minute() * 60000;
-  
+
   let current = moment(startDate + hour + minute);
 
   // const end = moment(endDate).endOf("day");
   const end = moment(endDate);
   while (current <= end) {
     // Lấy thứ trong tuần (1: Thứ 2, 7: Chủ Nhật)
-    const currentDayOfWeek = current.isoWeekday(); 
+    const currentDayOfWeek = current.isoWeekday();
     if (daysOfWeek.includes(currentDayOfWeek)) {
       result.push({
         day: currentDayOfWeek,
