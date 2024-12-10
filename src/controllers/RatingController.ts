@@ -41,4 +41,17 @@ export default class RatingController {
            SResponse.getResponse(ResponseStatus.OK, {}, "Create rating successfully", response);
         });
     }
+
+    public static getRatingsOfUser(request: express.Request, response: express.Response){
+        const user_id = request.params.id;
+        const userId = user_id?.toString();
+        if(userId){
+            SRating.getAllRatingsOfUser(userId, (ratings)=> {
+                SResponse.getResponse(ResponseStatus.OK, ratings, "get All Rating of user", response);
+            })
+        }
+        else{
+            SResponse.getResponse(ResponseStatus.Internal_Server_Error, [], "can't get User with this ID", response)
+        }
+    }
 }

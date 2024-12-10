@@ -88,12 +88,12 @@ export default class SCV {
         .groupBy('user.id')
     )
       .then((response) => {
-        results.push(response[0].cv);
+        results.push(response.length > 0 ? response[0]?.cv : {} );
       })
       .catch((err) => {
         SLog.log(LogType.Error, "getUserCV3", "ERR", err);
       })
-    onNext(results)
+      onNext(results)
   }
 
   public static async getAllCVs(onNext: (cv: CV[]) => void) {
@@ -425,17 +425,22 @@ export default class SCV {
     })
       .then((results) => {
         console.log(results);
-        onNext({
-          cvId: cvIdnew,
-          title: title,
-          bio: biography,
-          oldEdu: oldEduIds,
-          newEdu: newEduIds,
-          oldExp: oldExpIds,
-          newExp: newExpIds,
-          oldCer: oldCerIds,
-          newCer: newCerIds,
-        });
+        SFirebase.push(FirebaseNode.CVs, [{
+          key: FirebaseNode.Id,
+          value: cvId,
+        }], ()=> {
+          onNext({
+            cvId: cvIdnew,
+            title: title,
+            bio: biography,
+            oldEdu: oldEduIds,
+            newEdu: newEduIds,
+            oldExp: oldExpIds,
+            newExp: newExpIds,
+            oldCer: oldCerIds,
+            newCer: newCerIds,
+          });
+        })
       })
       .catch((err) => {
         console.log("fail to update cv", err.message);
@@ -516,7 +521,8 @@ export default class SCV {
     }).then((result) => {
 
       console.log(result);
-      SMessage.createNotification(reason, oldCvId, ()=>{})
+      
+      // SMessage.createNotification(reason, oldCvId, ()=>{})
       SFirebase.push(FirebaseNode.CVs, [{
         key: FirebaseNode.Id,
         value: oldCvId,
@@ -537,9 +543,6 @@ export default class SCV {
 
 
   }
-
-
-
 
   //end service
 }

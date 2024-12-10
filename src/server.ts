@@ -220,6 +220,7 @@ app.post(PERMISSION_BASE_URL + "/of-user", PermissionController.getPermissionsOf
 app.get(PERMISSION_BASE_URL + "/of-role/:id", PermissionController.getPermissionsOfRole);
 
 const RATING_BASE_URL = Config.PREFIX + "/ratings";
+app.get(RATING_BASE_URL + "/users/:id", RatingController.getRatingsOfUser);
 app.get(RATING_BASE_URL + "/:id", RatingController.getRatings);
 app.post(RATING_BASE_URL, RatingController.createRating);
 

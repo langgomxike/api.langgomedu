@@ -995,7 +995,8 @@ GROUP BY parent_children.id;
                   LEFT JOIN lessons ON lessons.class_id = classes.id
                   LEFT JOIN class_members ON class_members.class_id = classes.id AND class_members.user_id = ?
                   WHERE classes.tutor_id = ? OR classes.author_id = ? OR class_members.user_id IS NOT NULL 
-                   GROUP BY classes.id;`;
+                   GROUP BY classes.id
+                  ORDER BY classes.created_at ASC;`;
 
     // console.log("", mysql.format(sql, [userId, userId, userId]));
 

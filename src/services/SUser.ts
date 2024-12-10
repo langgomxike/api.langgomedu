@@ -1,13 +1,13 @@
 import User from "./../models/User";
 import SMySQL from "./SMySQL";
-import SLog, {LogType} from "./SLog";
-import {v4} from "uuid";
-import SFirebase, {FirebaseNode} from "./SFirebase";
+import SLog, { LogType } from "./SLog";
+import { v4 } from "uuid";
+import SFirebase, { FirebaseNode } from "./SFirebase";
 import * as crypto from "crypto";
 import * as dotenv from "dotenv";
 import OTP from "../models/OTP";
 import SMessage from "./SMessage";
-import {pbkdf2Sync, randomBytes} from "node:crypto";
+import { pbkdf2Sync, randomBytes } from "node:crypto";
 import Address from "../models/Address";
 
 export default class SUser {
@@ -250,54 +250,59 @@ export default class SUser {
   }
 
   public static storeUser(user: User, onNext: (result: boolean) => void) {
+    SFirebase.getData(FirebaseNode.AppInfos, [ ], (value) => {
+      const point = +(value?.initial_point ?? 100);
+      const sql =
+        "INSERT INTO `users` (`id`, `email`, `user_name`, `full_name`, `phone_number`, `password`, `token`, `hometown`, `birthday`, `gender_id`, `address_id`, `created_at`, `parent_id`, `avatar`, `point`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
-    const sql =
-      "INSERT INTO `users` (`id`, `email`, `user_name`, `full_name`, `phone_number`, `password`, `token`, `hometown`, `birthday`, `gender_id`, `address_id`, `created_at`, `parent_id`, `avatar`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+      SMySQL.getConnection((connection) => {
+        connection?.execute<any>(
+          sql,
+          [
+            user.id,
+            new Date().getTime(),
+            user.username,
+            user.full_name,
+            user.phone_number,
+            this.hashPassword(user.password),
+            v4(),
+            user.hometown,
+            user.birthday,
+            user.gender?.id ?? 3,
+            -1,
+            new Date().getTime(),
+            user.parent?.id ?? "-1",
+            "/images/avatars/user_" + (Math.floor(1 + Math.random() * 5)) + ".jpg",
+            point,
+          ],
+          (error, result) => {
+            if (error) {
+              onNext(false);
+              SLog.log(LogType.Error, "storeUser", "failed to execute", error);
+              return;
+            }
 
-    SMySQL.getConnection((connection) => {
-      connection?.execute<any>(
-        sql,
-        [
-          user.id,
-          new Date().getTime(),
-          user.username,
-          user.full_name,
-          user.phone_number,
-          this.hashPassword(user.password),
-          v4(),
-          user.hometown,
-          user.birthday,
-          user.gender?.id ?? 3,
-          -1,
-          new Date().getTime(),
-          user.parent?.id ?? "-1",
-          "/images/avatars/user_" + (Math.floor(1 + Math.random() * 5)) + ".jpg",
-        ],
-        (error, result) => {
-          if (error) {
-            onNext(false);
-            SLog.log(LogType.Error, "storeUser", "failed to execute", error);
-            return;
+            //update into firebase
+            SFirebase.push(FirebaseNode.Users, [{ key: FirebaseNode.Id, value: user.id }], () => {
+              SLog.log(LogType.Info, "storeUser", "store user successfully");
+
+              const encodedPhone = user.phone_number.slice(0, 3) + "*".repeat(user.phone_number.length - 3);
+
+              const vnNoti = `Xin chào ${user.full_name}, bạn đã đăng ký tài khoản thành công. Tài khoản mới với số điện thoại [${encodedPhone}], tên tài khoản [${user.username}] đã được tạo thành công. Từ nay bạn sẽ có thể đăng nhập tài khoản với những thông tin này. Vui lòng ghi nhớ những thông tin cho các lần đăng nhập tiếp theo!`;
+              const enNoti = `Hello ${user.full_name}, you have successfully registered an account. A new account with the phone number [${encodedPhone}] and username [${user.username}] has been created. From now on, you will be able to log in to your account using this information. Please remember these details for future logins!`;
+              const jaNoti = `こんにちは ${user.full_name}さん、アカウントの登録が成功しました。電話番号[${encodedPhone}]とユーザー名[${user.username}]で新しいアカウントが作成されました。これからはこの情報を使用してアカウントにログインできます。この情報を忘れないようにしてください！`;
+
+              SMessage.createNotification(vnNoti, enNoti, jaNoti, user.id,
+                () => {
+                  onNext(true);
+                });
+            });
           }
+        );
+      });
+    })
 
-          //update into firebase
-          SFirebase.push(FirebaseNode.Users, [{key: FirebaseNode.Id, value: user.id}], () => {
-            SLog.log(LogType.Info, "storeUser", "store user successfully");
 
-            const encodedPhone = user.phone_number.slice(0, 3) + "*".repeat(user.phone_number.length - 3);
-
-            const vnNoti = `Xin chào ${user.full_name}, bạn đã đăng ký tài khoản thành công. Tài khoản mới với số điện thoại [${encodedPhone}], tên tài khoản [${user.username}] đã được tạo thành công. Từ nay bạn sẽ có thể đăng nhập tài khoản với những thông tin này. Vui lòng ghi nhớ những thông tin cho các lần đăng nhập tiếp theo!`;
-            const enNoti = `Hello ${user.full_name}, you have successfully registered an account. A new account with the phone number [${encodedPhone}] and username [${user.username}] has been created. From now on, you will be able to log in to your account using this information. Please remember these details for future logins!`;
-            const jaNoti = `こんにちは ${user.full_name}さん、アカウントの登録が成功しました。電話番号[${encodedPhone}]とユーザー名[${user.username}]で新しいアカウントが作成されました。これからはこの情報を使用してアカウントにログインできます。この情報を忘れないようにしてください！`;
-
-            SMessage.createNotification(vnNoti, enNoti, jaNoti, user.id,
-              () => {
-                onNext(true);
-              });
-          });
-        }
-      );
-    });
 
   }
 
@@ -608,7 +613,7 @@ export default class SUser {
         }
 
         console.log("Subtracted points successfully for user", user_id);
-        SFirebase.push(FirebaseNode.Users, [{key: FirebaseNode.Id, value: user_id}], () => {
+        SFirebase.push(FirebaseNode.Users, [{ key: FirebaseNode.Id, value: user_id }], () => {
           onNext(true);
         });
       });
@@ -685,7 +690,7 @@ export default class SUser {
     });
   }
 
-//lấy ra profile user
+  //lấy ra profile user
   public static getProfileUserById(
     id: string,
     onNext: (
@@ -760,7 +765,7 @@ export default class SUser {
     });
   }
 
-//thay avatar
+  //thay avatar
 
   public static updateAvatar(
     id: string, // ID của người dùng
@@ -813,7 +818,7 @@ export default class SUser {
 
           // Đồng bộ hóa với Firebase Realtime Database
           SFirebase.push(FirebaseNode.Users, [
-            {key: FirebaseNode.Id, value: id}
+            { key: FirebaseNode.Id, value: id }
           ], () => {
             // Callback khi cập nhật Firebase thành công
             SLog.log(LogType.Info, "updateAvatar", "Avatar updated in Firebase");
@@ -1088,7 +1093,7 @@ export default class SUser {
         updateMajors(connection, () => {
           updateClasses(connection, () => {
             updateUser(connection, () => {
-              SFirebase.push(FirebaseNode.Users, [{key: FirebaseNode.Id, value: id}], () => {
+              SFirebase.push(FirebaseNode.Users, [{ key: FirebaseNode.Id, value: id }], () => {
                 onNext(true);
               })
 
