@@ -251,7 +251,7 @@ export default class SMessage {
   public static storeMessage(message: Message, onNext: (result: boolean) => void) {
     const sql = "INSERT INTO messages (`sender_id`, `receiver_id`, `content`, `created_at`, `ratio`) VALUES (?,?,?,?, ?)";
 
-    if (!message || !message.sender || !message.receiver || !message.content) {
+    if (!message || !message.sender || !message.receiver || !message.content || message.sender.id === message.receiver.id) {
       onNext(false);
       SLog.log(LogType.Error, "storeMessage", "storeMessage unsuccessfully", "invalid message");
       return;

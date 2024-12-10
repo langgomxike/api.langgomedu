@@ -3,8 +3,8 @@ import Lesson from '../../models/Lesson';
 import Pagination from '../../models/Pagination';
 import User from '../../models/User';
 import SMySQL from '../SMySQL';
-import mysql from "mysql2";
 import SMessage from "../SMessage";
+import SLog, {LogType} from "../SLog";
 
 const classJsonSql = `
 JSON_OBJECT(
@@ -271,5 +271,76 @@ export default class SClassAdmin {
     });
   }
 
+  public static deleteClass(id: number, onNext: (result: boolean) => void) {
+    const sqlDeteleClass = "DELETE FROM classes WHERE id =?;";
+    const sqlDeteleLessons = "DELETE FROM lessons WHERE class_id =?;";
+    const sqlDeteleMesaages = "DELETE FROM messages WHERE class_id =?;";
+    const sqlDeteleClassMember = "DELETE FROM class_members WHERE class_id =?;";
+    const sqlDeteleReport = "DELETE FROM reports WHERE class_id =?;";
+
+    const sqlFindClass = `SELECT *,
+                                 JSON_OBJECT(
+                                         'id', classes.author_id
+                                 )                                           as author,
+                                 JSON_OBJECT(
+                                         'id', classes.tutor_id
+                                 )                                           as tutor,
+                                 (SELECT JSON_ARRAYAGG(user_id)
+                                  FROM class_members
+                                  WHERE class_members.class_id = classes.id) AS members_ids
+                          FROM classes
+                          WHERE id = ?`;
+
+    SMySQL.getConnection((connection) => {
+      connection?.execute<any[]>(sqlFindClass, [id], (error, result) => {
+        const _class: Class | undefined = result.length > 0 && (result[0] as Class ?? undefined);
+        if (_class) {
+
+          //delete all tables taht have relations to class
+          connection.execute(sqlDeteleLessons, [id]);
+          connection.execute(sqlDeteleMesaages, [id]);
+          connection.execute(sqlDeteleClassMember, [id]);
+          connection.execute(sqlDeteleReport, [id]);
+
+          connection?.execute(sqlDeteleClass, [id], async (error) => {
+            if (error) {
+              SLog.log(LogType.Error, "deleteClass", "Delete class failed", error);
+              onNext(false);
+              return;
+            }
+
+            //noti for author
+            const enAuthorNoti = `The class that you created [${_class.title}] has been deleted by the admin.`;
+            const vnAuthorNoti = `Lớp học mà bạn đã tạo [${_class.title}] đã bị xóa bởi quản trị viên.`;
+            const jaAuthorNoti = `あなたが作成したクラス「${_class.title}」は管理者によって削除されました。`;
+            await SMessage.createNotification(vnAuthorNoti, enAuthorNoti, jaAuthorNoti, _class?.author?.id ?? "-1", () => {
+            });
+
+            //noti for tutor
+            const enTutorNoti = `The class that you're teaching [${_class.title}] has been deleted by the admin.`;
+            const vnTutorNoti = `Lớp học mà bạn đang giảng dạy [${_class.title}] đã bị xóa bởi quản trị viên.`;
+            const jaTutorNoti = `あなたが教えているクラス「${_class.title}」は管理者によって削除されました。`;
+            await SMessage.createNotification(vnTutorNoti, enTutorNoti, jaTutorNoti, _class?.tutor?.id ?? "-1", () => {
+            });
+
+            const members: string[] = ((_class as any ?? []).members_ids as string[]) ?? [];
+            members.forEach(async (id) => {
+              //noti for tutor
+              const enMemberNoti = `The class that you're learning [${_class.title}] has been deleted by the admin.`;
+              const vnMemberNoti = `Lớp học mà bạn đang tham gia [${_class.title}] đã bị xóa bởi quản trị viên.`;
+              const jaMemberNoti = `あなたが参加しているクラス「${_class.title}」は管理者によって削除されました。`;
+              await SMessage.createNotification(vnMemberNoti, enMemberNoti, jaMemberNoti, id, () => {
+              });
+            });
+
+            onNext(true);
+            return;
+          });
+        } else {
+          onNext(false);
+        }
+      });
+    });
+  }
 
 }
