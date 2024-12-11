@@ -142,64 +142,10 @@ export default class SAddress {
             console.error("Lỗi khi cập nhật địa chỉ:", err);
             onNext(false);
           } else {
-            const affectedRows = (result as any).affectedRows;
-            if (affectedRows > 0) {
-              onNext(true);
-            } else {
-              console.warn("Không tìm thấy địa chỉ để cập nhật.");
-              onNext(false);
-            }
+            onNext(true);
           }
         }
       );
     });
   }
-
-  public static getAddressId(
-    province: string,
-    district: string,
-    ward: string,
-    detail: string,
-    onNext: (address_id: number | null) => void
-  ) {
-    const sql = `
-      SELECT id
-      FROM addresses
-      WHERE province = ? AND district = ? AND ward = ? AND detail = ?
-      LIMIT 1
-    `;
-  
-    console.log("Executing query with values:", province, district, ward, detail);
-  
-    SMySQL.getConnection((connection) => {
-      if (!connection) {
-        console.error("Không thể kết nối database.");
-        onNext(null);
-        return;
-      }
-  
-      connection.execute(
-        sql,
-        [province, district, ward, detail],
-        (err, results) => {
-          if (err) {
-            console.error("Error executing query:", err);
-            onNext(null);
-            return;
-          }
-  
-          console.log("Results from database:", results);
-  
-          const [row] = results as any[];
-          if (row && row.id) {
-            console.log("Found address_id:", row.id);
-            onNext(row.id);
-          } else {
-            console.warn("Không tìm thấy địa chỉ.");
-            onNext(null);
-          }
-        }
-      );
-    });
-  };
 }
