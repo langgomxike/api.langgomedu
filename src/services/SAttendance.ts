@@ -79,7 +79,7 @@ export default class SAttendance {
                  FROM attendances
                           INNER JOIN lessons
                                      ON attendances.lesson_id = lessons.id
-                          INNER JOIN classes
+                          LEFT JOIN classes
                                      ON classes.id = lessons.class_id
                           INNER JOIN majors
                                      ON majors.id = classes.major_id

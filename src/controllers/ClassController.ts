@@ -1,4 +1,6 @@
+// @ts-ignore
 import express from "express";
+// @ts-ignore
 import moment from "moment"; // Thư viện hỗ trợ xử lý thời gian
 import SResponse, { ResponseStatus } from "../services/SResponse";
 import SLog, { LogType } from "../services/SLog";

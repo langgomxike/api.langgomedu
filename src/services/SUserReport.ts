@@ -343,7 +343,7 @@ export default class SUserReport {
           Promise.all(fileInsertPromises)
             .then(() => {
               SLog.log(LogType.Info, "CreatedReport", "Report created successfully with files");
-              SFirebase.push(FirebaseNode.Reports, [{ key: FirebaseNode.ReportId, value: reportId }], () => {
+              SFirebase.push(FirebaseNode.Reports, [{ key: FirebaseNode.Id, value: reportId }], () => {
                 onNext(true);
               })
             })
