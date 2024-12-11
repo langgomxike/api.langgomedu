@@ -250,7 +250,7 @@ export default class SUser {
   }
 
   public static storeUser(user: User, onNext: (result: boolean) => void) {
-    SFirebase.getData(FirebaseNode.AppInfos, [ ], (value) => {
+    SFirebase.getData(FirebaseNode.AppInfos, [], (value) => {
       const point = +(value?.initial_point ?? 100);
       const sql =
         "INSERT INTO `users` (`id`, `email`, `user_name`, `full_name`, `phone_number`, `password`, `token`, `hometown`, `birthday`, `gender_id`, `address_id`, `created_at`, `parent_id`, `avatar`, `point`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
@@ -1102,5 +1102,27 @@ export default class SUser {
         });
       });
     });
+  }
+
+  public static plusPointForUser(userId: string, point: number, onNext: (result: boolean) => void) {
+    const sql = `UPDATE users SET point = point + ? WHERE id = ?`;
+
+    SMySQL.getConnection(connection => {
+      connection?.execute(sql, [point, userId], (error) => {
+        if (error) {
+          SLog.log(LogType.Error, "plusPointForUser", "found error", error);
+          onNext(false);
+        } else {
+          SLog.log(LogType.Info, "plusPointForUser", "successfully");
+
+          SFirebase.push(FirebaseNode.Users, [{
+            key: FirebaseNode.Id,
+            value: userId
+          }], () => {
+            onNext(true);
+          });
+        }
+      });
+    })
   }
 }

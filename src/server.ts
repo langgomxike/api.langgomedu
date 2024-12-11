@@ -37,6 +37,7 @@ import ClassAdminController from "./controllers/admin/ClassAdminController";
 import SUser from "./services/SUser";
 import {setUpUsers} from "./configs/UserConfig";
 import UploadFileController from "./controllers/UploadFileController";
+import SFirebase, { FirebaseNode } from "./services/SFirebase";
 
 dotenv.config();
 
@@ -302,5 +303,9 @@ SMySQL.connect();
 setUpRoles();
 // setUpGenders();
 setUpUsers();
+
+SFirebase.getData(FirebaseNode.AppInfos, [], (value) => {
+  SLog.log(LogType.Info, "get app infos","", value);
+});
 
 export default app;
