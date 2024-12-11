@@ -12,6 +12,7 @@ import * as mysql from "mysql2";
 import Filters from "../models/Filters";
 import Pagination from "../models/Pagination";
 import { parseNumericFilter } from "../configs/QueryHelpers";
+import SMessage from "./SMessage";
 
 export default class SClass {
   /**
@@ -170,7 +171,7 @@ export default class SClass {
   public static getStudentClasses(
     student_id: number,
     onNext: (classes: Class[]) => void
-  ) {}
+  ) { }
 
   //Lấy chi tiết lớp học và với user id
   public static getClassDetailWithUser(
@@ -279,7 +280,7 @@ export default class SClass {
                  WHERE c.id = ?
                  GROUP BY c.id;`;
 
-                 const childInClassSql = `
+    const childInClassSql = `
                  SELECT JSON_OBJECT(
                             'id', u.id,
                             'full_name', u.full_name,
@@ -296,7 +297,7 @@ export default class SClass {
     SMySQL.getConnection((connection) => {
       connection?.execute<any[]>(
         sql,
-        [userId, userId, userId, userId, userId, userId,classId],
+        [userId, userId, userId, userId, userId, userId, classId],
         (err, result) => {
           if (err || !result || result.length < 1) {
             console.log("get Class by ID", err);
@@ -304,30 +305,30 @@ export default class SClass {
           }
 
           const classData: Class = result[0].class as Class;
-          classData.admin_accepted = result[0].class.admin_accepted  === 1
-          classData.author_accepted = result[0].class.author_accepted  === 1
-          classData.paid = result[0].class.paid  === 1
-          classData.is_rating = result[0].class.is_rating  === 1
+          classData.admin_accepted = result[0].class.admin_accepted === 1
+          classData.author_accepted = result[0].class.author_accepted === 1
+          classData.paid = result[0].class.paid === 1
+          classData.is_rating = result[0].class.is_rating === 1
 
           connection.execute<any[]>(childInClassSql, [userId, classId], (childErr, childResult) => {
-              if (childErr) {
-                console.log("Error fetching children", childErr);
-              } else {
-                const membersInClassL: User[] = [];
+            if (childErr) {
+              console.log("Error fetching children", childErr);
+            } else {
+              const membersInClassL: User[] = [];
 
-                if (childResult && childResult.length > 0) {
-                  childResult.forEach((child) => {
-                    if (child.child) {
-                      membersInClassL.push(child.child); // Đẩy từng thành viên vào danh sách
-                    }
-                  });
-                }
-                
-                onNext(classData,membersInClassL );
+              if (childResult && childResult.length > 0) {
+                childResult.forEach((child) => {
+                  if (child.child) {
+                    membersInClassL.push(child.child); // Đẩy từng thành viên vào danh sách
+                  }
+                });
               }
-    
-              // Trả dữ liệu về callback
+
+              onNext(classData, membersInClassL);
             }
+
+            // Trả dữ liệu về callback
+          }
           );
 
         }
@@ -434,7 +435,7 @@ GROUP BY parent_children.id;
   public static getClassesByKey(
     key: string,
     onNext: (classes: Class[]) => void
-  ) {}
+  ) { }
 
   public static classJsonSQL = `
   JSON_OBJECT(
@@ -701,12 +702,12 @@ GROUP BY parent_children.id;
   ) {
     const currentDate = new Date().getTime();
     console.log("Current date: " + currentDate);
-    
-   // Xác định điều kiện WHERE theo userType
-   const condition =
-   userType === UserType.TUTOR
-     ? `classes.tutor_id IS NULL AND classes.author_id != ? AND class_members.user_id IS NULL AND classes.started_at >= ${currentDate}`
-     : `classes.author_id = classes.tutor_id AND classes.tutor_id != ? AND classes.author_id != ? AND class_members.user_id IS NULL AND classes.started_at >= ${currentDate}`;
+
+    // Xác định điều kiện WHERE theo userType
+    const condition =
+      userType === UserType.TUTOR
+        ? `classes.tutor_id IS NULL AND classes.author_id != ? AND class_members.user_id IS NULL AND classes.started_at >= ${currentDate}`
+        : `classes.author_id = classes.tutor_id AND classes.tutor_id != ? AND classes.author_id != ? AND class_members.user_id IS NULL AND classes.started_at >= ${currentDate}`;
 
     // Tạo các điều kiện lọc động
     let filterConditions = "";
@@ -1070,14 +1071,14 @@ GROUP BY parent_children.id;
         updated_at = ?
       WHERE id = ?
     `;
-  
+
     SMySQL.getConnection((connection) => {
       if (!connection) {
         console.error("Không thể kết nối database.");
         onNext(false);
         return;
       }
-  
+
       connection.execute(
         sql,
         [
@@ -1267,7 +1268,12 @@ GROUP BY parent_children.id;
                   onNext(false);
                 } else {
                   console.log("Tạo lớp học thành công, không có bài học.");
-                  onNext(true, classId);
+                  SFirebase.push(FirebaseNode.Classes, [{
+                    key: FirebaseNode.Classes,
+                    value: classId
+                  }], () => {
+                    onNext(true, classId);
+                  })
                 }
               });
             } else {
@@ -1329,26 +1335,26 @@ GROUP BY parent_children.id;
   ) {
     if (!tutor_id || tutor_id === null) tutor_id = null;
     if (!max_learners) max_learners = 1;
-  
+
     const classSql = `
       INSERT INTO classes (title, description, major_id, tutor_id, author_id, price, class_level_id, started_at, ended_at, max_learners, address_id) 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
-  
+
     SMySQL.getConnection((connection) => {
       if (!connection) {
         console.error("Không thể kết nối database.");
         onNext(false);
         return;
       }
-  
+
       connection.beginTransaction((transactionErr) => {
         if (transactionErr) {
           console.error("Lỗi khi bắt đầu transaction:", transactionErr);
           onNext(false);
           return;
         }
-  
+
         connection.execute(
           classSql,
           [
@@ -1370,15 +1376,15 @@ GROUP BY parent_children.id;
               connection.rollback(() => onNext(false));
               return;
             }
-  
+
             const classId = (classResult as any)?.insertId;
-  
+
             if (!classId) {
               console.error("Không lấy được ID lớp học vừa tạo.");
               connection.rollback(() => onNext(false));
               return;
             }
-  
+
             // Insert lessons
             const lessonSql = `
               INSERT INTO lessons (class_id, day, started_at, duration, is_online, note) 
@@ -1392,16 +1398,16 @@ GROUP BY parent_children.id;
               lesson.is_online,
               lesson.note || null,
             ]);
-  
-            
-            
+
+
+
             connection.execute(lessonSql, lessonValues, (lessonErr) => {
               if (lessonErr) {
                 console.error("Lỗi khi thêm bài học:", lessonErr);
                 connection.rollback(() => onNext(false));
                 return;
               }
-  
+
               // Insert class members
               const finalUserIds = userIds.length > 0 ? userIds : [author_id];
               const sqlClassMember = `
@@ -1409,21 +1415,27 @@ GROUP BY parent_children.id;
                 VALUES ${userIds.map(() => "(?, ?)").join(",")}
               `;
               const valueClassMembers = finalUserIds.flatMap((userId) => [classId, userId]);
-  
+
               connection.execute(sqlClassMember, valueClassMembers, (err) => {
                 if (err) {
                   console.error("Lỗi khi thêm thông tin người dùng:", err);
                   connection.rollback(() => onNext(false));
                   return;
                 }
-  
+
                 connection.commit((commitErr) => {
                   if (commitErr) {
                     console.error("Commit thất bại:", commitErr);
                     onNext(false);
                   } else {
                     console.log("Tạo lớp học và các thông tin liên quan thành công.");
-                    onNext(true, classId);
+                    SFirebase.push(FirebaseNode.Classes, [{
+                      key: FirebaseNode.Classes,
+                      value: classId
+                    }], () => {
+                      onNext(true, classId);
+                    })
+                    // onNext(true, classId);
                   }
                 });
               });
@@ -1433,7 +1445,7 @@ GROUP BY parent_children.id;
       });
     });
   }
-  
+
 
   public static joinClass(
     classId: number,
@@ -1548,33 +1560,33 @@ GROUP BY parent_children.id;
     const sql = `
     UPDATE classes SET class_creation_fee = ?,  paid_path = ?, updated_at = ? WHERE id = ?
   `;
-  
-      const updatedAT = new Date().getTime();
-      const values = [classFee, paidPath, updatedAT ,classId];
-    
-      SMySQL.getConnection((connection) => {
-          connection?.execute<any>(sql, values, (err, results) => {
-            if (err) {
-              onNext('Update failed', false);
-              console.log('>>> Update failed:', err);
-              return;
+
+    const updatedAT = new Date().getTime();
+    const values = [classFee, paidPath, updatedAT, classId];
+
+    SMySQL.getConnection((connection) => {
+      connection?.execute<any>(sql, values, (err, results) => {
+        if (err) {
+          onNext('Update failed', false);
+          console.log('>>> Update failed:', err);
+          return;
+        }
+
+        // Kiểm tra xem có bản ghi nào được cập nhật không
+        if (results.affectedRows === 0) {
+          onNext('No matching record found', false);
+        } else {
+          SFirebase.push(FirebaseNode.Classes, [{ key: FirebaseNode.Id, value: classId }],
+            () => {
+              onNext(`Payment update successful for ID: ${classId}`, true);
             }
-  
-            // Kiểm tra xem có bản ghi nào được cập nhật không
-            if (results.affectedRows === 0) {
-              onNext('No matching record found', false);
-            } else {
-              SFirebase.push(FirebaseNode.Classes, [{ key: FirebaseNode.Id, value: classId }],
-                () => {
-                  onNext(`Payment update successful for ID: ${classId}`, true);
-                }
-              );
-            }
-  
-          });
-      })
-  
-  
+          );
+        }
+
+      });
+    })
+
+
   }
 
   public static acceptTutorForClass(
@@ -1619,7 +1631,29 @@ GROUP BY parent_children.id;
             FirebaseNode.Classes,
             [{ key: FirebaseNode.Id, value: classId }],
             () => {
-              onNext(` Update successful for ID: ${classId}`, true);
+
+              const sql = `SELECT *,
+                            JSON_OBJECT(
+                                    'id', classes.author_id
+                            ) as author
+                     FROM classes
+                     WHERE id = ?`;
+              connection?.execute<any[]>(sql, [classId], (error, result) => {
+                const _class: Class | false | undefined = result.length > 0 && (result[0] as Class ?? undefined);
+                if (_class) {
+                  const vnNoti = `Lớp học với mã lớp ${classId} đã được duyệt. Xin cảm ơn.`;
+                  const enNoti = `The class with the class ID ${classId} has been approved. Thank you.`;
+                  const jaNoti = `クラスID ${classId} のクラスが承認されました。ありがとうございます。`;
+                  SMessage.createNotification(vnNoti, enNoti, jaNoti, _class?.author?.id ?? "-1", () => {
+                    onNext(` Update successful for ID: ${classId}`, true);
+
+                    return;
+                  })
+                } else {
+                  onNext(` Update successful for ID: ${classId}`, true);
+
+                }
+              });
             }
           );
         }
@@ -1662,8 +1696,8 @@ GROUP BY parent_children.id;
     });
   }
 
-   //lấy lớp học theo id
-   public static getClassById(
+  //lấy lớp học theo id
+  public static getClassById(
     id: string,
     onNext: (classDetails: Class | undefined) => void
   ) {
@@ -1672,7 +1706,7 @@ GROUP BY parent_children.id;
     FROM classes
     WHERE id = ?;
     `;
-  
+
     // Kết nối với cơ sở dữ liệu và thực hiện truy vấn
     SMySQL.getConnection((connection) => {
       connection?.execute<any>(sql, [id], (error, result) => {
@@ -1686,7 +1720,7 @@ GROUP BY parent_children.id;
           onNext(undefined);
           return;
         }
-  
+
         const classDetails = result[0]; // Lấy kết quả đầu tiên từ query
         onNext(classDetails);
       });

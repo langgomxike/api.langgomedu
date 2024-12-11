@@ -67,6 +67,18 @@ export default class SCertificate {
             };
             insertDatas.push(insertData);
         }
+
+        // const insertclassmember = [
+        //     {
+        //         class_id : 30,
+        //         user_id : "000000000|c:0"
+        //     },
+        //     {
+        //         class_id : 30,
+        //         user_id : "000000000|c:0"
+        //     },
+
+        // ]
         console.log(insertDatas);
         return await db('certificates').insert(insertDatas)
             .then((results) => {

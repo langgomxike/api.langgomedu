@@ -1,11 +1,12 @@
 import express from "express";
 import SUserReport from "../services/SUserReport";
-import SResponse, {ResponseStatus} from "../services/SResponse";
+import SResponse, { ResponseStatus } from "../services/SResponse";
 import SClassReport from "../services/SClassReport";
-import SLog, {LogType} from "../services/SLog";
+import SLog, { LogType } from "../services/SLog";
 import User from "../models/User";
 import SMessage from "../services/SMessage";
 import SUser from "../services/SUser";
+import SFirebase, { FirebaseNode } from "../services/SFirebase";
 
 export default class ReportController {
   public static getAllClassReports(
@@ -152,14 +153,14 @@ export default class ReportController {
     // In ra dữ liệu nhận được từ request để kiểm tra
     console.log("Request Body:", request.body);
     // console.log("Files:", request.files);
-  
+
     // Lấy dữ liệu từ body của request (không cần truy cập qua report nếu không có trường này)
     const { reporter, reportee, class_id, content } = request.body;
-  
+
     // Lấy đường dẫn file để upload từ request.files
     const files = (request as any).files;
     const filePaths: string[] = [];
-  
+
     // Kiểm tra và lưu đường dẫn các file
     if (files && Array.isArray(files)) {
       files.forEach((file: any) => {
@@ -170,22 +171,22 @@ export default class ReportController {
         }
       });
     }
-  
+
     // Kiểm tra các tham số cần thiết
     if (!reporter || !reportee || !content) {
       return response
         .status(400)
         .json({ success: false, message: "Missing required fields." });
     }
-  
+
     // Nếu không có class_id, gán nó là null
     const classId = class_id || "";
-  
+
     // Gọi phương thức CreatedReport để tạo báo cáo
     SUserReport.CreatedReport(
       reporter,
       reportee,
-      classId, 
+      classId,
       content,
       filePaths, // Truyền filePaths vào tham số files
       (result) => {
@@ -203,7 +204,7 @@ export default class ReportController {
       }
     );
   }
-  
+
   public static approveUserReport(
     request: express.Request,
     response: express.Response
@@ -239,11 +240,29 @@ export default class ReportController {
 
         // Cập nhật điểm cho user
         if (reason) {
-          SMessage.createNotification(reason, reporterId, onNext);
+          const vnNoti = `Một báo cáo của bạn với lý do [${reason}] đã không được duyệt. Tuy nhiên, vẫn cảm ơn bạn vì những đóng góp của bạn cho LanggomEdu. Trân trọng.`;
+          const enNoti = `A report of yours with the reason: [${reason}] was not approved. However, thank you for your contributions to LanggomEdu. Best regards.`;
+          const jaNoti = `あなたの「${reason}」という理由での報告は承認されませんでした。しかし、LanggomEduへの貢献に感謝します。よろしくお願いいたします。`;
+
+          SMessage.createNotification(vnNoti, enNoti, jaNoti, reporterId, onNext);
         } else {
-          SMessage.createNotification("Mot bao cao ve ban da duoc duyet. Do do, ban da bi tru mot so diem uy tin nhat dinh. Xn cam on", reporteeId, () => {
-            SMessage.createNotification("Mot bao cao cua ban da duoc duyet. Cam on dong gop cua ban voi ung dung. Xn cam on", reporterId, () => {
-              SUser.minusUserPoint(reporteeId, point, onNext);
+          const vnNoti = `Một báo cáo về bạn đã được duyệt. Do đó, bạn đã bị trừ một số điểm uy tín nhất định. Xin cảm ơn.`;
+          const enNoti = `A report about you has been approved. As a result, a certain number of reputation points have been deducted. Thank you.`;
+          const jaNoti = `あなたに関する報告が承認されました。そのため、一定の信頼ポイントが差し引かれました。ありがとうございます。`;
+
+          SMessage.createNotification(vnNoti, enNoti, jaNoti, reporteeId, () => {
+            const vnNoti = `Một báo cáo của bạn đã được duyệt. Cảm ơn bạn vì những đóng góp của bạn cho LanggomEdu. Trân trọng.`;
+            const enNoti = `Your report has been approved. Thank you for your contributions to LanggomEdu. Best regards.`;
+            const jaNoti = `あなたの報告が承認されました。LanggomEduへの貢献に感謝します。よろしくお願いいたします。`;
+
+            SMessage.createNotification(vnNoti, enNoti, jaNoti, reporterId, () => {
+              SUser.minusUserPoint(reporteeId, point, () => {
+                SFirebase.getData(FirebaseNode.AppInfos, [], (infos) => {
+                  const reportPoint = +(infos?.rater_report_point ?? 0);
+
+                  SUser.plusPointForUser(reporterId, reportPoint, onNext);
+                });
+              });
             });
           });
         }
