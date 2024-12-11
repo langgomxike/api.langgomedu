@@ -37,6 +37,7 @@ import ClassAdminController from "./controllers/admin/ClassAdminController";
 import SUser from "./services/SUser";
 import {setUpUsers} from "./configs/UserConfig";
 import UploadFileController from "./controllers/UploadFileController";
+import SFirebase, { FirebaseNode } from "./services/SFirebase";
 
 dotenv.config();
 
@@ -221,6 +222,7 @@ app.post(PERMISSION_BASE_URL + "/of-user", PermissionController.getPermissionsOf
 app.get(PERMISSION_BASE_URL + "/of-role/:id", PermissionController.getPermissionsOfRole);
 
 const RATING_BASE_URL = Config.PREFIX + "/ratings";
+app.get(RATING_BASE_URL + "/users/:id", RatingController.getRatingsOfUser);
 app.get(RATING_BASE_URL + "/:id", RatingController.getRatings);
 app.post(RATING_BASE_URL, RatingController.createRating);
 
@@ -301,5 +303,9 @@ SMySQL.connect();
 setUpRoles();
 // setUpGenders();
 setUpUsers();
+
+SFirebase.getData(FirebaseNode.AppInfos, [], (value) => {
+  SLog.log(LogType.Info, "get app infos","", value);
+});
 
 export default app;

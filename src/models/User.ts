@@ -184,3 +184,12 @@ export const tempCvJoin = (reference: string, alias: string, addressAlias: strin
     .leftJoin(`interested_class_levels as ${classLevelAlias}`, `${classLevelAlias}.user_id`, `${alias}.id`)
     .leftJoin(`interested_majors as ${majorsAlias}`, `${majorsAlias}.user_id`, `${alias}.id`)
 }
+
+export const userForRatingsJSON = (asName : string)=> {
+    return `JSON_OBJECT(
+    'id', ${asName}.id,
+    'full_name', ${asName}.full_name,
+    'avatar', ${asName}.avatar,
+    'point', ${asName}.point
+)`
+}

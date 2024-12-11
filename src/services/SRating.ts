@@ -1,7 +1,8 @@
-import Rating from "../models/Rating";
+import Rating, { ratingJoin, ratingJsonWithRater } from "../models/Rating";
 import SMySQL from "./SMySQL";
 import SLog, {LogType} from "./SLog";
 import SFirebase, {FirebaseNode} from "./SFirebase";
+import db from "../configs/knex";
 
 export default class SRating {
   public static getRatingsInClass(id, onNext: (ratings: Rating[]) => void) {
@@ -91,5 +92,21 @@ export default class SRating {
         });
       });
     });
+  }
+
+  public static async getAllRatingsOfUser(id: string, onNext: (ratings: any[])=> void){
+    await ratingJoin('ratings', 'rater', 'ratee',
+      db('ratings').
+      select(db.raw(ratingJsonWithRater('ratings', 'rater')))
+      .where('ratings.ratee_id', id)
+    )
+    .then((results)=> {
+      const ratings = results.map(result => result.rating);
+      onNext(ratings);
+    })
+    .catch((errors)=> {
+      onNext([]);
+      SLog.log(LogType.Error, "getAllRatingOfUser", "ERR", errors);
+    })
   }
 }
