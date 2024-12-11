@@ -264,6 +264,12 @@ export default class UserController {
 
           SLog.log(LogType.Warning, "registerChild", "check children quantity", quantity);
 
+          if (quantity >= 5) {
+            SLog.log(LogType.Error, "registerChild", "Parent can't have more than 5 children");
+            SResponse.getResponse(ResponseStatus.Internal_Server_Error, {}, "Parent can't have more than 5 children", response);
+            return;
+          }
+
           user.id = parent.id + "|c:" + quantity;
           user.phone_number = parent.phone_number + "|c:" + quantity;
           user.parent = parent;
