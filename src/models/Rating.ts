@@ -1,5 +1,7 @@
 import Class from "./Class";
-import User from "./User";
+import User, { userForRatingsJSON } from "./User";
+import db from "../configs/knex";
+import { Knex } from "knex";
 
 export default class Rating {
     public id : number;
@@ -33,4 +35,21 @@ export const ratingJson = (asName: string):string => {
     'created_at', ex.created_at,
     'updated_at', ex.updated_at
 )`;
+}
+
+export const ratingJsonWithRater = (alias: string, userAlias): string => {
+    return `JSON_OBJECT(
+    'id', ${alias}.id,
+    'rater', ${userForRatingsJSON(userAlias)},
+    'ratee', ${alias}.ratee_id,
+    'value', ${alias}.value,
+    'content', ${alias}.content,
+    'created_at', ${alias}.created_at,
+    'updated_at', ${alias}.updated_at
+) as rating`
+}
+export const ratingJoin = (reference: string, raterAlias: string, rateeAlias: string, query: Knex.QueryBuilder): Knex.QueryBuilder => {
+    return query
+    .leftJoin(`users as ${raterAlias}`, `${raterAlias}.id`, `${reference}.rater_id`)
+    .leftJoin(`users as ${rateeAlias}`, `${rateeAlias}.id`, `${reference}.ratee_id`)
 }
