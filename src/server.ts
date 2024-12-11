@@ -108,6 +108,7 @@ app.post(CLASS_BASE_URL + "/conflicting", ClassController.getconflictingLessonsW
 app.post(CLASS_BASE_URL + "/create", ClassController.createClass);
 app.post(CLASS_BASE_URL + "/create-learner", ClassController.createClassForLearner);
 app.put(CLASS_BASE_URL + "/update", ClassController.updateClass);
+app.put(CLASS_BASE_URL + "/update-learner", ClassController.updateClassForLeaner);
 app.delete(CLASS_BASE_URL,
   (req, res, onNext) => SAuthentication.checkAuthorization(
     req, res, onNext,
