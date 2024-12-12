@@ -41,6 +41,22 @@ export default class ClassAdminController {
     });
   }
 
+  public static remindPaymentByAdmin(request: express.Request, response: express.Response) {
+    const classData = request.body.class_data;
+    
+    SClassAdmin.remindPaymentByAdmin(classData, (result, message) => {
+      SResponse.getResponse(ResponseStatus.OK, {result, message}, "Approve payment by admin", response);
+    });
+  }
+
+  public static denyPaymentByAdmin(request: express.Request, response: express.Response) {
+    const classData = request.body.class_data;
+    
+    SClassAdmin.denyPaymentByAdmin(classData, (result, message) => {
+      SResponse.getResponse(ResponseStatus.OK, {result, message}, "Approve payment by admin", response);
+    });
+  }
+
   public static deleteClass(request: express.Request, response: express.Response) {
     const class_id: number = +(request.params?.id ?? "-1");
 

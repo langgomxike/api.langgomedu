@@ -705,7 +705,7 @@ GROUP BY parent_children.id;
     // Xác định điều kiện WHERE theo userType
     const condition =
       userType === UserType.TUTOR
-        ? `classes.tutor_id IS NULL AND classes.author_id != ? AND class_members.user_id IS NULL AND classes.started_at >= ${currentDate}`
+        ? `classes.tutor_id IS NULL AND classes.author_id != ? AND class_members.user_id IS NULL AND classes.paid = 1 AND classes.started_at >= ${currentDate}`
         : `classes.author_id = classes.tutor_id AND classes.tutor_id != ? AND classes.author_id != ? AND class_members.user_id IS NULL AND classes.started_at >= ${currentDate}`;
 
     // Tạo các điều kiện lọc động
@@ -774,7 +774,7 @@ GROUP BY parent_children.id;
       LEFT JOIN addresses ON addresses.id = classes.address_id
       LEFT JOIN lessons ON lessons.class_id = classes.id
       LEFT JOIN class_members ON class_members.class_id = classes.id AND class_members.user_id = ?
-      WHERE classes.admin_accepted = 1 AND classes.paid = 1  AND  ${condition} ${filterConditions}
+      WHERE classes.admin_accepted = 1 AND  ${condition} ${filterConditions}
       GROUP BY classes.id
     ),
     RandomClasses AS (
@@ -790,7 +790,7 @@ GROUP BY parent_children.id;
       LEFT JOIN lessons ON lessons.class_id = classes.id
       LEFT JOIN class_members ON class_members.class_id = classes.id AND class_members.user_id = ?
       LEFT JOIN SuggestedClasses sc ON classes.id = sc.class_id 
-      WHERE classes.admin_accepted = 1 AND classes.paid = 1  AND ${condition} 
+      WHERE classes.admin_accepted = 1 AND ${condition} 
       AND sc.class_id IS NULL
       GROUP BY classes.id
     ),
