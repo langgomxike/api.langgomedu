@@ -37,6 +37,7 @@ import ClassAdminController from "./controllers/admin/ClassAdminController";
 import SUser from "./services/SUser";
 import {setUpUsers} from "./configs/UserConfig";
 import UploadFileController from "./controllers/UploadFileController";
+import SFirebase, { FirebaseNode } from "./services/SFirebase";
 
 dotenv.config();
 
@@ -54,7 +55,10 @@ app.get("/api", (req: Request, res: Response) => {
 });
 
 app.use('/', express.static('public'));
-const upload = multer();
+
+const upload = multer({
+  dest: 'public/uploads/messages/',
+});
 
 app.use('/avatars', express.static(path.join(__dirname, 'images/avatars')));
 
@@ -62,9 +66,9 @@ app.use('/avatars', express.static(path.join(__dirname, 'images/avatars')));
 // app.use(bodyParser.urlencoded({extended: true}));
 
 
-// interface MulterRequest extends Request {
-//   file?: Express.Multer.File;
-// }
+interface MulterRequest extends Request {
+  file?: Express.Multer.File;
+}
 
 // ClassLevel routes
 const CLASS_LEVEL_BASE_URL = Config.PREFIX + "/class-levels";
@@ -109,22 +113,7 @@ app.post(CLASS_BASE_URL + "/create", ClassController.createClass);
 app.post(CLASS_BASE_URL + "/create-learner", ClassController.createClassForLearner);
 app.put(CLASS_BASE_URL + "/update", ClassController.updateClass);
 app.put(CLASS_BASE_URL + "/update-learner", ClassController.updateClassForLeaner);
-app.delete(CLASS_BASE_URL,
-  (req, res, onNext) => SAuthentication.checkAuthorization(
-    req, res, onNext,
-    OWNING_REF_TABLES.PERSONAL_CLASS,
-    OWNING_REF_COLUMNS.AUTHOR_ID,
-    OWNING_KEY_COLUMNS.iD
-  ),
-  (req, res, onNext) => SAuthentication.checkAuthentication(
-    req, res, onNext,
-    [
-      PermissionList.DELETE_PERSONAL_CLASS,
-      PermissionList.DELETE_OTHER_USER_CLASS,
-    ]
-  ),
-  ClassController.deleteClass
-);
+app.delete(CLASS_BASE_URL,ClassController.deleteClass);
 app.post(CLASS_BASE_URL + "/:class_id/join", ClassController.requestToAttendClass);
 app.post(CLASS_BASE_URL + "/:class_id/accept_to_teach", ClassController.acceptClassToTeach);
 app.put(CLASS_BASE_URL + "/accept-tutor", ClassController.acceptTutorForClass);
@@ -221,6 +210,7 @@ app.post(PERMISSION_BASE_URL + "/of-user", PermissionController.getPermissionsOf
 app.get(PERMISSION_BASE_URL + "/of-role/:id", PermissionController.getPermissionsOfRole);
 
 const RATING_BASE_URL = Config.PREFIX + "/ratings";
+app.get(RATING_BASE_URL + "/users/:id", RatingController.getRatingsOfUser);
 app.get(RATING_BASE_URL + "/:id", RatingController.getRatings);
 app.post(RATING_BASE_URL, RatingController.createRating);
 
@@ -300,6 +290,10 @@ app.listen(port, () => {
 SMySQL.connect();
 setUpRoles();
 // setUpGenders();
-setUpUsers();
+// setUpUsers();
+
+SFirebase.getData(FirebaseNode.AppInfos, [], (value) => {
+  SLog.log(LogType.Info, "get app infos","", value);
+});
 
 export default app;

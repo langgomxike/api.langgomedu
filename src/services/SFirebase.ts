@@ -9,6 +9,7 @@ import firebaseNodeProps from "../../firebase_node_props.json";
 
 export enum FirebaseNode {
   AppInfos = "general_infos",
+  initialPoint = "initial_point",
   PhoneNumber = "phone_number",
   OTPServiceKey = "otp_service_key",
   Addresses = "addresses",
