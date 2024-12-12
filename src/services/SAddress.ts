@@ -44,23 +44,23 @@ export default class SAddress {
       });
   }
 
-  // public static async getAddressId(address: any) {
-  //   return await db("addresses")
-  //     .where({
-  //       province: address.province,
-  //       district: address.district,
-  //       ward: address.ward,
-  //       detail: address.detail,
-  //     })
-  //     .select("id")
-  //     .then((results) => {
-  //       return results[0].id;
-  //     })
-  //     .catch((error) => {
-  //       console.log("fail to getAddressId", error.message);
-  //       return false;
-  //     });
-  // }
+  public static async getAddressId(address: any) {
+    return await db("addresses")
+      .where({ 
+        province: address.province,
+        district: address.district,
+        ward: address.ward,
+        detail: address.detail,
+      })
+      .select("id")
+      .then( (results) => {
+        return results[0].id;
+      })
+      .catch((error) => {
+        console.log("fail to getAddressId", error.message);
+        return false;
+      });
+  }
 
   public static async storeAddress(address: any) {
     return await db("addresses")
