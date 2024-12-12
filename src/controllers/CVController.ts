@@ -80,6 +80,7 @@ export default class CVController {
         
         if(userId){
             SCV.getTempCV(userId, (cv)=>{
+                
                 SResponse.getResponse(ResponseStatus.OK, cv, "get Temp CV", response);
             })
         }else{
@@ -115,14 +116,6 @@ export default class CVController {
         })
     }
 
-    // public static test(request: express.Request, response: express.Response){
-    //     const param = request.query.detail;
-    //     const detail = param ? param.toString() : "";
-    //     console.log(detail);
-    //     SAddress.getAddressByDetail(detail , (data)=> {
-    //         SResponse.getResponse(ResponseStatus.OK, [data], "", response);
-    //     })
-    // }
 
     
 }
