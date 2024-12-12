@@ -1306,13 +1306,14 @@ GROUP BY parent_children.id;
     price: number,
     started_at: number,
     ended_at: number,
+    created_at: number,
     address_id: number,
     lessons: Lesson[], // Nhận danh sách đầy đủ các bài học
     onNext: (result: boolean, insertId?: number) => void
   ) {
     const classSql = `
-      INSERT INTO classes (title, description, major_id, tutor_id, author_id, price, class_level_id, max_learners, started_at, ended_at, address_id, class_creation_fee) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+      INSERT INTO classes (title, description, major_id, tutor_id, author_id, price, class_level_id, max_learners, started_at, ended_at, created_at, author_accepted, address_id, class_creation_fee) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, 0)
     `;
 
     SMySQL.getConnection((connection) => {
@@ -1342,6 +1343,7 @@ GROUP BY parent_children.id;
             max_learners,
             started_at,
             ended_at,
+            created_at = new Date().getTime(),
             address_id,
           ],
           (classErr, classResult) => {
@@ -1424,6 +1426,7 @@ GROUP BY parent_children.id;
     price: number,
     started_at: number,
     ended_at: number,
+    created_at: number,
     max_learners: number | 1,
     address_id: number,
     lessons: Lesson[],
@@ -1434,8 +1437,8 @@ GROUP BY parent_children.id;
     if (!max_learners) max_learners = 1;
 
     const classSql = `
-      INSERT INTO classes (title, description, major_id, tutor_id, author_id, price, class_level_id, started_at, ended_at, max_learners, address_id, class_creation_fee) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+      INSERT INTO classes (title, description, major_id, tutor_id, author_id, price, class_level_id, started_at, ended_at, created_at, max_learners, address_id, class_creation_fee, author_accepted) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)
     `;
 
     SMySQL.getConnection((connection) => {
@@ -1464,6 +1467,7 @@ GROUP BY parent_children.id;
             class_level_id,
             started_at,
             ended_at,
+            created_at = new Date().getTime(),
             max_learners,
             address_id,
           ],

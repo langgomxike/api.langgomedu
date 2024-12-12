@@ -241,6 +241,7 @@ export default class ClassController {
       price,
       started_at,
       ended_at,
+      created_at,
       province,
       district,
       ward,
@@ -262,6 +263,7 @@ export default class ClassController {
       !price ||
       !started_at ||
       !ended_at ||
+      !created_at ||
       !province ||
       !district ||
       !ward ||
@@ -320,6 +322,7 @@ export default class ClassController {
           price,
           started_at,
           ended_at,
+          created_at,
           addressId,
           fullLessons, // Truyền danh sách đầy đủ các buổi học
           (result: boolean, insertId?: number) => {
@@ -359,6 +362,7 @@ export default class ClassController {
       price,
       started_at,
       ended_at,
+      created_at,
       max_learners,
       province,
       district,
@@ -379,6 +383,7 @@ export default class ClassController {
       !price ||
       !started_at ||
       !ended_at ||
+      !created_at ||
       !max_learners ||
       !province ||
       !district ||
@@ -438,6 +443,7 @@ export default class ClassController {
           price,
           started_at,
           ended_at,
+          created_at,
           max_learners,
           addressId,
           fullLessons,
