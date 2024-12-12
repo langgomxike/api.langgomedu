@@ -633,7 +633,7 @@ export default class SAttendance {
     const deferredPlaceholders = deferredLessons.map(() => "?").join(", ");
     const updateDeferredLessonsSql = `
     UPDATE attendances
-    SET paid = 1, payment_path = ?, paid_at = ?, type = ?
+    SET paid = 1, payment_path = ?, paid_at = ?, type = ?, deferred = 0
     WHERE lesson_id IN (${deferredPlaceholders}) AND user_id = ?;
   `;
 

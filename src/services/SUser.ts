@@ -70,7 +70,7 @@ export default class SUser {
           users.push(user);
         });
 
-        SLog.log(LogType.Info, "getAllUsers", "", users);
+        // SLog.log(LogType.Info, "getAllUsers", "", users);
         onNext(users);
       });
     });
@@ -107,7 +107,7 @@ export default class SUser {
           onNext([]);
         } else {
           const contacts = results as User[] ?? [];
-          SLog.log(LogType.Error, "getContactUsers", "get all contacts successfully", contacts.length);
+          // SLog.log(LogType.Error, "getContactUsers", "get all contacts successfully", contacts.length);
           onNext(contacts);
         }
       });
@@ -135,7 +135,7 @@ export default class SUser {
             user.username = (user as any)?.user_name;
           }
 
-          SLog.log(LogType.Info, "getUserById", "", user);
+          // SLog.log(LogType.Info, "getUserById", "", user);
           onNext(user);
         }
       });
@@ -163,7 +163,7 @@ export default class SUser {
             user.username = (user as any)?.user_name;
           }
 
-          SLog.log(LogType.Info, "getUserByToken", "", user);
+          // SLog.log(LogType.Info, "getUserByToken", "", user);
           onNext(user);
         }
       });
@@ -188,7 +188,7 @@ export default class SUser {
         } else {
           const address: Address | undefined = (result && result[0]) || undefined;
 
-          SLog.log(LogType.Info, "getUserAddress", "successfully");
+          // SLog.log(LogType.Info, "getUserAddress", "successfully");
           onNext(address);
         }
       });
@@ -218,7 +218,7 @@ export default class SUser {
             user.username = (user as any)?.user_name;
           }
 
-          SLog.log(LogType.Info, "getUserByPhoneNumberOrUsername", "sucessfully", user);
+          // SLog.log(LogType.Info, "getUserByPhoneNumberOrUsername", "sucessfully", user);
           onNext(user);
         }
       });
@@ -242,7 +242,7 @@ export default class SUser {
           const userPassword: string = (result && result[0]) || "";
           const flag =
             /*SEncrypt.decrypt(userPassword, "")*/ userPassword === password;
-          SLog.log(LogType.Warning, "checkUserPassword", "", flag);
+          // SLog.log(LogType.Warning, "checkUserPassword", "", flag);
           onNext(flag);
         }
       });
@@ -284,7 +284,7 @@ export default class SUser {
 
             //update into firebase
             SFirebase.push(FirebaseNode.Users, [{ key: FirebaseNode.Id, value: user.id }], () => {
-              SLog.log(LogType.Info, "storeUser", "store user successfully");
+              // SLog.log(LogType.Info, "storeUser", "store user successfully");
 
               const encodedPhone = user.phone_number.slice(0, 3) + "*".repeat(user.phone_number.length - 3);
 
