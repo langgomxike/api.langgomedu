@@ -1311,8 +1311,8 @@ GROUP BY parent_children.id;
     onNext: (result: boolean, insertId?: number) => void
   ) {
     const classSql = `
-      INSERT INTO classes (title, description, major_id, tutor_id, author_id, price, class_level_id, max_learners, started_at, ended_at, address_id) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO classes (title, description, major_id, tutor_id, author_id, price, class_level_id, max_learners, started_at, ended_at, address_id, class_creation_fee) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
     `;
 
     SMySQL.getConnection((connection) => {
@@ -1434,8 +1434,8 @@ GROUP BY parent_children.id;
     if (!max_learners) max_learners = 1;
 
     const classSql = `
-      INSERT INTO classes (title, description, major_id, tutor_id, author_id, price, class_level_id, started_at, ended_at, max_learners, address_id) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO classes (title, description, major_id, tutor_id, author_id, price, class_level_id, started_at, ended_at, max_learners, address_id, class_creation_fee) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
     `;
 
     SMySQL.getConnection((connection) => {
