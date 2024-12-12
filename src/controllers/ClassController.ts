@@ -440,7 +440,7 @@ export default class ClassController {
           ended_at,
           max_learners,
           addressId,
-          lessons,
+          fullLessons,
           userIds,
           (result: boolean, insertId?: number) => {
             if (result) {
