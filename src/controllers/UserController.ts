@@ -270,8 +270,8 @@ export default class UserController {
             return;
           }
 
-          user.id = parent.id + "|c:" + quantity;
-          user.phone_number = parent.phone_number + "|c:" + quantity;
+          user.id = parent.id + "-c" + quantity;
+          user.phone_number = parent.phone_number + "-c" + quantity;
           user.parent = parent;
 
           //check request code
