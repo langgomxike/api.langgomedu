@@ -5,6 +5,7 @@ import User from '../../models/User';
 import SMySQL from '../SMySQL';
 import SMessage from "../SMessage";
 import SLog, {LogType} from "../SLog";
+import SFirebase, { FirebaseNode } from '../SFirebase';
 
 const classJsonSql = `
 JSON_OBJECT(
@@ -16,6 +17,10 @@ JSON_OBJECT(
         'max_learners', classes.max_learners,
         'started_at', classes.started_at,
         'ended_at', classes.ended_at,
+        'paid', classes.paid,
+        'paid_path', classes.paid_path,
+        'admin_accepted', classes.admin_accepted,
+       	'author_accepted', classes.author_accepted,
         'created_at', classes.created_at,
         'updated_at', classes.updated_at,
         'address', JSON_OBJECT (
@@ -80,7 +85,7 @@ export default class SClassAdmin {
         break;
       }
       case TAB.PENDING_PAY : {
-        additionalCondition = "AND classes.admin_accepted = 1 AND classes.paid IS NULL";
+        additionalCondition = "AND classes.admin_accepted = 1  AND classes.paid IS NULL";
         break;
       }
       default: {
@@ -232,16 +237,18 @@ export default class SClassAdmin {
                             ) as author
                      FROM classes
                      WHERE id = ?`;
-        connection?.execute<any[]>(sql, [class_id], (error, result) => {
-          const _class: Class | undefined = result.length > 0 && (result[0] as Class ?? undefined);
+        connection?.execute<any[]>(sql, [class_id], async (error, result) => {
+          const _class: Class | undefined | false = result.length > 0 && (result[0] as Class ?? undefined);
           if (_class) {
             const enNoti = `Your class [${_class.title}] has been approved by the admin.`;
             const vnNoti = `Lớp học của bạn [${_class.title}] đã được duyệt bởi quản trị viên.`;
             const jaNoti = `あなたのクラス「${_class.title}」が管理者によって承認されました。`;
 
-            SMessage.createNotification(vnNoti, enNoti, jaNoti, _class?.author?.id ?? "-1", () => {
+            await SMessage.createNotification(vnNoti, enNoti, jaNoti, _class?.author?.id ?? "-1", () => {
+            })
+
+            SFirebase.push(FirebaseNode.Classes, [{key: FirebaseNode.Id, value: class_id}], () => {
               onNext(true, "Admin approve class success!");
-              return;
             })
           } else {
             onNext(true, "Admin approve class success!");
@@ -265,11 +272,77 @@ export default class SClassAdmin {
           onNext(false, "Approve payment by admin failed");
           return;
         }
+        const sql = `SELECT *,
+                            JSON_OBJECT(
+                                    'id', classes.author_id
+                            ) as author
+                     FROM classes
+                     WHERE id = ?`;
+        connection?.execute<any[]>(sql, [class_id], async (error, result) => {
+          const _class: Class | undefined | false = result.length > 0 && (result[0] as Class ?? undefined);
+          if (_class) {
+            const enNoti = `The admin has confirmed the payment for the creation fee of your class [${_class.title}].`;
+            const vnNoti = `Quản trị viên đã xác nhận thanh toán phí tạo lớp của bạn [${_class.title}].`;
+            const jaNoti = `管理者があなたのクラス「${_class.title}」の作成料金の支払いを確認しました。`;
 
-        onNext(true, "Approve payment by admin success!");
+            await SMessage.createNotification(vnNoti, enNoti, jaNoti, _class?.author?.id ?? "-1", () => {
+            })
+
+            SFirebase.push(FirebaseNode.Classes, [{key: FirebaseNode.Id, value: class_id}], () => {
+              onNext(true, "Admin approve class success!");
+            })
+          } else {
+            onNext(false, "Admin approve class fail!");
+          }
+        });
+
       });
     });
   }
+
+  // Từ chối xác nhận thanh toán
+  public static async denyPaymentByAdmin(classData: Class, onNext: (result: boolean, message: string) => void) {
+    //noti for author
+    const enAuthorNoti = `We regret to inform you that we cannot confirm the payment for the class [${classData.title}] as the amount received does not match the required amount.`;
+    const vnAuthorNoti = `Chúng tôi rất tiếc không thể xác nhận thanh toán phí của lớp học [${classData.title}] vì số tiền nhận được không khớp với số tiền yêu cầu.`;
+    const jaAuthorNoti = `クラス「${classData.title}」の支払い金額が必要な金額と一致しないため、確認することができません。`;    
+
+
+    const recipientId =  classData.tutor?.id === classData.author?.id 
+        ? classData.author?.id // Gửi cho author nếu tutor là author
+        : classData.tutor?.id; // Gửi cho tutor nếu tutor khác author
+
+        if (recipientId) {
+          await SMessage.createNotification(vnAuthorNoti, enAuthorNoti, jaAuthorNoti, recipientId, () => {
+              onNext(true, "Send success message");
+              console.log("Đã gửi thông báo nhắc nhở thành công.");
+          });
+      } else {
+          onNext(false, "Recipient not found");
+          console.log("Không tìm thấy người nhận thông báo.");
+    }
+  }
+
+  public static async remindPaymentByAdmin(classData: Class, onNext: (result: boolean, message: string) => void) {
+    // Notification for author
+    const enAuthorNoti = `You have not paid the class creation fee for [${classData.title}]. Please proceed with the payment.`;
+    const vnAuthorNoti = `Bạn chưa thanh toán phí tạo lớp cho lớp học [${classData.title}]. Vui lòng thanh toán phí tạo lớp.`;
+    const jaAuthorNoti = `クラス「${classData.title}」の作成料金がまだ支払われていません。お支払いをお願いいたします。`;
+
+    const recipientId =  classData.tutor?.id === classData.author?.id 
+    ? classData.author?.id // Gửi cho author nếu tutor là author
+    : classData.tutor?.id; // Gửi cho tutor nếu tutor khác author
+
+    if (recipientId) {
+      await SMessage.createNotification(vnAuthorNoti, enAuthorNoti, jaAuthorNoti, recipientId, () => {
+          onNext(true, "Send success message");
+          console.log("Đã gửi thông báo nhắc nhở thành công.");
+      });
+  } else {
+      onNext(false, "Recipient not found");
+      console.log("Không tìm thấy người nhận thông báo.");
+}
+}
 
   public static deleteClass(id: number, onNext: (result: boolean) => void) {
     const sqlDeteleClass = "DELETE FROM classes WHERE id =?;";
@@ -293,7 +366,7 @@ export default class SClassAdmin {
 
     SMySQL.getConnection((connection) => {
       connection?.execute<any[]>(sqlFindClass, [id], (error, result) => {
-        const _class: Class | undefined = result.length > 0 && (result[0] as Class ?? undefined);
+        const _class: Class | undefined | false = result.length > 0 && (result[0] as Class ?? undefined);
         if (_class) {
 
           //delete all tables taht have relations to class

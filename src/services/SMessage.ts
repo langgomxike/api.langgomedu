@@ -127,7 +127,7 @@ export default class SMessage {
         }
 
         const inboxes: Inbox[] = results as Inbox[] ?? [];
-        SLog.log(LogType.Info, "getAllMessages", "get all inboxes successfully", inboxes.length);
+        // SLog.log(LogType.Info, "getAllMessages", "get all inboxes successfully", inboxes.length);
 
         onNext(inboxes);
       });
@@ -136,36 +136,36 @@ export default class SMessage {
 
   public static getGroupInboxes(userId: string, onNext: (inboxes: ClassInbox[]) => void) {
     const sql = `SELECT JSON_OBJECT(
-                                         'id', c.id,
-                                         'title', c.title,
-                                         'tutor_id', c.tutor_id,
-                                         'major', JSON_OBJECT(
-                                                 'icon', majors.icon
-                                                  )
-                                 ) AS in_class,
-                                 JSON_OBJECT(
-                                         'id', m.id,
-                                         'content', m.content,
-                                         'created_at', m.created_at,
-                                         'as_read', m.as_read,
-                                         'sender', JSON_OBJECT(
-                                                 'id', users.id
-                                                   )
-                                 ) AS newest_message
-                 FROM classes c
-                          LEFT JOIN majors ON c.major_id = majors.id
-                          INNER JOIN class_members ON class_members.user_id = ? AND class_members.class_id = c.id
-                          LEFT JOIN
-                      messages m ON m.id = (SELECT id
-                                            FROM messages
-                                            WHERE class_id = c.id
-                                            ORDER BY created_at DESC
-                     LIMIT 1
-                     )
-                     LEFT JOIN users
-                 ON m.sender_id = users.id OR users.id = c.tutor_id
-                 GROUP BY c.id
-                 ORDER BY m.created_at DESC`;
+      'id', c.id,
+      'title', c.title,
+      'tutor_id', c.tutor_id,
+      'major', JSON_OBJECT(
+              'icon', majors.icon
+               )
+      ) AS in_class,
+      JSON_OBJECT(
+            'id', m.id,
+            'content', m.content,
+            'created_at', m.created_at,
+            'as_read', m.as_read,
+            'sender', JSON_OBJECT(
+                    'id', users.id
+                      )
+      ) AS newest_message
+      FROM classes c
+      LEFT JOIN majors ON c.major_id = majors.id
+      INNER JOIN class_members ON class_members.user_id = ? AND class_members.class_id = c.id
+      LEFT JOIN
+      messages m ON m.id = (SELECT id
+              FROM messages
+              WHERE class_id = c.id
+              ORDER BY created_at DESC
+      LIMIT 1
+      )
+      LEFT JOIN users
+      ON m.sender_id = users.id OR users.id = c.tutor_id
+      GROUP BY c.id
+      ORDER BY m.created_at DESC`;
 
     SMySQL.getConnection(connection => {
       connection?.execute<any[]>(sql, [userId], (error, results) => {

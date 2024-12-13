@@ -266,7 +266,7 @@ export default class SClass {
                                                   GROUP BY lessons.day
                                                   ORDER BY lessons.day ASC) l),
                         'total_lessons', (SELECT COUNT(*) FROM lessons WHERE lessons.class_id = c.id),
-                        'is_rating', IFNULL(ratings.id, false)
+                        'is_rating', CASE WHEN ratings.id IS NOT NULL THEN true ELSE false END
                         ) as class
                  FROM classes c
                           LEFT JOIN users tutor ON tutor.id = c.tutor_id
@@ -705,7 +705,7 @@ GROUP BY parent_children.id;
     // Xác định điều kiện WHERE theo userType
     const condition =
       userType === UserType.TUTOR
-        ? `classes.tutor_id IS NULL AND classes.author_id != ? AND class_members.user_id IS NULL AND classes.started_at >= ${currentDate}`
+        ? `classes.tutor_id IS NULL AND classes.author_id != ? AND class_members.user_id IS NULL AND classes.paid = 1 AND classes.started_at >= ${currentDate}`
         : `classes.author_id = classes.tutor_id AND classes.tutor_id != ? AND classes.author_id != ? AND class_members.user_id IS NULL AND classes.started_at >= ${currentDate}`;
 
     // Tạo các điều kiện lọc động
@@ -774,7 +774,7 @@ GROUP BY parent_children.id;
       LEFT JOIN addresses ON addresses.id = classes.address_id
       LEFT JOIN lessons ON lessons.class_id = classes.id
       LEFT JOIN class_members ON class_members.class_id = classes.id AND class_members.user_id = ?
-      WHERE classes.admin_accepted = 1 AND classes.paid = 1  AND  ${condition} ${filterConditions}
+      WHERE classes.admin_accepted = 1 AND  ${condition} ${filterConditions}
       GROUP BY classes.id
     ),
     RandomClasses AS (
@@ -790,7 +790,7 @@ GROUP BY parent_children.id;
       LEFT JOIN lessons ON lessons.class_id = classes.id
       LEFT JOIN class_members ON class_members.class_id = classes.id AND class_members.user_id = ?
       LEFT JOIN SuggestedClasses sc ON classes.id = sc.class_id 
-      WHERE classes.admin_accepted = 1 AND classes.paid = 1  AND ${condition} 
+      WHERE classes.admin_accepted = 1 AND ${condition} 
       AND sc.class_id IS NULL
       GROUP BY classes.id
     ),
@@ -1306,13 +1306,14 @@ GROUP BY parent_children.id;
     price: number,
     started_at: number,
     ended_at: number,
+    created_at: number,
     address_id: number,
     lessons: Lesson[], // Nhận danh sách đầy đủ các bài học
     onNext: (result: boolean, insertId?: number) => void
   ) {
     const classSql = `
-      INSERT INTO classes (title, description, major_id, tutor_id, author_id, price, class_level_id, max_learners, started_at, ended_at, address_id, class_creation_fee) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+      INSERT INTO classes (title, description, major_id, tutor_id, author_id, price, class_level_id, max_learners, started_at, ended_at, created_at, author_accepted, address_id, class_creation_fee) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, 0)
     `;
 
     SMySQL.getConnection((connection) => {
@@ -1342,6 +1343,7 @@ GROUP BY parent_children.id;
             max_learners,
             started_at,
             ended_at,
+            created_at = new Date().getTime(),
             address_id,
           ],
           (classErr, classResult) => {
@@ -1366,7 +1368,7 @@ GROUP BY parent_children.id;
                 } else {
                   console.log("Tạo lớp học thành công, không có bài học.");
                   SFirebase.push(FirebaseNode.Classes, [{
-                    key: FirebaseNode.Classes,
+                    key: FirebaseNode.Id,
                     value: classId
                   }], () => {
                     onNext(true, classId);
@@ -1424,6 +1426,7 @@ GROUP BY parent_children.id;
     price: number,
     started_at: number,
     ended_at: number,
+    created_at: number,
     max_learners: number | 1,
     address_id: number,
     lessons: Lesson[],
@@ -1434,8 +1437,8 @@ GROUP BY parent_children.id;
     if (!max_learners) max_learners = 1;
 
     const classSql = `
-      INSERT INTO classes (title, description, major_id, tutor_id, author_id, price, class_level_id, started_at, ended_at, max_learners, address_id, class_creation_fee) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+      INSERT INTO classes (title, description, major_id, tutor_id, author_id, price, class_level_id, started_at, ended_at, created_at, max_learners, address_id, class_creation_fee, author_accepted) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)
     `;
 
     SMySQL.getConnection((connection) => {
@@ -1464,6 +1467,7 @@ GROUP BY parent_children.id;
             class_level_id,
             started_at,
             ended_at,
+            created_at = new Date().getTime(),
             max_learners,
             address_id,
           ],
