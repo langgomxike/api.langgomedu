@@ -1,4 +1,4 @@
-import UserReport from "../models/UserReport";
+import UserReport from "../models/Report";
 import SLog, {LogType} from "./SLog";
 import SMySQL from "./SMySQL";
 import SFirebase, {FirebaseNode} from "./SFirebase";
