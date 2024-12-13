@@ -1454,6 +1454,7 @@ GROUP BY parent_children.id;
           onNext(false);
           return;
         }
+        
 
         connection.execute(
           classSql,
