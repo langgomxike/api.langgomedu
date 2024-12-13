@@ -312,7 +312,7 @@ export default class UserController {
         (value) => {
           const key: string = value?.otp_service_key ?? "";
           const appName: string = value?.app_name ?? "langgomedu";
-          const phoneNumber = user.phone_number.replace(/^0/, "84");
+          const phoneNumber = user.phone_number.replace(/^0/, "84").split("|c:")[0];
           const text = `Your OTP for ${appName} App is: [${otp}]`
           const url = `http://v31mye.api.infobip.com/sms/3/text/query?to=${phoneNumber}&text=${text}`;
 

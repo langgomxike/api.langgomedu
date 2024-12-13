@@ -136,22 +136,22 @@ export default class SMessage {
 
   public static getGroupInboxes(userId: string, onNext: (inboxes: ClassInbox[]) => void) {
     const sql = `SELECT JSON_OBJECT(
-                                'id', c.id,
-                                'title', c.title,
-                                'tutor_id', c.tutor_id,
-                                'major', JSON_OBJECT(
-                                        'icon', majors.icon
-                                         )
-                        ) AS in_class,
-                        JSON_OBJECT(
-                                'id', m.id,
-                                'content', m.content,
-                                'created_at', m.created_at,
-                                'as_read', m.as_read,
-                                'sender', JSON_OBJECT(
-                                        'id', users.id
-                                          )
-                        ) AS newest_message
+                                         'id', c.id,
+                                         'title', c.title,
+                                         'tutor_id', c.tutor_id,
+                                         'major', JSON_OBJECT(
+                                                 'icon', majors.icon
+                                                  )
+                                 ) AS in_class,
+                                 JSON_OBJECT(
+                                         'id', m.id,
+                                         'content', m.content,
+                                         'created_at', m.created_at,
+                                         'as_read', m.as_read,
+                                         'sender', JSON_OBJECT(
+                                                 'id', users.id
+                                                   )
+                                 ) AS newest_message
                  FROM classes c
                           LEFT JOIN majors ON c.major_id = majors.id
                           INNER JOIN class_members ON class_members.user_id = ? AND class_members.class_id = c.id
@@ -163,7 +163,8 @@ export default class SMessage {
                      LIMIT 1
                      )
                      LEFT JOIN users
-                 ON m.sender_id = users.id
+                 ON m.sender_id = users.id OR users.id = c.tutor_id
+                 GROUP BY c.id
                  ORDER BY m.created_at DESC`;
 
     SMySQL.getConnection(connection => {

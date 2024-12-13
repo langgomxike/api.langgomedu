@@ -1,3 +1,4 @@
+// @ts-ignore
 import express, {Request} from "express";
 import SAttendance from "../services/SAttendance";
 import SResponse, {ResponseStatus} from "../services/SResponse";
