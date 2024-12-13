@@ -513,7 +513,7 @@ GROUP BY parent_children.id;
     const condition =
       userType === UserType.TUTOR
         ? `classes.tutor_id IS NULL AND classes.author_id != ? AND class_members.user_id IS NULL`
-        : `classes.author_id != ? AND  classes.tutor_id IS NULL AND class_members.user_id IS NULL`;
+        : `classes.author_id = classes.tutor_id AND classes.tutor_id != ? AND classes.author_id != ? AND classes.paid = 1  AND class_members.user_id IS NULL`;
 
     // Tạo các điều kiện lọc động
     // Tạo các điều kiện lọc động
@@ -603,7 +603,7 @@ GROUP BY parent_children.id;
         orderBy = "ORDER BY classes.started_at DESC";
         break;
       default:
-        orderBy = "ORDER BY classes.title ASC"; // Mặc định nếu không khớp
+        orderBy = "ORDER BY classes.started_at DESC, classes.updated_at DESC , classes.title ASC"; // Mặc định nếu không khớp
     }
 
     // SQL query to fetch class information, including tutor, major, and class level details
@@ -618,7 +618,7 @@ GROUP BY parent_children.id;
       LEFT JOIN addresses ON addresses.id = classes.address_id
       LEFT JOIN lessons ON lessons.class_id = classes.id
       LEFT JOIN class_members ON class_members.class_id = classes.id AND class_members.user_id = ?
-      WHERE classes.admin_accepted = 1 AND classes.paid = 1 AND ${condition} ${filterConditions}
+      WHERE classes.admin_accepted = 1 AND ${condition} ${filterConditions}
       GROUP BY classes.id
       ${orderBy}
       LIMIT ${perPage} OFFSET ${(page - 1) * perPage};
@@ -634,12 +634,12 @@ GROUP BY parent_children.id;
     LEFT JOIN addresses ON addresses.id = classes.address_id
     LEFT JOIN lessons ON lessons.class_id = classes.id
     LEFT JOIN class_members ON class_members.class_id = classes.id AND class_members.user_id = ?
-    WHERE classes.admin_accepted = 1 AND classes.paid = 1 AND ${condition} ${filterConditions}
+    WHERE classes.admin_accepted = 1 AND ${condition} ${filterConditions}
   `;
 
     // Thay thế các giá trị điều kiện theo userType và các filter
     const params = [
-      ...(userType === UserType.TUTOR ? [userId, userId] : [userId, userId]),
+      ...(userType === UserType.TUTOR ? [userId, userId] : [userId, userId, userId]),
       filter.minPrice,
       filter.maxPrice,
       ...queryParamsAddress,
@@ -648,7 +648,7 @@ GROUP BY parent_children.id;
       filter.maxLearners,
     ].filter((param) => param !== undefined);
 
-    console.log(mysql.format(sql, params));
+    // console.log(mysql.format(sql, params));
     // console.log(params);
 
     // Get a database connection
@@ -705,8 +705,8 @@ GROUP BY parent_children.id;
     // Xác định điều kiện WHERE theo userType
     const condition =
       userType === UserType.TUTOR
-        ? `classes.tutor_id IS NULL AND classes.author_id != ? AND class_members.user_id IS NULL AND classes.paid = 1 AND classes.started_at >= ${currentDate}`
-        : `classes.author_id = classes.tutor_id AND classes.tutor_id != ? AND classes.author_id != ? AND class_members.user_id IS NULL AND classes.started_at >= ${currentDate}`;
+        ? `classes.tutor_id IS NULL AND classes.author_id != ? AND class_members.user_id IS NULL AND classes.started_at >= ${currentDate}`
+        : `classes.author_id = classes.tutor_id AND classes.tutor_id != ? AND classes.author_id != ? AND class_members.user_id IS NULL AND classes.started_at >= ${currentDate} AND classes.paid = 1`;
 
     // Tạo các điều kiện lọc động
     let filterConditions = "";
@@ -805,7 +805,6 @@ GROUP BY parent_children.id;
     (SELECT COUNT(*) FROM CombinedClasses) AS totalCount,
     CombinedClasses.*
     FROM CombinedClasses
-
     LIMIT ${perPage} OFFSET ${(page - 1) * perPage};
   `;
 
@@ -857,7 +856,7 @@ GROUP BY parent_children.id;
   }
 
   // Lấy danh sách  lớp học liên quan
-  public static getRelatedClasses(
+  public static getnpRelatedClasses(
     major_id: number | undefined,
     class_id: number,
     onNext: (classes: Class[]) => void
@@ -1312,8 +1311,8 @@ GROUP BY parent_children.id;
     onNext: (result: boolean, insertId?: number) => void
   ) {
     const classSql = `
-      INSERT INTO classes (title, description, major_id, tutor_id, author_id, price, class_level_id, max_learners, started_at, ended_at, created_at, author_accepted, address_id, class_creation_fee) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, 0)
+      INSERT INTO classes (title, description, major_id, tutor_id, author_id, price, class_level_id, max_learners, started_at, ended_at, created_at, updated_at ,author_accepted, address_id, class_creation_fee) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, 0)
     `;
 
     SMySQL.getConnection((connection) => {
@@ -1344,6 +1343,7 @@ GROUP BY parent_children.id;
             started_at,
             ended_at,
             created_at = new Date().getTime(),
+            new Date().getTime(),
             address_id,
           ],
           (classErr, classResult) => {
@@ -1437,8 +1437,8 @@ GROUP BY parent_children.id;
     if (!max_learners) max_learners = 1;
 
     const classSql = `
-      INSERT INTO classes (title, description, major_id, tutor_id, author_id, price, class_level_id, started_at, ended_at, created_at, max_learners, address_id, class_creation_fee, author_accepted) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)
+      INSERT INTO classes (title, description, major_id, author_id, price, class_level_id, started_at, ended_at, created_at, updated_at ,max_learners, address_id, class_creation_fee) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
     `;
 
     SMySQL.getConnection((connection) => {
@@ -1461,13 +1461,13 @@ GROUP BY parent_children.id;
             title,
             description,
             major_id,
-            tutor_id,
             author_id,
             price,
             class_level_id,
             started_at,
             ended_at,
-            created_at = new Date().getTime(),
+            new Date().getTime(),
+            new Date().getTime(),
             max_learners,
             address_id,
           ],
