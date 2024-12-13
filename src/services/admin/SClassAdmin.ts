@@ -5,6 +5,7 @@ import User from '../../models/User';
 import SMySQL from '../SMySQL';
 import SMessage from "../SMessage";
 import SLog, {LogType} from "../SLog";
+import SFirebase, { FirebaseNode } from '../SFirebase';
 
 const classJsonSql = `
 JSON_OBJECT(
@@ -236,16 +237,18 @@ export default class SClassAdmin {
                             ) as author
                      FROM classes
                      WHERE id = ?`;
-        connection?.execute<any[]>(sql, [class_id], (error, result) => {
-          const _class: Class | undefined = result.length > 0 && (result[0] as Class ?? undefined);
+        connection?.execute<any[]>(sql, [class_id], async (error, result) => {
+          const _class: Class | undefined | false = result.length > 0 && (result[0] as Class ?? undefined);
           if (_class) {
             const enNoti = `Your class [${_class.title}] has been approved by the admin.`;
             const vnNoti = `Lớp học của bạn [${_class.title}] đã được duyệt bởi quản trị viên.`;
             const jaNoti = `あなたのクラス「${_class.title}」が管理者によって承認されました。`;
 
-            SMessage.createNotification(vnNoti, enNoti, jaNoti, _class?.author?.id ?? "-1", () => {
+            await SMessage.createNotification(vnNoti, enNoti, jaNoti, _class?.author?.id ?? "-1", () => {
+            })
+
+            SFirebase.push(FirebaseNode.Classes, [{key: FirebaseNode.Id, value: class_id}], () => {
               onNext(true, "Admin approve class success!");
-              return;
             })
           } else {
             onNext(true, "Admin approve class success!");
@@ -269,8 +272,30 @@ export default class SClassAdmin {
           onNext(false, "Approve payment by admin failed");
           return;
         }
+        const sql = `SELECT *,
+                            JSON_OBJECT(
+                                    'id', classes.author_id
+                            ) as author
+                     FROM classes
+                     WHERE id = ?`;
+        connection?.execute<any[]>(sql, [class_id], async (error, result) => {
+          const _class: Class | undefined | false = result.length > 0 && (result[0] as Class ?? undefined);
+          if (_class) {
+            const enNoti = `The admin has confirmed the payment for the creation fee of your class [${_class.title}].`;
+            const vnNoti = `Quản trị viên đã xác nhận thanh toán phí tạo lớp của bạn [${_class.title}].`;
+            const jaNoti = `管理者があなたのクラス「${_class.title}」の作成料金の支払いを確認しました。`;
 
-        onNext(true, "Approve payment by admin success!");
+            await SMessage.createNotification(vnNoti, enNoti, jaNoti, _class?.author?.id ?? "-1", () => {
+            })
+
+            SFirebase.push(FirebaseNode.Classes, [{key: FirebaseNode.Id, value: class_id}], () => {
+              onNext(true, "Admin approve class success!");
+            })
+          } else {
+            onNext(false, "Admin approve class fail!");
+          }
+        });
+
       });
     });
   }
@@ -341,7 +366,7 @@ export default class SClassAdmin {
 
     SMySQL.getConnection((connection) => {
       connection?.execute<any[]>(sqlFindClass, [id], (error, result) => {
-        const _class: Class | undefined = result.length > 0 && (result[0] as Class ?? undefined);
+        const _class: Class | undefined | false = result.length > 0 && (result[0] as Class ?? undefined);
         if (_class) {
 
           //delete all tables taht have relations to class

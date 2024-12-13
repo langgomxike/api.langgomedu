@@ -266,7 +266,7 @@ export default class SClass {
                                                   GROUP BY lessons.day
                                                   ORDER BY lessons.day ASC) l),
                         'total_lessons', (SELECT COUNT(*) FROM lessons WHERE lessons.class_id = c.id),
-                        'is_rating', IFNULL(ratings.id, false)
+                        'is_rating', CASE WHEN ratings.id IS NOT NULL THEN true ELSE false END
                         ) as class
                  FROM classes c
                           LEFT JOIN users tutor ON tutor.id = c.tutor_id
@@ -1368,7 +1368,7 @@ GROUP BY parent_children.id;
                 } else {
                   console.log("Tạo lớp học thành công, không có bài học.");
                   SFirebase.push(FirebaseNode.Classes, [{
-                    key: FirebaseNode.Classes,
+                    key: FirebaseNode.Id,
                     value: classId
                   }], () => {
                     onNext(true, classId);
